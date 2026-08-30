@@ -25,7 +25,13 @@ public partial class ОкноЧата : Window
 
     private readonly ChatService chat = new();
 
-    private Guid мойId = Guid.Empty;
+    // "Кем" является это окно в диалоге.
+    // По умолчанию Guid.Empty — так работает окно
+    // со стороны администратора (не менялось).
+    // Окно игрока перед вызовом УстановитьЛичныйЧат
+    // должно установить сюда Id своего аккаунта.
+    public Guid МойId { get; set; } = Guid.Empty;
+
     private Guid собеседникId;
     private string имяСобеседника = "";
     private bool личныйЧат;
@@ -59,25 +65,25 @@ public partial class ОкноЧата : Window
 
         ОчиститьИсторию();
 
-        foreach (var msg in chat.Get(мойId, собеседникId))
+        foreach (var msg in chat.Get(МойId, собеседникId))
         {
             ДобавитьСообщение(
                 new ЗаписьЧата
                 {
                     Имя =
-                        msg.From == мойId
+                        msg.From == МойId
                             ? ИмяАдминистратора
                             : имяСобеседника,
 
                     Текст = msg.Text,
                     Время = msg.Time,
-                    ОтАдминистратора = msg.From == мойId,
+                    ОтАдминистратора = msg.From == МойId,
                     АккаунтGuid = собеседникId,
                     Прочитано = true
                 });
         }
 
-        chat.MarkRead(мойId, собеседникId);
+        chat.MarkRead(МойId, собеседникId);
 
         ChatLiveEvents.MessageReceived -= ПолученоЛичноеСообщение;
         ChatLiveEvents.MessageReceived += ПолученоЛичноеСообщение;
@@ -192,8 +198,8 @@ public partial class ОкноЧата : Window
     private void ПолученоЛичноеСообщение(
         ChatMessage msg)
     {
-        if ((msg.From != собеседникId || msg.To != мойId) &&
-            (msg.From != мойId || msg.To != собеседникId))
+        if ((msg.From != собеседникId || msg.To != МойId) &&
+            (msg.From != МойId || msg.To != собеседникId))
         {
             return;
         }
@@ -204,18 +210,18 @@ public partial class ОкноЧата : Window
                 new ЗаписьЧата
                 {
                     Имя =
-                        msg.From == мойId
+                        msg.From == МойId
                             ? ИмяАдминистратора
                             : имяСобеседника,
 
                     Текст = msg.Text,
                     Время = msg.Time,
-                    ОтАдминистратора = msg.From == мойId,
+                    ОтАдминистратора = msg.From == МойId,
                     АккаунтGuid = собеседникId,
                     Прочитано = true
                 });
 
-            chat.MarkRead(мойId, собеседникId);
+            chat.MarkRead(МойId, собеседникId);
         });
     }
 
@@ -237,7 +243,7 @@ public partial class ОкноЧата : Window
         {
             // Сообщение само появится через ChatLiveEvents.
             chat.Send(
-                мойId,
+                МойId,
                 собеседникId,
                 текст);
         }

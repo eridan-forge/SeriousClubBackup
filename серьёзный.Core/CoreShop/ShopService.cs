@@ -67,22 +67,15 @@ public class ShopService
         }
     }
 
-    public ShopCategory CreateCategory(string name)
+    public void AddCategory(ShopCategory category)
     {
         var list = GetCategories();
 
-        var category =
-            new ShopCategory
-            {
-                Name = name,
-                Order = list.Count
-            };
+        category.Order = list.Count;
 
         list.Add(category);
 
         SaveCategories(list);
-
-        return category;
     }
 
     public void RenameCategory(Guid id, string name)
@@ -171,15 +164,13 @@ public class ShopService
         }
     }
 
-    public ShopItem CreateItem(ShopItem item)
+    public void AddItem(ShopItem item)
     {
         var list = GetItems();
 
         list.Add(item);
 
         SaveItems(list);
-
-        return item;
     }
 
     public void UpdateItem(ShopItem item)
@@ -221,6 +212,28 @@ public class ShopService
             JsonSerializer.Serialize(list, json));
 
         ShopSyncService.Notify();
+    }
+
+    public List<ShopItem> GetItemsByCategory(Guid categoryId)
+    {
+        return GetItems()
+            .Where(x =>
+                x.CategoryId == categoryId &&
+                !x.Hidden)
+            .ToList();
+    }
+
+    public List<ShopItem> GetVisibleItems()
+    {
+        return GetItems()
+            .Where(x => !x.Hidden)
+            .ToList();
+    }
+
+    public IEnumerable<ShopItem> GetItems(Guid categoryId)
+    {
+        return GetItems()
+            .Where(x => x.CategoryId == categoryId);
     }
 
     // =========================
@@ -277,22 +290,6 @@ public class ShopService
         ShopSyncService.Notify();
     }
 
-    public List<ShopItem> GetItemsByCategory(Guid categoryId)
-    {
-        return GetItems()
-            .Where(x =>
-                x.CategoryId == categoryId &&
-                !x.Hidden)
-            .ToList();
-    }
-
-    public List<ShopItem> GetVisibleItems()
-    {
-        return GetItems()
-            .Where(x => !x.Hidden)
-            .ToList();
-    }
-
     public ShopOrder CreateOrder(
         Guid itemId,
         Guid playerId,
@@ -327,30 +324,4 @@ public class ShopService
 
         return order;
     }
-
-    public void AddCategory(ShopCategory category)
-    {
-        var list = GetCategories().ToList();
-
-        list.Add(category);
-
-        SaveCategories(list);
-    }
-
-    public void AddItem(ShopItem item)
-    {
-        var list = GetItems().ToList();
-
-        list.Add(item);
-
-        SaveItems(list);
-    }
-
-    public IEnumerable<ShopItem> GetItems(Guid categoryId)
-    {
-        return GetItems()
-            .Where(x => x.CategoryId == categoryId);
-    }
-
-
 }
