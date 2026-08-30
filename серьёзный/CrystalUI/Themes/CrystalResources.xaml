@@ -1,0 +1,60 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Базовые пустые значения.
+         Тема потом переопределит их теми же ключами. -->
+
+    <SolidColorBrush
+        x:Key="CrystalTextBrush"
+        Color="White"/>
+
+    <SolidColorBrush
+        x:Key="CrystalGlassBrush"
+        Color="#151018"/>
+
+    <SolidColorBrush
+        x:Key="CrystalBorderBrush"
+        Color="#39222D"/>
+
+    <SolidColorBrush
+        x:Key="CrystalBorderStrongBrush"
+        Color="#673047"/>
+
+    <SolidColorBrush
+        x:Key="CrystalAccentBrush"
+        Color="#A51E4D"/>
+
+    <SolidColorBrush
+        x:Key="CrystalAccent2Brush"
+        Color="#D73769"/>
+
+    <SolidColorBrush
+        x:Key="CrystalGlowBrush"
+        Color="#FF5B8C"/>
+
+    <SolidColorBrush
+        x:Key="CrystalTextSecondaryBrush"
+        Color="#C2B4BC"/>
+
+    <SolidColorBrush
+        x:Key="CrystalTextMutedBrush"
+        Color="#7E7078"/>
+
+    <SolidColorBrush
+        x:Key="CrystalBackgroundBrush"
+        Color="#060609"/>
+
+    <SolidColorBrush
+        x:Key="CrystalSurfaceBrush"
+        Color="#120D13"/>
+
+    <SolidColorBrush
+        x:Key="CrystalSurface2Brush"
+        Color="#181017"/>
+
+    <SolidColorBrush
+        x:Key="CrystalSurface3Brush"
+        Color="#21131D"/>
+
+</ResourceDictionary>

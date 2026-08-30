@@ -1,0 +1,41 @@
+﻿<Application
+    x:Class="серьёзный.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:Интерфейс="clr-namespace:серьёзный.Интерфейс"
+    StartupUri="MainWindow.xaml">
+
+    <Application.Resources>
+
+        <ResourceDictionary>
+
+            <ResourceDictionary.MergedDictionaries>
+
+                <!-- Базовые ключи -->
+                <ResourceDictionary
+                    Source="/серьёзный;component/CrystalUI/Themes/CrystalResources.xaml"/>
+
+                <!-- Активная тема -->
+                <ResourceDictionary
+                    Source="/серьёзный;component/CrystalUI/Themes/BordeauxTheme.xaml"/>
+
+                <!-- Стили -->
+                <ResourceDictionary
+                    Source="/серьёзный;component/CrystalUI/Styles/CrystalButton.xaml"/>
+
+                <ResourceDictionary
+                    Source="/серьёзный;component/CrystalUI/Styles/CrystalCard.xaml"/>
+
+                <ResourceDictionary
+                    Source="/серьёзный;component/CrystalUI/Styles/CrystalTextBox.xaml"/>
+
+            </ResourceDictionary.MergedDictionaries>
+
+            <Интерфейс:TrayIcon
+                x:Key="Tray"/>
+
+        </ResourceDictionary>
+
+    </Application.Resources>
+
+</Application>

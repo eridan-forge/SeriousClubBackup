@@ -1,0 +1,46 @@
+﻿<Window x:Class="серьёзный.Окна.ОкноВыбораПолучения"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Получение заказа"
+        Width="420"
+        Height="240"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#0F172A">
+
+    <Border Margin="18"
+            CornerRadius="18"
+            Background="#162132">
+
+        <Grid Margin="22">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="20"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="12"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0"
+                       Text="Как удобнее получить заказ?"
+                       FontSize="22"
+                       FontWeight="Bold"
+                       Foreground="White"
+                       TextWrapping="Wrap"/>
+
+            <Button Grid.Row="2"
+                    Height="46"
+                    Content="🧍 Подойду к администратору"
+                    Click="Подойти_Click"/>
+
+            <Button Grid.Row="4"
+                    Height="46"
+                    Content="🚶 Принесите к моему ПК"
+                    Click="Принести_Click"/>
+
+        </Grid>
+
+    </Border>
+
+</Window>

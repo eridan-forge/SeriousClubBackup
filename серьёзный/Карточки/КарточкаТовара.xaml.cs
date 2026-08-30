@@ -1,0 +1,91 @@
+﻿using System.IO;
+using System.Windows.Controls;
+using System.Windows.Media.Imaging;
+using серьёзный.Core.CoreEvents;
+using серьёзный.Core.CoreShop;
+using серьёзный.Core.CoreVideo;
+using серьёзный.Сервисы;
+using серьёзный.Окна;
+
+namespace серьёзный.Карточки;
+
+public partial class КарточкаТовара : UserControl
+{
+    private readonly ShopService shop =
+        new();
+
+    public ShopItem Item { get; }
+
+    public event Action<Guid>? DeleteRequested;
+
+    public КарточкаТовара(ShopItem item)
+    {
+        InitializeComponent();
+
+        Item = item;
+
+        Загрузить();
+
+        DragDropCoverService.Enable(
+            Обложка,
+            CoverDropped);
+
+        Сохранить.Click += (_, _) => Save();
+
+        Удалить.Click += (_, _) =>
+            DeleteRequested?.Invoke(Item.Id);
+    }
+
+    private void Загрузить()
+    {
+        Название.Text = Item.Name;
+        Цена.Text = Item.Price.ToString();
+        Остаток.Text = Item.Stock.ToString();
+
+        if (File.Exists(Item.Image))
+        {
+            Обложка.Source =
+                new BitmapImage(
+                    new Uri(Item.Image));
+        }
+    }
+
+    private void CoverDropped(string file)
+    {
+        var editor = new CoverEditorWindow(file);
+
+        if (editor.ShowDialog() != true)
+            return;
+
+        Item.Image =
+            ShopImageService.Save(file);
+
+        Обложка.Source =
+            new BitmapImage(
+                new Uri(Item.Image));
+
+        shop.UpdateItem(Item);
+
+        ShopChangedEvent.Notify();
+    }
+
+    private void Save()
+    {
+        Item.Name = Название.Text;
+
+        decimal.TryParse(
+            Цена.Text,
+            out var price);
+
+        int.TryParse(
+            Остаток.Text,
+            out var stock);
+
+        Item.Price = price;
+        Item.Stock = stock;
+
+        shop.UpdateItem(Item);
+
+        ShopChangedEvent.Notify();
+    }
+}

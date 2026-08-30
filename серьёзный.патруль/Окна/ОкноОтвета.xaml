@@ -1,0 +1,51 @@
+﻿<Window x:Class="серьёзный.Патруль.Окна.ОкноОтвета"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Ответ"
+        Width="420"
+        Height="240"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#1E293B">
+
+    <Border Margin="16"
+            CornerRadius="12"
+            Background="#334155"
+            Padding="16">
+
+        <Grid>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0"
+                       Text="Ваш ответ"
+                       FontSize="18"
+                       FontWeight="Bold"
+                       Foreground="White"/>
+
+            <TextBox x:Name="Поле"
+                     Grid.Row="1"
+                     Margin="0,14,0,14"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     Background="#475569"
+                     Foreground="White"
+                     BorderBrush="#64748B"/>
+
+            <Button Grid.Row="2"
+                    Width="120"
+                    Height="36"
+                    HorizontalAlignment="Right"
+                    Content="Отправить"
+                    Click="Отправить_Click"/>
+
+        </Grid>
+
+    </Border>
+
+</Window>

@@ -1,0 +1,97 @@
+﻿<Window x:Class="серьёзный.Окна.ОкноАккаунты008"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Аккаунты"
+        Width="900"
+        Height="600"
+        WindowStartupLocation="CenterOwner"
+        Background="#0F172A">
+
+    <Grid Margin="16">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal">
+
+            <TextBox x:Name="ПолеПоиска"
+                     Width="260"
+                     Height="34"
+                     VerticalContentAlignment="Center"
+                     Background="#1E293B"
+                     Foreground="White"
+                     BorderBrush="#334155"
+                     CaretBrush="White"
+                     Padding="8,0"
+                     TextChanged="Поиск_TextChanged"/>
+
+            <Button Content="➕ Новый аккаунт"
+                    Width="170"
+                    Height="34"
+                    Margin="10,0,0,0"
+                    Click="Создать_Click"/>
+
+            <!-- НОВАЯ КНОПКА -->
+            <Button Content="💬 Написать"
+                    Width="130"
+                    Height="34"
+                    Margin="10,0,0,0"
+                    Click="Написать_Click"/>
+
+        </StackPanel>
+
+        <DataGrid x:Name="Таблица"
+                  Grid.Row="1"
+                  Margin="0,16,0,0"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  HeadersVisibility="Column"
+                  Background="#1E293B"
+                  Foreground="White"
+                  BorderThickness="0"
+                  GridLinesVisibility="Horizontal"
+                  MouseDoubleClick="ОткрытьАккаунт">
+
+            <DataGrid.Columns>
+
+                <DataGridTextColumn Header="Имя"
+                                    Width="220"
+                                    Binding="{Binding Имя}"/>
+
+                <DataGridTextColumn Header="Осталось"
+                                    Width="120"
+                                    Binding="{Binding ОсталосьСтрокой}"/>
+
+                <DataGridTextColumn Header="Сыграно"
+                                    Width="140"
+                                    Binding="{Binding ВсегоСыграно}"/>
+
+                <DataGridTextColumn Header="Сеансов"
+                                    Width="100"
+                                    Binding="{Binding ВсегоСеансов}"/>
+
+                <DataGridTextColumn Header="Последний сеанс"
+                    Width="*"
+                    Binding="{Binding ПоследнийСеанс}"/>
+
+                <DataGridTemplateColumn Header="Чат" Width="90">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="💬"
+                    Width="40"
+                    Height="30"
+                    Tag="{Binding}"
+                    Click="ОткрытьЧат_Click"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+            </DataGrid.Columns>
+
+        </DataGrid>
+
+    </Grid>
+
+</Window>

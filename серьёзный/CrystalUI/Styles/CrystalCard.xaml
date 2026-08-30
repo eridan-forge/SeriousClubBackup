@@ -1,0 +1,50 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Style
+        x:Key="CrystalCard"
+        TargetType="{x:Type Border}">
+
+        <Setter
+            Property="Background"
+            Value="{DynamicResource CrystalGlassBrush}"/>
+
+        <Setter
+            Property="BorderBrush"
+            Value="{DynamicResource CrystalBorderBrush}"/>
+
+        <Setter
+            Property="BorderThickness"
+            Value="1"/>
+
+        <Setter
+            Property="Padding"
+            Value="18"/>
+
+        <Setter
+            Property="Margin"
+            Value="6"/>
+
+        <Setter
+            Property="SnapsToDevicePixels"
+            Value="True"/>
+
+        <Setter
+            Property="Effect">
+
+            <Setter.Value>
+
+                <DropShadowEffect
+                    Color="#000000"
+                    BlurRadius="24"
+                    ShadowDepth="8"
+                    Opacity="0.24"/>
+
+            </Setter.Value>
+
+        </Setter>
+
+    </Style>
+
+</ResourceDictionary>

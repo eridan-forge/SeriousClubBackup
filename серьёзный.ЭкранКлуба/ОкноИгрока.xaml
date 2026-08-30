@@ -1,0 +1,351 @@
+﻿<Window x:Class="серьёзный.ЭкранКлуба.ОкноИгрока"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        WindowState="Maximized"
+        Background="#0F172A"
+        ShowInTaskbar="False">
+
+    <Grid>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="230"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ================================================= -->
+        <!-- ЛЕВАЯ ПАНЕЛЬ -->
+        <!-- ================================================= -->
+
+        <Border Background="#162033">
+
+            <Grid>
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Margin="20">
+
+                    <TextBlock
+                        Text="Серьёзный"
+                        FontSize="28"
+                        FontWeight="Bold"
+                        Foreground="White"/>
+
+                    <TextBlock
+                        x:Name="ИмяИгрока"
+                        Margin="0,25,0,0"
+                        FontSize="22"
+                        FontWeight="SemiBold"
+                        Foreground="White"/>
+
+                    <TextBlock
+                        x:Name="ТекстПК"
+                        Margin="0,5,0,0"
+                        FontSize="14"
+                        Foreground="#94A3B8"/>
+
+                </StackPanel>
+
+                <StackPanel
+                    Grid.Row="1"
+                    Margin="16,20">
+
+                    <Button
+                        x:Name="КнопкаГлавная"
+                        Height="46"
+                        Margin="0,6"
+                        Content="🏠  Главная"/>
+
+                    <Button
+                        x:Name="КнопкаИгры"
+                        Height="46"
+                        Margin="0,6"
+                        Content="🎮  Игры"/>
+
+                    <Button
+                        x:Name="КнопкаМагазин"
+                        Height="46"
+                        Margin="0,6"
+                        Content="🛒  Магазин"/>
+
+					<Button
+    x:Name="КнопкаИгроки"
+    Height="46"
+    Margin="0,6"
+    Content="👥 Игроки"/>
+
+                    <Button
+                        x:Name="КнопкаЧат"
+                        Height="46"
+                        Margin="0,6"
+                        Content="💬  Чат"/>
+
+                </StackPanel>
+
+                <StackPanel
+                    Grid.Row="2"
+                    Margin="16">
+
+                    <Separator/>
+
+                    <Button
+                        x:Name="КнопкаСвернуть"
+                        Height="42"
+                        Margin="0,12,0,0"
+                        Content="Свернуть"/>
+
+                </StackPanel>
+
+            </Grid>
+
+        </Border>
+
+        <!-- ================================================= -->
+        <!-- ПРАВАЯ ЧАСТЬ -->
+        <!-- ================================================= -->
+
+        <Grid Grid.Column="1">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="54"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Верхняя панель -->
+
+            <Border Background="#111827">
+
+                <DockPanel Margin="14,0">
+
+                    <TextBlock
+                        Text="Кабинет игрока"
+                        VerticalAlignment="Center"
+                        FontSize="16"
+                        FontWeight="SemiBold"
+                        Foreground="White"/>
+
+                    <StackPanel
+                        Orientation="Horizontal"
+                        DockPanel.Dock="Right">
+
+                        <Button
+                            x:Name="КнопкаМинимизировать"
+                            Width="34"
+                            Height="26"
+                            Margin="3"
+                            Content="—"/>
+
+                        <Button
+                            x:Name="КнопкаРазвернуть"
+                            Width="34"
+                            Height="26"
+                            Margin="3"
+                            Content="□"/>
+
+                        <Button
+                            x:Name="КнопкаЗакрыть"
+                            Width="34"
+                            Height="26"
+                            Margin="3"
+                            Content="×"/>
+
+                    </StackPanel>
+
+                </DockPanel>
+
+            </Border>
+
+            <!-- ================================================= -->
+            <!-- ОБЛАСТЬ СТРАНИЦ -->
+            <!-- ================================================= -->
+
+            <Grid
+                Grid.Row="1"
+                Margin="28">
+
+                <!-- ========================= -->
+                <!-- ГЛАВНАЯ -->
+                <!-- ========================= -->
+
+                <Grid x:Name="СтраницаГлавная">
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock
+                        Text="ОСТАЛОСЬ ВРЕМЕНИ"
+                        HorizontalAlignment="Center"
+                        FontSize="18"
+                        Foreground="#94A3B8"/>
+
+                    <TextBlock
+                        x:Name="БольшойТаймер"
+                        Grid.Row="1"
+                        Margin="0,12,0,30"
+                        HorizontalAlignment="Center"
+                        FontSize="78"
+                        FontWeight="Bold"
+                        Foreground="#38BDF8"
+                        Text="00:00:00"/>
+
+                    <UniformGrid
+                        Grid.Row="2"
+                        Columns="3">
+                        <Border
+                            Margin="10"
+                            CornerRadius="16"
+                            Background="#1E293B">
+
+                            <StackPanel Margin="18">
+
+                                <TextBlock
+                                    Text="Сыграно"
+                                    Foreground="#94A3B8"/>
+
+                                <TextBlock
+                                    x:Name="ТекстСыграно"
+                                    Margin="0,10,0,0"
+                                    FontSize="30"
+                                    FontWeight="Bold"
+                                    Foreground="White"/>
+
+                            </StackPanel>
+
+                        </Border>
+
+                        <Border
+                            Margin="10"
+                            CornerRadius="16"
+                            Background="#1E293B">
+
+                            <StackPanel Margin="18">
+
+                                <TextBlock
+                                    Text="Сеансов"
+                                    Foreground="#94A3B8"/>
+
+                                <TextBlock
+                                    x:Name="ТекстСеансов"
+                                    Margin="0,10,0,0"
+                                    FontSize="30"
+                                    FontWeight="Bold"
+                                    Foreground="White"/>
+
+                            </StackPanel>
+
+                        </Border>
+
+                        <Border
+                            Margin="10"
+                            CornerRadius="16"
+                            Background="#1E293B">
+
+                            <StackPanel Margin="18">
+
+                                <TextBlock
+                                    Text="Статус"
+                                    Foreground="#94A3B8"/>
+
+                                <TextBlock
+                                    x:Name="ТекстСтатус"
+                                    Margin="0,10,0,0"
+                                    FontSize="30"
+                                    FontWeight="Bold"
+                                    Foreground="#22C55E"
+                                    Text="Играет"/>
+
+                            </StackPanel>
+
+                        </Border>
+
+                    </UniformGrid>
+
+                </Grid>
+
+                <!-- ========================= -->
+                <!-- ИГРЫ -->
+                <!-- ========================= -->
+
+                <Grid x:Name="СтраницаИгры"
+      Visibility="Collapsed">
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="40"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Margin="0,0,0,18">
+
+                        <TextBox x:Name="ПоискИгр"
+                 Width="260"
+                 Margin="0,0,10,0"
+                 VerticalContentAlignment="Center"
+                 TextChanged="ПоискИгр_TextChanged"/>
+
+                        <ComboBox x:Name="Категории"
+                  Width="170"
+                  SelectionChanged="Категории_SelectionChanged"/>
+
+                    </DockPanel>
+
+                    <ScrollViewer Grid.Row="1"
+                  VerticalScrollBarVisibility="Auto">
+
+                        <WrapPanel x:Name="СеткаИгр"/>
+
+                    </ScrollViewer>
+
+                </Grid>
+
+                <!-- ========================= -->
+                <!-- МАГАЗИН -->
+                <!-- ========================= -->
+
+				<Grid x:Name="СтраницаМагазин"
+      Visibility="Collapsed">
+
+					<Grid.RowDefinitions>
+						<RowDefinition/>
+						<RowDefinition Height="70"/>
+					</Grid.RowDefinitions>
+
+					<ScrollViewer>
+
+						<WrapPanel x:Name="ПанельМагазина"
+								   Margin="18"/>
+
+					</ScrollViewer>
+
+					<Border Grid.Row="1"
+							Background="#162132">
+
+						<ScrollViewer HorizontalScrollBarVisibility="Hidden"
+									  VerticalScrollBarVisibility="Disabled">
+
+							<StackPanel x:Name="ЛентаРекламы"
+										Orientation="Horizontal"
+										Margin="20,10"/>
+
+						</ScrollViewer>
+
+					</Border>
+
+				</Grid>
+
+            </Grid>
+
+        </Grid>
+
+    </Grid>
+
+</Window>
+    

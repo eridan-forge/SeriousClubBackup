@@ -1,0 +1,122 @@
+﻿<Window x:Class="серьёзный.ЭкранКлуба.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        WindowState="Maximized"
+        Topmost="True"
+        Background="#0F172A"
+        ShowInTaskbar="False">
+
+    <Grid>
+
+        <Border Width="560"
+                Padding="36"
+                CornerRadius="24"
+                Background="#182235"
+                BorderBrush="#24324B"
+                BorderThickness="1"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+
+            <StackPanel>
+
+                <TextBlock x:Name="НазваниеКлуба"
+                           Text="Серьёзный"
+                           FontSize="42"
+                           FontWeight="Bold"
+                           Foreground="White"
+                           HorizontalAlignment="Center"/>
+
+                <TextBlock x:Name="НомерПК"
+                           Text="ПК-07"
+                           Margin="0,8,0,0"
+                           FontSize="18"
+                           Foreground="#94A3B8"
+                           HorizontalAlignment="Center"/>
+
+                <TextBlock x:Name="ГлавныйТекст"
+                           Margin="0,28,0,0"
+                           Text="Войдите в аккаунт"
+                           FontSize="24"
+                           FontWeight="SemiBold"
+                           Foreground="White"
+                           TextAlignment="Center"/>
+
+                <StackPanel Margin="0,28,0,0">
+
+                    <TextBlock Text="Имя"
+                               Foreground="#CBD5E1"
+                               Margin="0,0,0,6"/>
+
+                    <TextBox x:Name="ПолеИмя"
+                             Height="42"
+                             FontSize="16"
+                             Background="#0F172A"
+                             Foreground="White"
+                             BorderBrush="#334155"
+                             BorderThickness="1"
+                             VerticalContentAlignment="Center"
+                             Padding="12,0"/>
+
+                </StackPanel>
+
+                <StackPanel Margin="0,18,0,0">
+
+                    <TextBlock Text="Пароль"
+                               Foreground="#CBD5E1"
+                               Margin="0,0,0,6"/>
+
+                    <PasswordBox x:Name="ПолеПароль"
+                                 Height="42"
+                                 FontSize="16"
+                                 Background="#0F172A"
+                                 Foreground="White"
+                                 BorderBrush="#334155"
+                                 BorderThickness="1"
+                                 VerticalContentAlignment="Center"
+                                 Padding="12,0"/>
+
+                </StackPanel>
+
+                <Button x:Name="КнопкаВойти"
+                        Content="Войти"
+                        Height="46"
+                        Margin="0,24,0,0"
+                        FontSize="16"
+                        FontWeight="SemiBold"
+                        Background="#2563EB"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Click="Войти_Click"/>
+
+                <TextBlock x:Name="ТекстОшибка"
+                           Margin="0,14,0,0"
+                           Foreground="#EF4444"
+                           FontSize="14"
+                           Visibility="Collapsed"
+                           TextAlignment="Center"/>
+
+                <TextBlock x:Name="Часы"
+                           Margin="0,34,0,0"
+                           FontSize="40"
+                           FontWeight="Bold"
+                           Foreground="#38BDF8"
+                           HorizontalAlignment="Center"/>
+
+                <Button x:Name="Обслуживание"
+                        Margin="0,34,0,0"
+                        Width="150"
+                        Height="36"
+                        Opacity="0.14"
+                        Content="Обслуживание"
+                        HorizontalAlignment="Center"
+                        Click="Обслуживание_Click"/>
+
+            </StackPanel>
+
+        </Border>
+
+    </Grid>
+
+</Window>

@@ -1,0 +1,79 @@
+﻿<UserControl x:Class="серьёзный.Карточки.КарточкаТовара"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="210"
+             Height="370">
+
+    <Border x:Name="Корень"
+            Background="#1E293B"
+            CornerRadius="18"
+            Margin="8">
+
+        <Grid>
+
+            <Grid.RowDefinitions>
+
+                <RowDefinition Height="210"/>
+
+                <RowDefinition/>
+
+            </Grid.RowDefinitions>
+
+            <Border Margin="10"
+                    CornerRadius="12"
+                    ClipToBounds="True">
+
+                <Grid>
+
+                    <Image x:Name="Обложка"
+                           Stretch="UniformToFill"/>
+
+                    <Border Background="#80000000"
+                            VerticalAlignment="Bottom"
+                            Padding="6">
+
+                        <TextBlock Text="Перетащи фото"
+                                   Foreground="White"
+                                   FontSize="11"
+                                   HorizontalAlignment="Center"/>
+
+                    </Border>
+
+                </Grid>
+
+            </Border>
+
+            <StackPanel Grid.Row="1"
+                        Margin="12,6">
+
+                <TextBox x:Name="Название"
+                         Margin="0,0,0,6"/>
+
+                <TextBox x:Name="Цена"
+                         Margin="0,0,0,6"/>
+
+                <TextBox x:Name="Остаток"
+                         Margin="0,0,0,10"/>
+
+                <WrapPanel>
+
+                    <Button x:Name="Сохранить"
+                            Width="70"
+                            Height="30"
+                            Margin="0,0,6,0"
+                            Content="💾"/>
+
+                    <Button x:Name="Удалить"
+                            Width="70"
+                            Height="30"
+                            Content="🗑"/>
+
+                </WrapPanel>
+
+            </StackPanel>
+
+        </Grid>
+
+    </Border>
+
+</UserControl>
