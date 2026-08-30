@@ -40,7 +40,7 @@ public class SocialService
         Path.Combine(
             Environment.GetFolderPath(
                 Environment.SpecialFolder.CommonApplicationData),
-            "Серьёзный",
+            "SeriousClub",
             "Social");
 
     private readonly string friendsFile;
@@ -115,8 +115,6 @@ public class SocialService
                     WriteIndented = true
                 }));
     }
-
-    // ---------------- Друзья ----------------
 
     public bool IsFriend(Guid a, Guid b)
     {
@@ -201,8 +199,6 @@ public class SocialService
                 x.Status == FriendStatus.Pending)
             .ToList();
     }
-
-    // ---------------- Онлайн ----------------
 
     public void SetOnline(
         Guid player,
