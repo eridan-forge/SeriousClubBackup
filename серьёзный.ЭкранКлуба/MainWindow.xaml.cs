@@ -25,6 +25,8 @@ namespace серьёзный.ЭкранКлуба
         private bool explorerЗапущен;
         private bool прошлоеСостояние = true;
 
+        private bool окноИгрокаАктивно;
+
         private bool ЭтоПервыйЗапускShell =>
             (Application.Current as App)?.ЭтоПервыйЗапускShell == true;
 
@@ -109,7 +111,7 @@ namespace серьёзный.ЭкранКлуба
             if (state.Locked)
                 Заблокировать();
             else
-                Разблокировать();
+                ОбработатьРазблокировку(state);
         }
 
         private void ПроверитьСостояние()
@@ -124,7 +126,7 @@ namespace серьёзный.ЭкранКлуба
             if (state.Locked)
                 Заблокировать();
             else
-                Разблокировать();
+                ОбработатьРазблокировку(state);
         }
 
         private void Разблокировать()
@@ -141,6 +143,60 @@ namespace серьёзный.ЭкранКлуба
             }
 
             Hide();
+        }
+
+        private void ОбработатьРазблокировку(State текущее)
+        {
+            if (окноИгрокаАктивно)
+                return;
+
+            if (текущее.AccountId.HasValue &&
+                текущее.AccountId.Value != Guid.Empty)
+            {
+                ОткрытьОкноИгрока(
+                    текущее.AccountId.Value,
+                    текущее.PcId);
+            }
+            else
+            {
+                Разблокировать();
+            }
+        }
+
+        private void ОткрытьОкноИгрока(Guid accountId, int pcId)
+        {
+            if (окноИгрокаАктивно)
+                return;
+
+            окноИгрокаАктивно = true;
+
+            state.Locked = false;
+            state.AccountId = accountId;
+            StateService.Сохранить(state);
+
+            прошлоеСостояние = false;
+
+            Hide();
+
+            try
+            {
+                var окноИгрока = new ОкноИгрока(accountId, pcId);
+
+                окноИгрока.ShowDialog();
+            }
+            finally
+            {
+                окноИгрокаАктивно = false;
+            }
+
+            state = StateService.Загрузить();
+            state.Locked = true;
+            state.AccountId = null;
+            StateService.Сохранить(state);
+
+            прошлоеСостояние = true;
+
+            Заблокировать();
         }
 
         private void Заблокировать()
@@ -187,22 +243,9 @@ namespace серьёзный.ЭкранКлуба
                 return;
             }
 
-            state.Locked = false;
-            StateService.Сохранить(state);
-
-            Разблокировать();
-
-            var окноИгрока = new ОкноИгрока(
-    аккаунт.Id,
-    state.PcId);
-
-            окноИгрока.ShowDialog();
-
-            state.Locked = true;
-            StateService.Сохранить(state);
-            Заблокировать();
-
             ПолеПароль.Clear();
+
+            ОткрытьОкноИгрока(аккаунт.Id, state.PcId);
         }
 
         private void ПоказатьОшибку(string текст)

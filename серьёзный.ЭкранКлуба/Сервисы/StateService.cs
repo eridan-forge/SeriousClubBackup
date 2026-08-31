@@ -1,4 +1,5 @@
-﻿using серьёзный.ЭкранКлуба.Модели;
+﻿using System;
+using серьёзный.ЭкранКлуба.Модели;
 
 namespace серьёзный.ЭкранКлуба.Сервисы;
 
@@ -12,7 +13,7 @@ public static class StateService
         using var cmd = db.CreateCommand();
 
         cmd.CommandText =
-            "SELECT Locked, PcId FROM ScreenState WHERE Id=1;";
+            "SELECT Locked, PcId, AccountId FROM ScreenState WHERE Id=1;";
 
         using var r = cmd.ExecuteReader();
 
@@ -21,7 +22,11 @@ public static class StateService
         return new State
         {
             Locked = r.GetInt32(0) == 1,
-            PcId = r.GetInt32(1)
+            PcId = r.GetInt32(1),
+            AccountId =
+                r.IsDBNull(2)
+                    ? null
+                    : Guid.Parse(r.GetString(2))
         };
     }
 
@@ -37,11 +42,16 @@ public static class StateService
 UPDATE ScreenState
 SET
 Locked=@l,
-PcId=@id
+PcId=@id,
+AccountId=@acc
 WHERE Id=1;";
 
         cmd.Parameters.AddWithValue("@l", state.Locked ? 1 : 0);
         cmd.Parameters.AddWithValue("@id", state.PcId);
+
+        cmd.Parameters.AddWithValue(
+            "@acc",
+            (object?)state.AccountId?.ToString() ?? DBNull.Value);
 
         cmd.ExecuteNonQuery();
     }

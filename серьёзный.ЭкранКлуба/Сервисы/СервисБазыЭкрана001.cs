@@ -70,6 +70,34 @@ VALUES
             cmd.ExecuteNonQuery();
         }
 
+        ДобавитьКолонкуАккаунтаЕслиНужно(db);
+
         return db;
+    }
+
+    private static void ДобавитьКолонкуАккаунтаЕслиНужно(
+        SqliteConnection db)
+    {
+        using var check = db.CreateCommand();
+
+        check.CommandText = "PRAGMA table_info(ScreenState);";
+
+        using (var reader = check.ExecuteReader())
+        {
+            while (reader.Read())
+            {
+                var имя = reader.GetString(1);
+
+                if (имя == "AccountId")
+                    return;
+            }
+        }
+
+        using var alter = db.CreateCommand();
+
+        alter.CommandText =
+            "ALTER TABLE ScreenState ADD COLUMN AccountId TEXT;";
+
+        alter.ExecuteNonQuery();
     }
 }

@@ -35,7 +35,43 @@ PRAGMA busy_timeout=3000;
 
             pragma.ExecuteNonQuery();
 
+            ДобавитьКолонкуАккаунтаЕслиНужно(db);
+
             return db;
+        }
+
+        private static void ДобавитьКолонкуАккаунтаЕслиНужно(
+            SqliteConnection db)
+        {
+            using var check = db.CreateCommand();
+
+            check.CommandText = "PRAGMA table_info(ScreenState);";
+
+            using (var reader = check.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var имя = reader.GetString(1);
+
+                    if (имя == "AccountId")
+                        return;
+                }
+            }
+
+            try
+            {
+                using var alter = db.CreateCommand();
+
+                alter.CommandText =
+                    "ALTER TABLE ScreenState ADD COLUMN AccountId TEXT;";
+
+                alter.ExecuteNonQuery();
+            }
+            catch
+            {
+                // Таблица ScreenState ещё не создана Экраном Клуба
+                // на этом ПК — добавлять колонку некуда, пропускаем.
+            }
         }
 
         // =========================================================
@@ -72,6 +108,30 @@ UPDATE ScreenState
 SET Locked = 0
 WHERE Id = 1;
 ";
+
+            cmd.ExecuteNonQuery();
+        }
+
+        // =========================================================
+        // АККАУНТ, ПРИВЯЗАННЫЙ К ТЕКУЩЕМУ СЕАНСУ
+        // =========================================================
+
+        public static void УстановитьАккаунт(
+            Guid? аккаунтId)
+        {
+            using var db = Открыть();
+            using var cmd = db.CreateCommand();
+
+            cmd.CommandText =
+                @"
+UPDATE ScreenState
+SET AccountId = @acc
+WHERE Id = 1;
+";
+
+            cmd.Parameters.AddWithValue(
+                "@acc",
+                (object?)аккаунтId?.ToString() ?? DBNull.Value);
 
             cmd.ExecuteNonQuery();
         }
