@@ -1,10 +1,12 @@
 ﻿using System;
 using System.IO;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using серьёзный.Core.CoreComputers;
 
 namespace серьёзный.Сеть
 {
@@ -39,12 +41,12 @@ namespace серьёзный.Сеть
         public bool Подключено =>
             клиент.Connected;
 
-        public event Action<
+        public event Action
             ПодключениеПатруля,
             СетевоеСообщение>?
             ПолученоСообщение;
 
-        public event Action<
+        public event Action
             ПодключениеПатруля>?
             Отключено;
 
@@ -80,8 +82,7 @@ namespace серьёзный.Сеть
                 DateTime.Now;
         }
 
-        public static async Task<
-            ПодключениеПатруля?>
+        public static async Task<ПодключениеПатруля?>
             СоздатьПослеHandshakeAsync(
                 TcpClient клиент,
                 CancellationToken токен)
@@ -120,8 +121,7 @@ namespace серьёзный.Сеть
                 return null;
 
             var приветствие =
-                JsonSerializer.Deserialize<
-                    СетевоеСообщение>(строка);
+                JsonSerializer.Deserialize<СетевоеСообщение>(строка);
 
             if (приветствие == null ||
                 приветствие.Тип !=
@@ -142,6 +142,28 @@ namespace серьёзный.Сеть
                     данные.ИмяКомпьютера))
             {
                 return null;
+            }
+
+            // -----------------------------------------------------
+            // АВТОРЕГИСТРАЦИЯ / ОБНОВЛЕНИЕ ЗАПИСИ ПК
+            // -----------------------------------------------------
+
+            var ip =
+                (клиент.Client.RemoteEndPoint as IPEndPoint)?
+                    .Address.ToString() ?? "";
+
+            try
+            {
+                КартаКомпьютеров.ЗарегистрироватьИлиОбновить(
+                    данные.КомпьютерId,
+                    данные.ИмяКомпьютера,
+                    данные.ИмяWindows,
+                    ip,
+                    данные.МАСАдрес);
+            }
+            catch
+            {
+                // Регистрация не должна ронять handshake.
             }
 
             var ответ =
@@ -182,8 +204,7 @@ namespace серьёзный.Сеть
                     }
 
                     var сообщение =
-                        JsonSerializer.Deserialize<
-                            СетевоеСообщение>(
+                        JsonSerializer.Deserialize<СетевоеСообщение>(
                             строка);
 
                     if (сообщение == null)
@@ -282,6 +303,12 @@ namespace серьёзный.Сеть
         } = string.Empty;
 
         public string ИмяWindows
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string МАСАдрес
         {
             get;
             set;

@@ -16,14 +16,17 @@ using серьёзный.Core.CoreEvents;
 using серьёзный.Core.CoreShop;
 using серьёзный.Модели;
 using серьёзный.Окна;
-using серьёзный.Патруль.Система;
+using серьёзный.Core.CoreComputers;
 using серьёзный.Сервисы;
 using серьёзный.Сеть;
+
 
 namespace серьёзный
 {
     public partial class MainWindow : Window
     {
+
+
 
         private readonly ShopRequestService сервисЗаказов =
     new();
@@ -369,6 +372,8 @@ namespace серьёзный
 
             InitializeComponent();
 
+            
+
             ShopLiveEvents.RequestCreated += ЗаказСоздан;
             ShopLiveEvents.RequestUpdated += ЗаказОбновлён;
 
@@ -472,6 +477,7 @@ namespace серьёзный
             серверСвязи =
                 new СерверСвязи(
                     47821);
+            
 
             серверСвязи.ПатрульПодключился +=
                 ПатрульПодключился;
@@ -515,6 +521,8 @@ namespace серьёзный
 
             text.Text = count.ToString();
         }
+
+        
 
         private void НастройкаПК_Click(
             object sender,

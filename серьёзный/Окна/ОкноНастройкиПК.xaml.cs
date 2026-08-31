@@ -1,5 +1,5 @@
 ﻿using System.Windows;
-using серьёзный.Патруль.Система;
+using серьёзный.Core.CoreComputers;
 
 namespace серьёзный.Окна
 {

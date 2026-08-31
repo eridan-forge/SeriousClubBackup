@@ -122,6 +122,8 @@
                         <Button Content="⚙ Настройка ПК"
         Click="НастройкаПК_Click"/>
 
+                        
+
                     </UniformGrid>
 
                     <Border BorderBrush="{DynamicResource CrystalBorderBrush}"
