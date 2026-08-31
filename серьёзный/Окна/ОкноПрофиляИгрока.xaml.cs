@@ -31,7 +31,7 @@ public partial class ОкноПрофиляИгрока : Window
 
     private void Загрузить()
     {
-        var account = accounts.Найти(playerId.ToString());
+        var account = accounts.Получить(playerId);
 
         if (account == null)
         {
@@ -40,7 +40,7 @@ public partial class ОкноПрофиляИгрока : Window
         }
 
         Имя.Text = account.ПолноеИмя;
-        Баланс.Text = account.ОсталосьВремени.ToString(@"hh\\:mm");
+        Баланс.Text = account.ОсталосьВремени.ToString(@"hh\:mm");
 
         ОбновитьПрофиль();
         ПостроитьИнвентарь();
