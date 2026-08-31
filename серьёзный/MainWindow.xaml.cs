@@ -2609,23 +2609,20 @@ namespace серьёзный
                             панель
                     };
 
-                карточка.MouseLeftButtonUp +=
-                    (_, _) =>
-                    {
-                        if (приложениеЗакрывается)
-                        {
-                            return;
-                        }
+                карточка.MouseLeftButtonUp += (_, _) =>
+                {
+                    if (приложениеЗакрывается)
+                        return;
 
-                        выбранныйКомпьютерId =
-                            пк.Id;
+                    выбранныйКомпьютерId = пк.Id;
 
-                        ВыборПК.SelectedItem =
-                            пк;
+                    var элемент = ВыборПК.Items
+                        .OfType<ЗаписьПК>()
+                        .FirstOrDefault(x => x.Id == пк.Id);
 
-                        НазваниеПК.Text =
-                            пк.Название;
-                    };
+                    if (элемент != null)
+                        ВыборПК.SelectedItem = элемент;
+                };
 
                 var меню =
                     new ContextMenu();
@@ -3252,6 +3249,18 @@ namespace серьёзный
             }
         }
 
+        private void ВыборПК_SelectionChanged(
+    object sender,
+    SelectionChangedEventArgs e)
+        {
+            if (ВыборПК.SelectedItem is not ЗаписьПК пк)
+                return;
+
+            НазваниеПК.Text = пк.Название;
+
+            ОбновитьОтображениеТекущегоСеанса();
+        }
+
 
         private async void ВключитьПК_Click(
             object sender,
@@ -3262,6 +3271,8 @@ namespace серьёзный
             {
                 return;
             }
+
+          
 
             var успешно =
                 await СервисWakeOnLan

@@ -75,8 +75,10 @@
                                Margin="0,0,0,6"/>
 
                     <ComboBox x:Name="ВыборПК"
-                              Height="42"
-                              Margin="0,0,0,14"/>
+          Height="42"
+          Margin="0,0,0,14"
+          DisplayMemberPath="Название"
+          SelectionChanged="ВыборПК_SelectionChanged"/>
 
                     <UniformGrid Columns="2"
                                  Margin="0,0,0,10">

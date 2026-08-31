@@ -258,8 +258,17 @@ namespace серьёзный.Core.CoreComputers
                 "UPDATE Computers SET WindowsName=$win, IP=$ip, MAC=$mac WHERE Id=$id;";
 
             updCmd.Parameters.AddWithValue("$id", id);
-            updCmd.Parameters.AddWithValue("$win", имяWindows ?? existingOr(существующий.ИмяWindows));
-            updCmd.Parameters.AddWithValue("$ip", ip ?? existingOr(существующий.IP));
+            updCmd.Parameters.AddWithValue(
+    "$win",
+    string.IsNullOrWhiteSpace(имяWindows)
+        ? существующий.ИмяWindows
+        : имяWindows);
+
+            updCmd.Parameters.AddWithValue(
+                "$ip",
+                string.IsNullOrWhiteSpace(ip)
+                    ? существующий.IP
+                    : ip);
             updCmd.Parameters.AddWithValue("$mac", новыйMac);
 
             updCmd.ExecuteNonQuery();

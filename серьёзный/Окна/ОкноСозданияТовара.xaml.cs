@@ -4,7 +4,7 @@ using серьёзный.Core.CoreEvents;
 using серьёзный.Core.CoreShop;
 using серьёзный.Core.CoreVideo;
 using серьёзный.Сервисы;
-using серьёзный.Core.CoreEvents;
+
 
 namespace серьёзный.Окна;
 

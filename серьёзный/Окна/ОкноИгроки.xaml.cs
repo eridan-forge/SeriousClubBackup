@@ -5,7 +5,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using серьёзный.Core.CoreChat;
 using серьёзный.Core.CoreSocial;
 using серьёзный.Сервисы;
 
