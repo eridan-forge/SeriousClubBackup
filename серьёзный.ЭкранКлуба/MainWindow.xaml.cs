@@ -17,7 +17,7 @@ namespace серьёзный.ЭкранКлуба
         private readonly DispatcherTimer таймерЧасов = new();
         private readonly DispatcherTimer наблюдение = new();
 
-        private readonly СервисАккаунтов сервисАккаунтов = new();
+      
 
         private Config config = new();
         private State state = new();
@@ -228,7 +228,7 @@ namespace серьёзный.ЭкранКлуба
             }
 
             АккаунтИгрока? аккаунт =
-                сервисАккаунтов.Авторизовать(имя, пароль);
+                new СервисАккаунтов().Авторизовать(имя, пароль);
 
             if (аккаунт == null)
             {

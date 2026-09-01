@@ -56,9 +56,15 @@ public class ChatService
 
         var cmd = con.CreateCommand();
 
+        // ВАЖНО: таблица называется DirectMessages, а не ChatMessages.
+        // Имя ChatMessages уже занято другой, несовместимой схемой
+        // в серьёзный.Сервисы.СервисЧата (PC-чат в главном окне
+        // админки), из-за чего личный чат падал с
+        // "SQLite Error 20: datatype mismatch" при попытке вставить
+        // GUID в колонку с типом INTEGER PRIMARY KEY.
         cmd.CommandText =
         """
-        CREATE TABLE IF NOT EXISTS ChatMessages
+        CREATE TABLE IF NOT EXISTS DirectMessages
         (
             Id TEXT PRIMARY KEY,
             FromId TEXT NOT NULL,
@@ -71,90 +77,6 @@ public class ChatService
         """;
 
         cmd.ExecuteNonQuery();
-
-        // =========================
-        // Миграция старой базы
-        // =========================
-
-        cmd.CommandText = "PRAGMA table_info(ChatMessages);";
-
-        using (var reader = cmd.ExecuteReader())
-        {
-            bool hasFromId = false;
-            bool hasToId = false;
-            bool hasText = false;
-            bool hasVoiceFile = false;
-            bool hasRead = false;
-            bool hasTime = false;
-
-            bool hasOldFrom = false;
-            bool hasOldTo = false;
-
-            while (reader.Read())
-            {
-                var name = reader.GetString(1);
-
-                if (name == "FromId") hasFromId = true;
-                if (name == "ToId") hasToId = true;
-                if (name == "Text") hasText = true;
-                if (name == "VoiceFile") hasVoiceFile = true;
-                if (name == "Read") hasRead = true;
-                if (name == "Time") hasTime = true;
-
-                if (name == "From") hasOldFrom = true;
-                if (name == "To") hasOldTo = true;
-            }
-
-            reader.Close();
-
-            if (!hasFromId)
-            {
-                cmd.CommandText = "ALTER TABLE ChatMessages ADD COLUMN FromId TEXT;";
-                cmd.ExecuteNonQuery();
-            }
-
-            if (!hasToId)
-            {
-                cmd.CommandText = "ALTER TABLE ChatMessages ADD COLUMN ToId TEXT;";
-                cmd.ExecuteNonQuery();
-            }
-
-            if (!hasText)
-            {
-                cmd.CommandText = "ALTER TABLE ChatMessages ADD COLUMN Text TEXT NOT NULL DEFAULT '';";
-                cmd.ExecuteNonQuery();
-            }
-
-            if (!hasVoiceFile)
-            {
-                cmd.CommandText = "ALTER TABLE ChatMessages ADD COLUMN VoiceFile TEXT;";
-                cmd.ExecuteNonQuery();
-            }
-
-            if (!hasRead)
-            {
-                cmd.CommandText = "ALTER TABLE ChatMessages ADD COLUMN Read INTEGER NOT NULL DEFAULT 0;";
-                cmd.ExecuteNonQuery();
-            }
-
-            if (!hasTime)
-            {
-                cmd.CommandText = "ALTER TABLE ChatMessages ADD COLUMN Time TEXT;";
-                cmd.ExecuteNonQuery();
-            }
-
-            if (hasOldFrom)
-            {
-                cmd.CommandText = "UPDATE ChatMessages SET FromId=\"From\" WHERE FromId IS NULL;";
-                cmd.ExecuteNonQuery();
-            }
-
-            if (hasOldTo)
-            {
-                cmd.CommandText = "UPDATE ChatMessages SET ToId=\"To\" WHERE ToId IS NULL;";
-                cmd.ExecuteNonQuery();
-            }
-        }
     }
 
     private SqliteConnection Open()
@@ -183,7 +105,7 @@ public class ChatService
         cmd.CommandText =
         """
         SELECT Id,FromId,ToId,Text,VoiceFile,Read,Time
-        FROM ChatMessages
+        FROM DirectMessages
         WHERE
         (FromId=$a AND ToId=$b)
         OR
@@ -244,7 +166,7 @@ public class ChatService
         cmd.CommandText =
         """
         SELECT COUNT(*)
-        FROM ChatMessages
+        FROM DirectMessages
         WHERE ToId=$id
         AND Read=0;
         """;
@@ -269,7 +191,7 @@ public class ChatService
 
         cmd.CommandText =
         """
-        UPDATE ChatMessages
+        UPDATE DirectMessages
         SET Read=1
         WHERE ToId=$me
         AND FromId=$friend;
@@ -305,7 +227,7 @@ public class ChatService
 
         cmd.CommandText =
         """
-        INSERT INTO ChatMessages
+        INSERT INTO DirectMessages
         (
             Id,
             FromId,
@@ -362,7 +284,7 @@ public class ChatService
 
         cmd.CommandText =
         """
-        INSERT INTO ChatMessages
+        INSERT INTO DirectMessages
         (
             Id,
             FromId,
