@@ -80,13 +80,19 @@
     Margin="0,6"
     Content="👥 Игроки"/>
 
-                    
-                    
+
+
                     <Button
-                        x:Name="КнопкаЧат"
-                        Height="46"
-                        Margin="0,6"
-                        Content="💬  Чат"/>
+    x:Name="КнопкаЧат"
+    Height="46"
+    Margin="0,6"
+    Content="💬  Чат"/>
+
+                    <Button
+    x:Name="КнопкаРазвлечения"
+    Height="46"
+    Margin="0,6"
+    Content="🎰  Развлечения"/>
 
                 </StackPanel>
 
