@@ -13,7 +13,7 @@ namespace серьёзный.Сервисы
         private static readonly object блокировка =
             new();
 
-        private const int ТекущаяВерсияБазы = 2;
+        private const int ТекущаяВерсияБазы = 3;
 
 
         // =========================================================
@@ -185,11 +185,10 @@ CREATE TABLE IF NOT EXISTS DatabaseInfo
                     "Accounts",
                     "LastName"))
             {
-                using var cmd =
-                    соединение.CreateCommand();
-
-                cmd.CommandText =
-                    @"
+                using (var cmd = соединение.CreateCommand())
+                {
+                    cmd.CommandText =
+                        @"
 UPDATE Accounts
 SET Password = LastName
 WHERE
@@ -197,7 +196,65 @@ WHERE
     AND LastName IS NOT NULL
     AND LastName <> '';";
 
-                cmd.ExecuteNonQuery();
+                    cmd.ExecuteNonQuery();
+                }
+
+                /*
+                 * КРИТИЧНО: старая схема объявляла LastName как
+                 * TEXT NOT NULL без значения по умолчанию.
+                 *
+                 * SQLite не умеет снимать NOT NULL через ALTER TABLE,
+                 * поэтому единственный безопасный способ убрать это
+                 * ограничение — пересоздать таблицу без колонки
+                 * LastName, перенеся все данные.
+                 *
+                 * Без этого шага INSERT OR REPLACE INTO Accounts(...),
+                 * который больше не указывает LastName, падает с
+                 * ошибкой "NOT NULL constraint failed: Accounts.LastName".
+                 */
+
+                using (var cmd = соединение.CreateCommand())
+                {
+                    cmd.CommandText =
+                        @"
+CREATE TABLE Accounts_New
+(
+    Id TEXT PRIMARY KEY,
+    FirstName TEXT NOT NULL,
+    Password TEXT NOT NULL DEFAULT '',
+    RemainingSeconds INTEGER NOT NULL DEFAULT 0,
+    PlayedSeconds INTEGER NOT NULL DEFAULT 0,
+    SessionCount INTEGER NOT NULL DEFAULT 0,
+    LastSession TEXT NULL
+);
+
+INSERT INTO Accounts_New
+(
+    Id,
+    FirstName,
+    Password,
+    RemainingSeconds,
+    PlayedSeconds,
+    SessionCount,
+    LastSession
+)
+SELECT
+    Id,
+    FirstName,
+    COALESCE(Password, ''),
+    COALESCE(RemainingSeconds, 0),
+    COALESCE(PlayedSeconds, 0),
+    COALESCE(SessionCount, 0),
+    LastSession
+FROM Accounts;
+
+DROP TABLE Accounts;
+
+ALTER TABLE Accounts_New RENAME TO Accounts;
+";
+
+                    cmd.ExecuteNonQuery();
+                }
             }
 
 
@@ -237,15 +294,6 @@ SET
 
                 cmd.ExecuteNonQuery();
             }
-
-
-            /*
-             * Проверяем NOT NULL структуру логически.
-             * SQLite не позволяет просто изменить существующий
-             * столбец ALTER COLUMN, поэтому существующую таблицу
-             * намеренно не пересоздаём: это позволяет сохранить
-             * старые данные.
-             */
         }
 
 

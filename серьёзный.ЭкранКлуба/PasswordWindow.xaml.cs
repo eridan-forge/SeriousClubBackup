@@ -59,6 +59,57 @@ namespace серьёзный.ЭкранКлуба
             DialogResult = false;
         }
 
+        private void СменитьПароль_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            var окно =
+                new серьёзный.ОкноВвода(
+                    "Новый пароль обслуживания");
+
+            if (окно.ShowDialog() != true)
+                return;
+
+            var новыйПароль =
+                окно.Текст.Trim();
+
+            if (string.IsNullOrWhiteSpace(новыйПароль))
+            {
+                MessageBox.Show("Пароль не может быть пустым.");
+                return;
+            }
+
+            серьёзный.Патруль.Сервисы.СервисЭкранаКлуба
+                .СменитьПароль(новыйПароль);
+
+            MessageBox.Show(
+                "Пароль обслуживания изменён.",
+                "Готово");
+        }
+
+        private void ИзменитьТекст_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            var текущий =
+                ConfigService.Загрузить();
+
+            var окно =
+                new серьёзный.ОкноВвода(
+                    "Текст на экране клуба",
+                    текущий.Title);
+
+            if (окно.ShowDialog() != true)
+                return;
+
+            серьёзный.Патруль.Сервисы.СервисЭкранаКлуба
+                .ИзменитьТекст(окно.Текст.Trim());
+
+            MessageBox.Show(
+                "Текст экрана изменён.",
+                "Готово");
+        }
+
         private void Выключить_Click(
             object sender,
             RoutedEventArgs e)
