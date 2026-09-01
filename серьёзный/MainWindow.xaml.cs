@@ -14,6 +14,7 @@ using System.Windows.Media;
 using серьёзный.Core.CoreChat;
 using серьёзный.Core.CoreEvents;
 using серьёзный.Core.CoreShop;
+using серьёзный.Core.CoreEconomy;
 using серьёзный.Модели;
 using серьёзный.Окна;
 using серьёзный.Core.CoreComputers;
@@ -27,6 +28,11 @@ namespace серьёзный
     {
 
 
+        private readonly PurchaseRewardService награды =
+            new();
+
+        private readonly СервисСгоранияВремени сгорание =
+             new();
 
         private readonly ShopRequestService сервисЗаказов =
     new();
@@ -2157,6 +2163,30 @@ namespace серьёзный
                         сеанс);
             }
 
+            if (окно.Аккаунт != null)
+            {
+                var результат =
+                     награды.AwardForTimePurchase(
+                           окно.Аккаунт.Id,
+                             минут,
+                               (long)окно.Аккаунт.ВсегоСыграно.TotalSeconds);
+
+                if (результат.BonusMinutes > 0)
+                {
+                    сеанс.ДобавитьВремя(
+                            TimeSpan.FromMinutes(результат.BonusMinutes));
+
+                    сервисСеансов.ОбновитьВручную(сеанс);
+                }
+
+                ТекстСостояния.Text =
+                      $"Начислено {результат.PointsAwarded} баллов " +
+                       $"(x{результат.MultiplierPercent / 100.0:0.00})" +
+                        (результат.BonusMinutes > 0
+                          ? $", бонус +{результат.BonusMinutes} мин."
+                            : "");
+            }
+
 
             // -----------------------------------------------------
             // ЗАПУСК СЕАНСА НА СТОРОНЕ ПАТРУЛЯ
@@ -3797,7 +3827,26 @@ namespace серьёзный
             }.ShowDialog();
         }
 
+        private void СжечьВремя_Click(object sender, RoutedEventArgs e)
+        {
+            var ответ = MessageBox.Show(
+                "Обнулить остаток времени у ВСЕХ аккаунтов (кроме премиум)?",
+                "Подтверждение",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
 
+            if (ответ != MessageBoxResult.Yes)
+                return;
+
+            var сожжено = сгорание.СжечьВсем(имяАдминистратора);
+
+            MessageBox.Show($"Обнулено аккаунтов: {сожжено}", "Готово");
+        }
+
+        private void Развлечения_Click(object sender, RoutedEventArgs e)
+        {
+            new ОкноРазвлеченияАдмин(имяАдминистратора) { Owner = this }.ShowDialog();
+        }  
 
     }
 

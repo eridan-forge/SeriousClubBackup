@@ -1,0 +1,134 @@
+﻿<Window x:Class="серьёзный.Окна.ОкноРазвлеченияАдмин"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Развлечения — панель администратора"
+        Width="1100"
+        Height="750"
+        WindowStartupLocation="CenterOwner"
+        Background="#0F172A">
+
+    <TabControl Margin="16">
+
+        <TabItem Header="Экономика">
+            <StackPanel Margin="16">
+                <TextBlock Text="Базовые ставки" FontSize="20" FontWeight="Bold" Foreground="White"/>
+
+                <TextBlock Text="Баллов за минуту купленного времени" Foreground="White" Margin="0,10,0,0"/>
+                <TextBox x:Name="ПолеБаллыЗаМинуту" Width="150" HorizontalAlignment="Left"/>
+
+                <TextBlock Text="Баллов за достижение" Foreground="White" Margin="0,10,0,0"/>
+                <TextBox x:Name="ПолеБаллыЗаДостижение" Width="150" HorizontalAlignment="Left"/>
+
+                <TextBlock Text="Баллов за покупку напитка" Foreground="White" Margin="0,10,0,0"/>
+                <TextBox x:Name="ПолеБаллыЗаНапиток" Width="150" HorizontalAlignment="Left"/>
+
+                <TextBlock Text="Надбавка премиум-игрокам, %" Foreground="White" Margin="0,10,0,0"/>
+                <TextBox x:Name="ПолеПремиумБонус" Width="150" HorizontalAlignment="Left"/>
+
+                <Button Content="💾 Сохранить" Width="150" Margin="0,20,0,20"
+                        Click="СохранитьЭкономику_Click"/>
+
+                <TextBlock Text="Уровни и множители" FontSize="20" FontWeight="Bold" Foreground="White"/>
+
+                <DataGrid x:Name="ГридУровни" Height="220" AutoGenerateColumns="False"
+                          Margin="0,10,0,10" Background="#1E293B" Foreground="White">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Уровень" Binding="{Binding Level}" Width="80"/>
+                        <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="150"/>
+                        <DataGridTextColumn Header="От сыгранных секунд" Binding="{Binding MinPlayedSeconds}" Width="150"/>
+                        <DataGridTextColumn Header="Множитель, %" Binding="{Binding MultiplierPercent}" Width="120"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="➕ Добавить уровень" Width="180" Margin="0,0,10,0" Click="ДобавитьУровень_Click"/>
+                    <Button Content="💾 Сохранить уровни" Width="180" Margin="0,0,10,0" Click="СохранитьУровни_Click"/>
+                    <Button Content="🗑 Удалить выбранный" Width="180" Click="УдалитьУровень_Click"/>
+                </StackPanel>
+            </StackPanel>
+        </TabItem>
+
+        <TabItem Header="Инвентарь">
+            <StackPanel Margin="16">
+                <DataGrid x:Name="ГридПредметы" Height="450" AutoGenerateColumns="False"
+                          Background="#1E293B" Foreground="White">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Иконка" Binding="{Binding Icon}" Width="60"/>
+                        <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="180"/>
+                        <DataGridTextColumn Header="Описание" Binding="{Binding Description}" Width="220"/>
+                        <DataGridTextColumn Header="+% баллов" Binding="{Binding PointsBonusPercent}" Width="90"/>
+                        <DataGridTextColumn Header="+% времени" Binding="{Binding TimeBonusPercent}" Width="90"/>
+                        <DataGridTextColumn Header="Цена (баллы)" Binding="{Binding PriceInPoints}" Width="100"/>
+                        <DataGridCheckBoxColumn Header="Включён" Binding="{Binding Enabled}" Width="80"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <Button Content="➕ Добавить предмет" Width="180" Margin="0,0,10,0" Click="ДобавитьПредмет_Click"/>
+                    <Button Content="💾 Сохранить" Width="150" Margin="0,0,10,0" Click="СохранитьПредметы_Click"/>
+                    <Button Content="🗑 Удалить выбранный" Width="180" Click="УдалитьПредмет_Click"/>
+                </StackPanel>
+            </StackPanel>
+        </TabItem>
+
+        <TabItem Header="Казино">
+            <StackPanel Margin="16">
+                <CheckBox x:Name="ФлагCasinoEnabled" Content="Казино включено" Foreground="White" Margin="0,0,0,14"/>
+
+                <TextBlock Text="Минимальная ставка" Foreground="White"/>
+                <TextBox x:Name="ПолеCasinoMin" Width="150" HorizontalAlignment="Left"/>
+
+                <TextBlock Text="Максимальная ставка" Foreground="White" Margin="0,10,0,0"/>
+                <TextBox x:Name="ПолеCasinoMax" Width="150" HorizontalAlignment="Left"/>
+
+                <TextBlock Text="Шанс выигрыша, %" Foreground="White" Margin="0,10,0,0"/>
+                <TextBox x:Name="ПолеCasinoChance" Width="150" HorizontalAlignment="Left"/>
+
+                <TextBlock Text="Множитель выигрыша" Foreground="White" Margin="0,10,0,0"/>
+                <TextBox x:Name="ПолеCasinoMultiplier" Width="150" HorizontalAlignment="Left"/>
+
+                <Button Content="💾 Сохранить" Width="150" Margin="0,20,0,0" Click="СохранитьКазино_Click"/>
+            </StackPanel>
+        </TabItem>
+
+        <TabItem Header="Кейсы">
+            <StackPanel Margin="16">
+                <DataGrid x:Name="ГридКейсы" Height="300" AutoGenerateColumns="False"
+                          Background="#1E293B" Foreground="White">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Иконка" Binding="{Binding Icon}" Width="60"/>
+                        <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="200"/>
+                        <DataGridTextColumn Header="Цена (баллы)" Binding="{Binding PriceInPoints}" Width="120"/>
+                        <DataGridCheckBoxColumn Header="Включён" Binding="{Binding Enabled}" Width="80"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <Button Content="➕ Добавить кейс" Width="150" Margin="0,0,10,0" Click="ДобавитьКейс_Click"/>
+                    <Button Content="💾 Сохранить" Width="150" Margin="0,0,10,0" Click="СохранитьКейсы_Click"/>
+                    <Button Content="🎁 Награды выбранного" Width="180" Margin="0,0,10,0" Click="НаградыКейса_Click"/>
+                    <Button Content="🗑 Удалить" Width="120" Click="УдалитьКейс_Click"/>
+                </StackPanel>
+            </StackPanel>
+        </TabItem>
+
+        <TabItem Header="История">
+            <StackPanel Margin="16">
+                <Button Content="🔄 Обновить" Width="150" HorizontalAlignment="Left"
+                        Margin="0,0,0,10" Click="ОбновитьИсторию_Click"/>
+
+                <DataGrid x:Name="ГридИстория" Height="500" AutoGenerateColumns="False"
+                          IsReadOnly="True" Background="#1E293B" Foreground="White">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Время" Binding="{Binding Time}" Width="140"/>
+                        <DataGridTextColumn Header="Админ" Binding="{Binding AdminName}" Width="120"/>
+                        <DataGridTextColumn Header="Действие" Binding="{Binding Action}" Width="200"/>
+                        <DataGridTextColumn Header="Детали" Binding="{Binding Details}" Width="400"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+        </TabItem>
+
+    </TabControl>
+
+</Window>

@@ -8,6 +8,7 @@
         ShowInTaskbar="False">
 
     <Grid>
+        
 
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="230"/>
@@ -79,6 +80,8 @@
     Margin="0,6"
     Content="👥 Игроки"/>
 
+                    
+                    
                     <Button
                         x:Name="КнопкаЧат"
                         Height="46"

@@ -124,7 +124,10 @@
                         <Button Content="⚙ Настройка ПК"
         Click="НастройкаПК_Click"/>
 
-                        
+                        <Button Content="🔥 Сжечь время всем"
+        Click="СжечьВремя_Click"/>
+
+
 
                     </UniformGrid>
 
@@ -286,6 +289,11 @@
 
                             <Button Content="▶ Продолжить"
             Click="Продолжить_Click"/>
+
+                            <Button
+    x:Name="КнопкаРазвлечения"
+    Content="🎮 Развлечения"
+    Click="КнопкаРазвлечения_Click"/>
 
                             <Button Content="➕ Время"
             Click="ДобавитьВремя_Click"/>

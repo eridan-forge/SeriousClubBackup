@@ -64,6 +64,11 @@ namespace серьёзный.ЭкранКлуба
         {
             InitializeComponent();
 
+            КнопкаРазвлечения.Click += (_, _) =>
+            {
+                new ОкноРазвлеченияИгрока(аккаунтId) { Owner = this }.ShowDialog();
+            };
+
             ShopChangedEvent.Changed += МагазинИзменился;
 
             Loaded += (_, _) =>

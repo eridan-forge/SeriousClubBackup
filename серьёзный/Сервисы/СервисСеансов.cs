@@ -541,7 +541,7 @@ namespace серьёзный.Сервисы
                     снимок.КупленноеВремя;
 
                 if (купленное 
-                    TimeSpan.Zero)
+                     TimeSpan.Zero)
                 {
                     купленное =
                         TimeSpan.Zero;

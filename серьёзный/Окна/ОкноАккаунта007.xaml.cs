@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows;
 using серьёзный.Модели;
 using серьёзный.Сервисы;
+using серьёзный.Core.CoreEconomy;
 
 namespace серьёзный.Окна
 {
@@ -10,6 +11,8 @@ namespace серьёзный.Окна
     {
         public event Action<Guid>? УдалитьАккаунт;
 
+        private readonly PointsService баллы = new();
+        private readonly PremiumService premium = new();
         private readonly АккаунтИгрока аккаунт;
         private readonly СервисАрхива005 архив = new();
         private readonly СервисАккаунтов сервисАккаунтов = new();
@@ -22,6 +25,7 @@ namespace серьёзный.Окна
             this.аккаунт = аккаунт;
 
             Изменить.Click += ИзменитьВремя_Click;
+            Баллы.Click += Баллы_Click;
             Удалить.Click += Удалить_Click;
             ОчиститьЧат.Click += ОчиститьЧат_Click;
 
@@ -55,6 +59,34 @@ namespace серьёзный.Окна
                 аккаунт.ПоследнийСеанс == null
                     ? "Последний сеанс: нет истории"
                     : $"Последний сеанс: {аккаунт.ПоследнийСеанс:dd.MM.yyyy HH:mm}";
+        }
+
+
+               private void Баллы_Click(object? sender, RoutedEventArgs e)
+       {
+           var текущий = баллы.Get(аккаунт.Id);
+            var isPremium = premium.IsPremium(аккаунт.Id);
+
+            var окно = new ОкноВвода(
+$"Баланс: {текущий.Points} баллов" +
+(isPremium ? " • ПРЕМИУМ" : "") +
+"\n\nВведите изменение (+50 / -20) или новое значение (=100):",
+"");
+
+           if (окно.ShowDialog() != true)
+                return;
+
+            var ввод = окно.Текст.Trim();
+
+            if (ввод.StartsWith("="))
+            {
+                if (long.TryParse(ввод[1..], out var значение))
+                    баллы.SetExact(аккаунт.Id, значение, "Ручная корректировка админом");
+            }
+           else if (long.TryParse(ввод, out var дельта))
+            {
+                баллы.Award(аккаунт.Id, дельта, "Ручная корректировка админом");
+            }
         }
 
         private void ОчиститьЧат_Click(
