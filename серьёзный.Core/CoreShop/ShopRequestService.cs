@@ -142,5 +142,7 @@ public class ShopRequestService
         Save();
 
         ShopLiveEvents.NotifyUpdated(request);
+
+        EventBus.Publish(new ShopOrderStatusChangedEvent(request.Id, status.ToString()));
     }
 }

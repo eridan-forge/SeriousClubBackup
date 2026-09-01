@@ -1136,12 +1136,20 @@ namespace серьёзный
             Dispatcher.Invoke(ОбновитьСчётчикЗаказов);
         }
 
-        private void ЗаказОбновлён(ShopRequest _)
+        private void ЗаказОбновлён(ShopRequest request)
         {
             Dispatcher.Invoke(ОбновитьСчётчикЗаказов);
+
+            if (request.Status == ShopRequestStatus.Ready)
+            {
+                _ = ОтправитьКомандуAsync(
+                    КомандаПК.СтатусЗаказаМагазина,
+                    текст: request.ItemName,
+                    компьютерId: request.PcId);
+            }
         }
 
-        
+
 
 
         // =========================================================
