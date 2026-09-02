@@ -262,6 +262,8 @@ namespace серьёзный.ЭкранКлуба
             ПостроитьИгры();
             ОбновитьИнформацию();
 
+            ПроверитьДостижения();
+
             if (аккаунт == null)
                 return;
 
@@ -386,6 +388,32 @@ namespace серьёзный.ЭкранКлуба
 
                 ТекстСтатус.Foreground =
                     Brushes.LimeGreen;
+            }
+        }
+
+
+        private void ПроверитьДостижения()
+        {
+            if (аккаунт == null)
+                return;
+
+            try
+            {
+                var уведомление =
+                    AchievementNotificationBridgeService.TakeNextPending(аккаунтId);
+
+                if (уведомление == null)
+                    return;
+
+                AchievementNotificationBridgeService.MarkDelivered(уведомление.Id);
+
+                new серьёзный.ЭкранКлуба.Уведомления.AchievementToast(
+                    уведомление.Name,
+                    уведомление.Description).Show();
+            }
+            catch
+            {
+                // Тост о достижении не должен ронять окно игрока.
             }
         }
 

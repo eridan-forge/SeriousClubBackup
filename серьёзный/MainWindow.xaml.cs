@@ -4199,7 +4199,7 @@ new SessionStartedEvent(
             MessageBox.Show($"Обнулено аккаунтов: {сожжено}", "Готово");
         }
 
-        private void Развлечения_Click(object sender, RoutedEventArgs e)
+        private void КнопкаРазвлечения_Click(object sender, RoutedEventArgs e)
         {
             new ОкноРазвлеченияАдмин(имяАдминистратора) { Owner = this }.ShowDialog();
         }  
