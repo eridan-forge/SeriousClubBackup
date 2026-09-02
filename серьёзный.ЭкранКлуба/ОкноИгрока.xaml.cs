@@ -21,7 +21,7 @@ using серьёзный.Сервисы;
 using серьёзный.ЭкранКлуба.Модели;
 using серьёзный.ЭкранКлуба.Сервисы;
 using серьёзный.Карточки;
-
+using серьёзный.Core.CoreServices;
 
 namespace серьёзный.ЭкранКлуба
 {
@@ -117,15 +117,49 @@ namespace серьёзный.ЭкранКлуба
 
             КнопкаСвернуть.Click += (_, _) =>
                 WindowState = WindowState.Minimized;
+
+
+        }
+        private async Task<АккаунтИгрока?> ЗапроситьАккаунтЧерезСерверAsync()
+        {
+            var requestId = AccountBalanceBridgeService.CreateRequest(аккаунтId);
+
+            BalanceRequestRecord? результат = null;
+
+            for (int i = 0; i < 30; i++) // до ~6 секунд
+            {
+                await Task.Delay(200);
+
+                результат = AccountBalanceBridgeService.GetResult(requestId);
+
+                if (результат != null && результат.Done)
+                    break;
+            }
+
+            if (результат == null || !результат.Done || результат.Failed)
+            {
+                // Сервер недоступен прямо сейчас — не убиваем окно резко,
+                // отдаём последнее известное локальное состояние, если есть.
+                return аккаунт;
+            }
+
+            var базовый = аккаунт ?? new АккаунтИгрока { Id = аккаунтId };
+
+            базовый.ОсталосьВремени = TimeSpan.FromSeconds(результат.RemainingSeconds);
+            базовый.ВсегоСыграно = TimeSpan.FromSeconds(результат.PlayedSeconds);
+            базовый.ВсегоСеансов = результат.SessionCount;
+
+            return базовый;
         }
 
         // =====================================================
         // ЗАГРУЗКА
         // =====================================================
 
-        private void ПриЗагрузке(object? sender, RoutedEventArgs e)
+        private async void ПриЗагрузке(object? sender, RoutedEventArgs e)
         {
-            аккаунт = сервисАккаунтов.ПеречитатьИзБазы(аккаунтId);
+            аккаунт = await ЗапроситьАккаунтЧерезСерверAsync();
+
 
             if (аккаунт == null)
             {
@@ -233,8 +267,8 @@ namespace серьёзный.ЭкранКлуба
             }
         }
 
-        private void ОбновлениеАккаунта(
-            object? sender,
+        private async void ОбновлениеАккаунта(
+             object? sender,
             EventArgs e)
         {
             if (окноЗакрывается)
@@ -247,7 +281,7 @@ namespace серьёзный.ЭкранКлуба
             }
 
             аккаунт =
-                сервисАккаунтов.Получить(аккаунтId);
+                 await ЗапроситьАккаунтЧерезСерверAsync();
 
             if (аккаунт == null)
             {

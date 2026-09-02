@@ -262,6 +262,16 @@ namespace серьёзный.Патруль
             // Его полностью выполняет КлиентПатруля.
             // -----------------------------------------------------
 
+            var loginBridge =
+                  new LoginBridgeWorker(клиент, конфигурация);
+
+            _ = loginBridge.ЗапуститьAsync(токен);
+
+            var balanceBridge =
+                 new BalanceBridgeWorker(клиент, конфигурация);
+
+            _ = balanceBridge.ЗапуститьAsync(токен);
+
             try
             {
                 await сервисПатруля

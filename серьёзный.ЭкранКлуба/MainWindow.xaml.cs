@@ -9,6 +9,8 @@ using серьёзный.ЭкранКлуба.Модели;
 using серьёзный.ЭкранКлуба.Сервисы;
 using System.Text.Json;
 using серьёзный.Core.CoreServices;
+using System.Threading.Tasks;
+
 
 namespace серьёзный.ЭкранКлуба
 {
@@ -208,7 +210,7 @@ namespace серьёзный.ЭкранКлуба
             explorerЗапущен = true;
         }
 
-        private void Войти_Click(object sender, RoutedEventArgs e)
+        private async void Войти_Click(object sender, RoutedEventArgs e)
         {
             ТекстОшибка.Visibility = Visibility.Collapsed;
 
@@ -227,25 +229,52 @@ namespace серьёзный.ЭкранКлуба
                 return;
             }
 
-            АккаунтИгрока? аккаунт =
-                new СервисАккаунтов().Авторизовать(имя, пароль);
+            КнопкаВойти.IsEnabled = false;
+            ПоказатьОшибку("Проверка...");
+            ТекстОшибка.Foreground = System.Windows.Media.Brushes.LightGray;
 
-            if (аккаунт == null)
+            var requestId =
+                 AccountLoginBridgeService.CreateRequest(имя, пароль);
+
+            LoginRequestRecord? результат = null;
+
+            for (int i = 0; i < 100; i++) // до ~10 секунд ожидания сервера
             {
-                ПоказатьОшибку("Неверное имя или пароль.");
+                await Task.Delay(100);
+
+                результат = AccountLoginBridgeService.GetResult(requestId);
+
+                if (результат != null &&
+                       результат.Status != LoginRequestStatus.Pending)
+                {
+                    break;
+                }
+            }
+
+            КнопкаВойти.IsEnabled = true;
+            ТекстОшибка.Foreground = System.Windows.Media.Brushes.Red;
+
+            if (результат == null ||
+                результат.Status == LoginRequestStatus.Pending)
+            {
+                ПоказатьОшибку("Сервер не ответил. Попробуйте ещё раз.");
                 ПолеПароль.Clear();
                 return;
             }
 
-            if (аккаунт.ОсталосьВремени <= TimeSpan.Zero)
+            if (результат.Status == LoginRequestStatus.Failed ||
+                 !результат.AccountId.HasValue)
             {
-                ПоказатьОшибку("На аккаунте закончилось время.");
+                ПоказатьОшибку(результат.Error ?? "Неверное имя или пароль.");
+                ПолеПароль.Clear();
                 return;
             }
 
+            ТекстОшибка.Visibility = Visibility.Collapsed;
             ПолеПароль.Clear();
 
-            ОткрытьОкноИгрока(аккаунт.Id, state.PcId);
+            ОткрытьОкноИгрока(результат.AccountId.Value, state.PcId);
+
         }
 
         private void ПоказатьОшибку(string текст)
