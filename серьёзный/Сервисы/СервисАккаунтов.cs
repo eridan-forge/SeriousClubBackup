@@ -604,6 +604,56 @@ VALUES
             }
         }
 
+        public АккаунтИгрока? ПеречитатьИзБазы(Guid id)
+        {
+            using var db = база.Открыть();
+            using var cmd = db.CreateCommand();
+
+            cmd.CommandText = @"
+SELECT
+    Id,
+    FirstName,
+    Password,
+    RemainingSeconds,
+    PlayedSeconds,
+    SessionCount,
+    LastSession
+FROM Accounts
+WHERE Id=@Id;";
+
+            cmd.Parameters.AddWithValue("@Id", id.ToString());
+
+            using var reader = cmd.ExecuteReader();
+
+            if (!reader.Read())
+                return null;
+
+            var свежий = new АккаунтИгрока
+            {
+                Id = Guid.Parse(reader.GetString(0)),
+                Имя = reader.IsDBNull(1) ? "" : reader.GetString(1),
+                Пароль = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                ОсталосьВремени = TimeSpan.FromSeconds(Math.Max(0, reader.GetInt64(3))),
+                ВсегоСыграно = TimeSpan.FromSeconds(Math.Max(0, reader.GetInt64(4))),
+                ВсегоСеансов = Math.Max(0, reader.GetInt32(5)),
+                ПоследнийСеанс = reader.IsDBNull(6)
+                    ? null
+                    : БезопасноРазобратьДату(reader.GetString(6))
+            };
+
+            lock (синхронизация)
+            {
+                var индекс = аккаунты.FindIndex(x => x.Id == id);
+
+                if (индекс >= 0)
+                    аккаунты[индекс] = свежий;
+                else
+                    аккаунты.Add(свежий);
+            }
+
+            return свежий;
+        }
+
 
         // =========================================================
         // АВТОРИЗАЦИЯ ИГРОКА
