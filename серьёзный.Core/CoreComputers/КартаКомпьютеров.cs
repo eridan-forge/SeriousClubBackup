@@ -28,6 +28,20 @@ namespace серьёзный.Core.CoreComputers
 
             db.Open();
 
+            using (var pragma = db.CreateCommand())
+            {
+                // busy_timeout НЕ сохраняется в файле — его нужно
+                // выставлять на КАЖДОМ новом соединении. Без этого
+                // одновременное подключение нескольких ПК (например,
+                // все 5 патрулей переподключаются сразу после
+                // рестарта сервера) может упасть с SQLITE_BUSY вместо
+                // того чтобы подождать до 5 секунд и записаться.
+                pragma.CommandText =
+                    "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;";
+
+                pragma.ExecuteNonQuery();
+            }
+
             lock (блокировка)
             {
                 if (!инициализировано)
@@ -258,22 +272,22 @@ namespace серьёзный.Core.CoreComputers
                 "UPDATE Computers SET WindowsName=$win, IP=$ip, MAC=$mac WHERE Id=$id;";
 
             updCmd.Parameters.AddWithValue("$id", id);
+
             updCmd.Parameters.AddWithValue(
-    "$win",
-    string.IsNullOrWhiteSpace(имяWindows)
-        ? существующий.ИмяWindows
-        : имяWindows);
+                "$win",
+                string.IsNullOrWhiteSpace(имяWindows)
+                    ? существующий.ИмяWindows
+                    : имяWindows);
 
             updCmd.Parameters.AddWithValue(
                 "$ip",
                 string.IsNullOrWhiteSpace(ip)
                     ? существующий.IP
                     : ip);
+
             updCmd.Parameters.AddWithValue("$mac", новыйMac);
 
             updCmd.ExecuteNonQuery();
-
-            static string existingOr(string v) => v ?? "";
         }
 
         private static string Нормализовать(string? значение)
