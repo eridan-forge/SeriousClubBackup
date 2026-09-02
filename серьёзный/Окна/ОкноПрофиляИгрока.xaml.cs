@@ -5,7 +5,11 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
+using System.Windows.Threading;
+using серьёзный.Core.CoreEconomy;
 using серьёзный.Core.CoreProfiles;
+using серьёзный.Core.CoreShop;
+using серьёзный.Модели;
 using серьёзный.Сервисы;
 
 
@@ -17,8 +21,17 @@ public partial class ОкноПрофиляИгрока : Window
 
     private readonly СервисАккаунтов accounts = new();
     private readonly ProfileStyleService styles = new();
-
     private readonly AchievementService achievements = new();
+
+    private readonly PointsService points = new();
+    private readonly LevelService levels = new();
+    private readonly СервисАрхива005 архив = new();
+    private readonly ShopRequestService заказы = new();
+
+    private readonly DispatcherTimer таймер = new()
+    {
+        Interval = TimeSpan.FromSeconds(2)
+    };
 
     public ОкноПрофиляИгрока(Guid id)
     {
@@ -26,7 +39,15 @@ public partial class ОкноПрофиляИгрока : Window
 
         playerId = id;
 
-        Loaded += (_, _) => Загрузить();
+        Loaded += (_, _) =>
+        {
+            Загрузить();
+
+            таймер.Tick += (_, _) => Загрузить();
+            таймер.Start();
+        };
+
+        Closed += (_, _) => таймер.Stop();
     }
 
     private void Загрузить()
@@ -35,6 +56,7 @@ public partial class ОкноПрофиляИгрока : Window
 
         if (account == null)
         {
+            таймер.Stop();
             Close();
             return;
         }
@@ -42,9 +64,114 @@ public partial class ОкноПрофиляИгрока : Window
         Имя.Text = account.ПолноеИмя;
         Баланс.Text = account.ОсталосьВремени.ToString(@"hh\:mm");
 
+        ОбновитьЭкономику(account);
         ОбновитьПрофиль();
         ПостроитьИнвентарь();
         ПостроитьДостижения();
+        ПостроитьИсторию();
+    }
+
+    private void ОбновитьЭкономику(АккаунтИгрока account)
+    {
+        var баланс = points.Get(playerId);
+
+        ТекстБаллы.Text = $"⭐ {баланс.Points}";
+
+        var уровень =
+            levels.GetTierByPlayedSeconds(
+                (long)account.ВсегоСыграно.TotalSeconds);
+
+        ТекстУровень.Text =
+            $"{уровень.Name} (x{уровень.MultiplierPercent / 100.0:0.00})";
+
+        var активенПремиум =
+            баланс.Premium &&
+            (!баланс.PremiumUntil.HasValue ||
+             баланс.PremiumUntil.Value > DateTime.Now);
+
+        ТекстПремиум.Text =
+            !активенПремиум
+                ? "Нет"
+                : баланс.PremiumUntil.HasValue
+                    ? $"⭐ до {баланс.PremiumUntil.Value:dd.MM.yyyy}"
+                    : "⭐ Бессрочно";
+    }
+
+    private void ПостроитьИсторию()
+    {
+        SessionsHistoryPanel.Children.Clear();
+
+        var сеансы =
+            архив.ПолучитьВсе()
+                 .Where(x => x.АккаунтGuid == playerId)
+                 .OrderByDescending(x => x.Начало)
+                 .Take(5)
+                 .ToList();
+
+        if (сеансы.Count == 0)
+        {
+            SessionsHistoryPanel.Children.Add(
+                СтрокаИстории("Пока нет завершённых сеансов.", ""));
+        }
+
+        foreach (var сеанс in сеансы)
+        {
+            var сыграно = сеанс.Сыграно.ToString(@"hh\:mm");
+
+            SessionsHistoryPanel.Children.Add(
+                СтрокаИстории(
+                    $"ПК-{сеанс.КомпьютерId} • {сеанс.Начало:dd.MM HH:mm}",
+                    сыграно));
+        }
+
+        PurchasesHistoryPanel.Children.Clear();
+
+        var покупки =
+            заказы.All
+                  .Where(x => x.AccountId == playerId)
+                  .OrderByDescending(x => x.Time)
+                  .Take(5)
+                  .ToList();
+
+        if (покупки.Count == 0)
+        {
+            PurchasesHistoryPanel.Children.Add(
+                СтрокаИстории("Покупок пока нет.", ""));
+        }
+
+        foreach (var покупка in покупки)
+        {
+            PurchasesHistoryPanel.Children.Add(
+                СтрокаИстории(
+                    $"{покупка.ItemName} • {покупка.Time:dd.MM HH:mm}",
+                    $"{покупка.Price:0} ₽"));
+        }
+    }
+
+    private static UIElement СтрокаИстории(string текст, string значение)
+    {
+        var row = new DockPanel { Margin = new Thickness(0, 3, 0, 3) };
+
+        row.Children.Add(new TextBlock
+        {
+            Text = текст,
+            Foreground = Brushes.LightGray,
+            FontSize = 13
+        });
+
+        var значениеБлок = new TextBlock
+        {
+            Text = значение,
+            Foreground = Brushes.White,
+            FontSize = 13,
+            FontWeight = FontWeights.Bold
+        };
+
+        DockPanel.SetDock(значениеБлок, Dock.Right);
+
+        row.Children.Add(значениеБлок);
+
+        return row;
     }
 
     private void ПостроитьДостижения()
@@ -228,79 +355,3 @@ public partial class ОкноПрофиляИгрока : Window
         var brush = (SolidColorBrush)AvatarBorder.BorderBrush;
 
         brush.BeginAnimation(
-            SolidColorBrush.ColorProperty,
-            new ColorAnimation
-            {
-                From = Color.FromRgb(217, 119, 6),
-                To = Color.FromRgb(255, 235, 59),
-                Duration = TimeSpan.FromSeconds(1.4),
-                AutoReverse = true,
-                RepeatBehavior = RepeatBehavior.Forever
-            });
-    }
-
-    private void NeonAnimation()
-    {
-        var brush = (SolidColorBrush)AvatarBorder.BorderBrush;
-
-        AvatarBorder.Effect =
-            new DropShadowEffect
-            {
-                Color = Colors.Cyan,
-                BlurRadius = 24,
-                ShadowDepth = 0,
-                Opacity = 1
-            };
-
-        brush.BeginAnimation(
-            SolidColorBrush.ColorProperty,
-            new ColorAnimation
-            {
-                From = Color.FromRgb(0, 255, 180),
-                To = Color.FromRgb(0, 120, 255),
-                Duration = TimeSpan.FromSeconds(1),
-                AutoReverse = true,
-                RepeatBehavior = RepeatBehavior.Forever
-            });
-    }
-
-    private void LegendAnimation()
-    {
-        var brush = (SolidColorBrush)AvatarBorder.BorderBrush;
-
-        AvatarBorder.Effect =
-            new DropShadowEffect
-            {
-                Color = Colors.MediumPurple,
-                BlurRadius = 28,
-                ShadowDepth = 0,
-                Opacity = 1
-            };
-
-        var rotate = new RotateTransform();
-
-        AvatarBorder.RenderTransform = rotate;
-        AvatarBorder.RenderTransformOrigin = new Point(0.5, 0.5);
-
-        rotate.BeginAnimation(
-            RotateTransform.AngleProperty,
-            new DoubleAnimation
-            {
-                From = 0,
-                To = 360,
-                Duration = TimeSpan.FromSeconds(6),
-                RepeatBehavior = RepeatBehavior.Forever
-            });
-
-        brush.BeginAnimation(
-            SolidColorBrush.ColorProperty,
-            new ColorAnimation
-            {
-                From = Color.FromRgb(180, 90, 255),
-                To = Color.FromRgb(255, 0, 170),
-                Duration = TimeSpan.FromSeconds(1.2),
-                AutoReverse = true,
-                RepeatBehavior = RepeatBehavior.Forever
-            });
-    }
-}

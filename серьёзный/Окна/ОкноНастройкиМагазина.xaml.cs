@@ -9,6 +9,8 @@ public partial class ОкноНастройкиМагазина : Window
     private readonly ShopService shop =
         new();
 
+    private bool загружается;
+
     public ОкноНастройкиМагазина()
     {
         InitializeComponent();
@@ -32,44 +34,63 @@ public partial class ОкноНастройкиМагазина : Window
     }
 
     private void Загрузить()
-
     {
-        var categories =
-            shop.GetCategories()
-                .OrderBy(x => x.Order)
-                .ToList();
+        загружается = true;
 
-        СписокРазделов.ItemsSource = categories;
+        try
+        {
+            var categories =
+                shop.GetCategories()
+                    .OrderBy(x => x.Order)
+                    .ToList();
+
+            СписокРазделов.ItemsSource = categories;
+
+            var settings =
+                shop.GetSettings();
+
+            ПоказатьМагазин.IsChecked =
+                settings.Enabled;
+
+            ПанельТоваров.Children.Clear();
+
+            foreach (var item in shop.GetItems())
+            {
+                var card =
+                    new Карточки.КарточкаТовара(item);
+
+                card.DeleteRequested += id =>
+                {
+                    shop.DeleteItem(id);
+                    Загрузить();
+                };
+
+                ПанельТоваров.Children.Add(card);
+            }
+        }
+        finally
+        {
+            загружается = false;
+        }
+    }
+
+    private void ПоказатьМагазин_Changed(
+        object sender,
+        RoutedEventArgs e)
+    {
+        // Checked/Unchecked срабатывает и когда мы сами выставляем
+        // IsChecked внутри Загрузить() — в этом случае сохранять
+        // и рассылать ShopChangedEvent не нужно.
+        if (загружается)
+            return;
 
         var settings =
             shop.GetSettings();
 
-        ПоказатьМагазин.IsChecked =
-            settings.Enabled;
+        settings.Enabled =
+            ПоказатьМагазин.IsChecked == true;
 
-        ПанельТоваров.Children.Clear();
-
-        foreach (var item in shop.GetItems())
-        {
-            var card =
-                new Карточки.КарточкаТовара(item);
-
-            card.DeleteRequested += id =>
-            {
-                shop.DeleteItem(id);
-                Загрузить();
-
-
-            };
-
-
-            ПанельТоваров.Children.Add(card);
-
-        }
-
-
-
-
+        shop.SaveSettings(settings);
     }
 
     private void ДобавитьРаздел_Click(

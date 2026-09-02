@@ -30,6 +30,6 @@ public record SessionEndedEvent(int PcId, Guid? AccountId);
 
 public record ShopOrderStatusChangedEvent(Guid OrderId, string Status);
 
-public record AchievementUnlockedEvent(Guid PlayerId, string AchievementName);
+public record AchievementUnlockedEvent(Guid PlayerId, string AchievementName, string Description);
 
 public record GameSessionReportedEvent(Guid AccountId, int PcId, long PlayedSeconds);

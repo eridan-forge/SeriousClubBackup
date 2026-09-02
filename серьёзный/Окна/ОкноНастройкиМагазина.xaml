@@ -10,11 +10,8 @@
     <Grid Margin="16">
 
         <Grid.ColumnDefinitions>
-
             <ColumnDefinition Width="260"/>
-
             <ColumnDefinition/>
-
         </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0"
@@ -57,7 +54,9 @@
                     <CheckBox x:Name="ПоказатьМагазин"
                               Margin="24,10,0,0"
                               Foreground="White"
-                              Content="Показывать магазин игрокам"/>
+                              Content="Показывать магазин игрокам"
+                              Checked="ПоказатьМагазин_Changed"
+                              Unchecked="ПоказатьМагазин_Changed"/>
 
                 </StackPanel>
 

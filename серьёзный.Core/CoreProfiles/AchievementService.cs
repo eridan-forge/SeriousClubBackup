@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using серьёзный.Core.CoreEvents;
 
 namespace серьёзный.Core.CoreProfiles;
 
@@ -215,6 +216,12 @@ public class AchievementService
                 player,
                 reward.RewardFrame.Value);
         }
+
+        EventBus.Publish(
+              new AchievementUnlockedEvent(
+                   player,
+                     reward.Name,
+ reward.Description));
 
         return true;
     }

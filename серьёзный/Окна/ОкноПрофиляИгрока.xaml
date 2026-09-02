@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Профиль игрока"
         Width="560"
-        Height="780"
+        Height="900"
         WindowStartupLocation="CenterOwner"
         Background="#0F172A">
 
@@ -70,27 +70,28 @@
                                Foreground="White"/>
 
                     <DockPanel Margin="0,14,0,0">
-
-                        <TextBlock Text="Баланс времени"
-                                   Foreground="#CBD5E1"/>
-
-                        <TextBlock x:Name="Баланс"
-                                   DockPanel.Dock="Right"
-                                   Foreground="White"
-                                   FontWeight="Bold"/>
-
+                        <TextBlock Text="Баланс времени" Foreground="#CBD5E1"/>
+                        <TextBlock x:Name="Баланс" DockPanel.Dock="Right" Foreground="White" FontWeight="Bold"/>
                     </DockPanel>
 
                     <DockPanel Margin="0,10,0,0">
+                        <TextBlock Text="Рамка" Foreground="#CBD5E1"/>
+                        <TextBlock x:Name="НазваниеРамки" DockPanel.Dock="Right" Foreground="White" FontWeight="Bold"/>
+                    </DockPanel>
 
-                        <TextBlock Text="Рамка"
-                                   Foreground="#CBD5E1"/>
+                    <DockPanel Margin="0,10,0,0">
+                        <TextBlock Text="Баллы" Foreground="#CBD5E1"/>
+                        <TextBlock x:Name="ТекстБаллы" DockPanel.Dock="Right" Foreground="#FBBF24" FontWeight="Bold"/>
+                    </DockPanel>
 
-                        <TextBlock x:Name="НазваниеРамки"
-                                   DockPanel.Dock="Right"
-                                   Foreground="White"
-                                   FontWeight="Bold"/>
+                    <DockPanel Margin="0,10,0,0">
+                        <TextBlock Text="Уровень" Foreground="#CBD5E1"/>
+                        <TextBlock x:Name="ТекстУровень" DockPanel.Dock="Right" Foreground="White" FontWeight="Bold"/>
+                    </DockPanel>
 
+                    <DockPanel Margin="0,10,0,0">
+                        <TextBlock Text="VIP-статус" Foreground="#CBD5E1"/>
+                        <TextBlock x:Name="ТекстПремиум" DockPanel.Dock="Right" Foreground="White" FontWeight="Bold"/>
                     </DockPanel>
 
                 </StackPanel>
@@ -103,15 +104,20 @@
                     Padding="18">
 
                 <StackPanel>
-
-                    <TextBlock Text="Мои рамки"
-                               FontSize="22"
-                               FontWeight="Bold"
-                               Foreground="White"
-                               Margin="0,0,0,12"/>
-
+                    <TextBlock Text="Мои рамки" FontSize="22" FontWeight="Bold" Foreground="White" Margin="0,0,0,12"/>
                     <WrapPanel x:Name="FramesPanel"/>
+                </StackPanel>
 
+            </Border>
+
+            <Border Margin="0,22,0,0"
+                    Background="#1E293B"
+                    CornerRadius="18"
+                    Padding="18">
+
+                <StackPanel>
+                    <TextBlock Text="Достижения" FontSize="22" FontWeight="Bold" Foreground="White" Margin="0,0,0,12"/>
+                    <StackPanel x:Name="AchievementsPanel"/>
                 </StackPanel>
 
             </Border>
@@ -123,13 +129,13 @@
 
                 <StackPanel>
 
-                    <TextBlock Text="Достижения"
-                               FontSize="22"
-                               FontWeight="Bold"
-                               Foreground="White"
-                               Margin="0,0,0,12"/>
+                    <TextBlock Text="История" FontSize="22" FontWeight="Bold" Foreground="White" Margin="0,0,0,12"/>
 
-                    <StackPanel x:Name="AchievementsPanel"/>
+                    <TextBlock Text="Последние сеансы" FontSize="14" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,6"/>
+                    <StackPanel x:Name="SessionsHistoryPanel"/>
+
+                    <TextBlock Text="Последние покупки" FontSize="14" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,16,0,6"/>
+                    <StackPanel x:Name="PurchasesHistoryPanel"/>
 
                 </StackPanel>
 

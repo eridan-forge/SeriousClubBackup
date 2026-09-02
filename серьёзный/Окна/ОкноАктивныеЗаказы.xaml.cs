@@ -76,6 +76,12 @@ public partial class ОкноАктивныеЗаказы : Window
         ready.Click += (_, _) =>
             requests.SetReady(request.Id);
 
+        var completed =
+            new Button { Content = "✅ Выдано" };
+
+        completed.Click += (_, _) =>
+            requests.SetCompleted(request.Id);
+
         var cancel =
             new Button { Content = "✕" };
 
@@ -84,6 +90,7 @@ public partial class ОкноАктивныеЗаказы : Window
 
         row.Children.Add(preparing);
         row.Children.Add(ready);
+        row.Children.Add(completed);
         row.Children.Add(cancel);
 
         return new Border
