@@ -55,6 +55,11 @@
                 <TextBox x:Name="Остаток"
                          Margin="0,0,0,10"/>
 
+                <CheckBox x:Name="Скрыт"
+                Content="Скрыть от игроков"
+                Foreground="White"
+                 Margin="0,0,0,10"/>
+
                 <WrapPanel>
 
                     <Button x:Name="Сохранить"

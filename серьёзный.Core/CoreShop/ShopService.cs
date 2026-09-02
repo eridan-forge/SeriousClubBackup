@@ -1,19 +1,125 @@
-﻿using System.Text.Json;
+﻿using Microsoft.Data.Sqlite;
 using System.IO;
+using System.Text.Json;
+using серьёзный.Core.CoreEvents;
 
 namespace серьёзный.Core.CoreShop;
 
 public class ShopService
 {
-    private readonly JsonSerializerOptions json =
-        new()
-        {
-            WriteIndented = true
-        };
+    private readonly string db =
+        Path.Combine(
+            Environment.GetFolderPath(
+                Environment.SpecialFolder.CommonApplicationData),
+            "SeriousClub",
+            "SeriousClub.db");
 
     public ShopService()
     {
+        Directory.CreateDirectory(Path.GetDirectoryName(db)!);
+
         ShopPaths.Ensure();
+
+        using var con = Open();
+
+        var cmd = con.CreateCommand();
+
+        cmd.CommandText =
+        """
+        CREATE TABLE IF NOT EXISTS ShopCategories(
+            Id TEXT PRIMARY KEY,
+            Name TEXT NOT NULL,
+            SortOrder INTEGER NOT NULL DEFAULT 0,
+            Hidden INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS ShopItems(
+            Id TEXT PRIMARY KEY,
+            CategoryId TEXT NOT NULL,
+            Name TEXT NOT NULL,
+            Description TEXT NOT NULL DEFAULT '',
+            Price REAL NOT NULL DEFAULT 0,
+            Image TEXT NOT NULL DEFAULT '',
+            Hidden INTEGER NOT NULL DEFAULT 0,
+            Featured INTEGER NOT NULL DEFAULT 0,
+            IsNew INTEGER NOT NULL DEFAULT 0,
+            Stock INTEGER NOT NULL DEFAULT -1
+        );
+
+        CREATE TABLE IF NOT EXISTS ShopSettings(
+            Id INTEGER PRIMARY KEY CHECK(Id=1),
+            Enabled INTEGER NOT NULL DEFAULT 1,
+            ShowBanner INTEGER NOT NULL DEFAULT 1
+        );
+
+        INSERT OR IGNORE INTO ShopSettings VALUES(1, 1, 1);
+        """;
+
+        cmd.ExecuteNonQuery();
+
+        МигрироватьИзJson();
+    }
+
+    private SqliteConnection Open()
+    {
+        var con = new SqliteConnection($"Data Source={db}");
+        con.Open();
+        return con;
+    }
+
+    // Одноразовый перенос старых данных из JSON (если они есть) в
+    // SQLite, чтобы витрина/товары, накопленные до перехода, не
+    // потерялись. Срабатывает только если таблица категорий пуста.
+    private void МигрироватьИзJson()
+    {
+        using var con = Open();
+
+        var check = con.CreateCommand();
+        check.CommandText = "SELECT COUNT(*) FROM ShopCategories;";
+
+        if (Convert.ToInt32(check.ExecuteScalar()) > 0)
+            return;
+
+        if (!File.Exists(ShopPaths.Categories) && !File.Exists(ShopPaths.Items))
+            return;
+
+        try
+        {
+            if (File.Exists(ShopPaths.Categories))
+            {
+                var categories =
+                    JsonSerializer.Deserialize<List<ShopCategory>>(
+                        File.ReadAllText(ShopPaths.Categories)) ?? new();
+
+                foreach (var c in categories)
+                    ВставитьКатегорию(con, c);
+            }
+
+            if (File.Exists(ShopPaths.Items))
+            {
+                var items =
+                    JsonSerializer.Deserialize<List<ShopItem>>(
+                        File.ReadAllText(ShopPaths.Items)) ?? new();
+
+                foreach (var i in items)
+                    ВставитьТовар(con, i);
+            }
+
+            if (File.Exists(ShopPaths.Settings))
+            {
+                var settings =
+                    JsonSerializer.Deserialize<ShopSettings>(
+                        File.ReadAllText(ShopPaths.Settings));
+
+                if (settings != null)
+                    SaveSettings(settings);
+            }
+        }
+        catch
+        {
+            // Повреждённые старые JSON-файлы не должны блокировать
+            // запуск - продолжаем с тем, что успели прочитать.
+        }
     }
 
     // =========================
@@ -22,28 +128,37 @@ public class ShopService
 
     public ShopSettings GetSettings()
     {
-        if (!File.Exists(ShopPaths.Settings))
+        using var con = Open();
+
+        var cmd = con.CreateCommand();
+        cmd.CommandText = "SELECT Enabled, ShowBanner FROM ShopSettings WHERE Id=1;";
+
+        using var r = cmd.ExecuteReader();
+
+        if (!r.Read())
             return new ShopSettings();
 
-        try
+        return new ShopSettings
         {
-            return JsonSerializer.Deserialize<ShopSettings>(
-                       File.ReadAllText(ShopPaths.Settings))
-                   ?? new ShopSettings();
-        }
-        catch
-        {
-            return new ShopSettings();
-        }
+            Enabled = r.GetInt32(0) == 1,
+            ShowBanner = r.GetInt32(1) == 1
+        };
     }
 
     public void SaveSettings(ShopSettings settings)
     {
-        File.WriteAllText(
-            ShopPaths.Settings,
-            JsonSerializer.Serialize(settings, json));
+        using var con = Open();
 
-        ShopSyncService.Notify();
+        var cmd = con.CreateCommand();
+        cmd.CommandText =
+            "UPDATE ShopSettings SET Enabled=$e, ShowBanner=$b WHERE Id=1;";
+
+        cmd.Parameters.AddWithValue("$e", settings.Enabled ? 1 : 0);
+        cmd.Parameters.AddWithValue("$b", settings.ShowBanner ? 1 : 0);
+
+        cmd.ExecuteNonQuery();
+
+        ShopChangedEvent.Notify();
     }
 
     // =========================
@@ -52,95 +167,126 @@ public class ShopService
 
     public List<ShopCategory> GetCategories()
     {
-        if (!File.Exists(ShopPaths.Categories))
-            return [];
+        using var con = Open();
 
-        try
+        var cmd = con.CreateCommand();
+        cmd.CommandText =
+            "SELECT Id, Name, SortOrder, Hidden FROM ShopCategories ORDER BY SortOrder;";
+
+        using var r = cmd.ExecuteReader();
+
+        var list = new List<ShopCategory>();
+
+        while (r.Read())
         {
-            return JsonSerializer.Deserialize<List<ShopCategory>>(
-                       File.ReadAllText(ShopPaths.Categories))
-                   ?? [];
+            list.Add(new ShopCategory
+            {
+                Id = Guid.Parse(r.GetString(0)),
+                Name = r.GetString(1),
+                Order = r.GetInt32(2),
+                Hidden = r.GetInt32(3) == 1
+            });
         }
-        catch
-        {
-            return [];
-        }
+
+        return list;
     }
 
     public void AddCategory(ShopCategory category)
     {
-        var list = GetCategories();
+        category.Order = GetCategories().Count;
 
-        category.Order = list.Count;
+        using var con = Open();
 
-        list.Add(category);
+        ВставитьКатегорию(con, category);
 
-        SaveCategories(list);
+        ShopChangedEvent.Notify();
+    }
+
+    private static void ВставитьКатегорию(SqliteConnection con, ShopCategory category)
+    {
+        var cmd = con.CreateCommand();
+
+        cmd.CommandText =
+        """
+        INSERT INTO ShopCategories(Id, Name, SortOrder, Hidden)
+        VALUES($id,$name,$order,$hidden)
+        ON CONFLICT(Id) DO UPDATE SET
+            Name=$name, SortOrder=$order, Hidden=$hidden;
+        """;
+
+        cmd.Parameters.AddWithValue("$id", category.Id.ToString());
+        cmd.Parameters.AddWithValue("$name", category.Name);
+        cmd.Parameters.AddWithValue("$order", category.Order);
+        cmd.Parameters.AddWithValue("$hidden", category.Hidden ? 1 : 0);
+
+        cmd.ExecuteNonQuery();
     }
 
     public void RenameCategory(Guid id, string name)
     {
-        var list = GetCategories();
+        using var con = Open();
 
-        var category =
-            list.FirstOrDefault(x => x.Id == id);
+        var cmd = con.CreateCommand();
+        cmd.CommandText = "UPDATE ShopCategories SET Name=$n WHERE Id=$id;";
 
-        if (category == null)
-            return;
+        cmd.Parameters.AddWithValue("$n", name);
+        cmd.Parameters.AddWithValue("$id", id.ToString());
 
-        category.Name = name;
+        cmd.ExecuteNonQuery();
 
-        SaveCategories(list);
+        ShopChangedEvent.Notify();
     }
 
     public void DeleteCategory(Guid id)
     {
-        var categories = GetCategories();
-        var items = GetItems();
+        using var con = Open();
 
-        categories.RemoveAll(x => x.Id == id);
-        items.RemoveAll(x => x.CategoryId == id);
+        using (var cmd = con.CreateCommand())
+        {
+            cmd.CommandText = "DELETE FROM ShopCategories WHERE Id=$id;";
+            cmd.Parameters.AddWithValue("$id", id.ToString());
+            cmd.ExecuteNonQuery();
+        }
 
-        SaveCategories(categories);
-        SaveItems(items);
+        using (var cmd = con.CreateCommand())
+        {
+            cmd.CommandText = "DELETE FROM ShopItems WHERE CategoryId=$id;";
+            cmd.Parameters.AddWithValue("$id", id.ToString());
+            cmd.ExecuteNonQuery();
+        }
+
+        ShopChangedEvent.Notify();
     }
 
     public void MoveCategory(Guid id, int newIndex)
     {
-        var list =
-            GetCategories()
-                .OrderBy(x => x.Order)
-                .ToList();
+        var list = GetCategories();
 
-        var category =
-            list.FirstOrDefault(x => x.Id == id);
+        var category = list.FirstOrDefault(x => x.Id == id);
 
         if (category == null)
             return;
 
         list.Remove(category);
 
-        newIndex =
-            Math.Clamp(
-                newIndex,
-                0,
-                list.Count);
+        newIndex = Math.Clamp(newIndex, 0, list.Count);
 
         list.Insert(newIndex, category);
 
+        using var con = Open();
+
         for (int i = 0; i < list.Count; i++)
+        {
             list[i].Order = i;
 
-        SaveCategories(list);
-    }
+            var cmd = con.CreateCommand();
+            cmd.CommandText = "UPDATE ShopCategories SET SortOrder=$o WHERE Id=$id;";
+            cmd.Parameters.AddWithValue("$o", i);
+            cmd.Parameters.AddWithValue("$id", list[i].Id.ToString());
+            cmd.ExecuteNonQuery();
+        }
 
-    private void SaveCategories(List<ShopCategory> list)
-    {
-        File.WriteAllText(
-            ShopPaths.Categories,
-            JsonSerializer.Serialize(list, json));
-
-        ShopSyncService.Notify();
+        ShopChangedEvent.Notify();
     }
 
     // =========================
@@ -149,179 +295,104 @@ public class ShopService
 
     public List<ShopItem> GetItems()
     {
-        if (!File.Exists(ShopPaths.Items))
-            return [];
+        using var con = Open();
 
-        try
-        {
-            return JsonSerializer.Deserialize<List<ShopItem>>(
-                       File.ReadAllText(ShopPaths.Items))
-                   ?? [];
-        }
-        catch
-        {
-            return [];
-        }
+        var cmd = con.CreateCommand();
+        cmd.CommandText =
+            "SELECT Id, CategoryId, Name, Description, Price, Image, Hidden, Featured, IsNew, Stock " +
+            "FROM ShopItems;";
+
+        using var r = cmd.ExecuteReader();
+
+        var list = new List<ShopItem>();
+
+        while (r.Read())
+            list.Add(ПрочитатьТовар(r));
+
+        return list;
     }
+
+    public List<ShopItem> GetItems(Guid categoryId) =>
+        GetItems().Where(x => x.CategoryId == categoryId).ToList();
+
+    public List<ShopItem> GetItemsByCategory(Guid categoryId) =>
+        GetItems().Where(x => x.CategoryId == categoryId && !x.Hidden).ToList();
+
+    public List<ShopItem> GetVisibleItems() =>
+        GetItems().Where(x => !x.Hidden).ToList();
 
     public void AddItem(ShopItem item)
     {
-        var list = GetItems();
+        using var con = Open();
 
-        list.Add(item);
+        ВставитьТовар(con, item);
 
-        SaveItems(list);
+        ShopChangedEvent.Notify();
     }
 
     public void UpdateItem(ShopItem item)
     {
-        var list = GetItems();
+        using var con = Open();
 
-        var current =
-            list.FirstOrDefault(x => x.Id == item.Id);
+        ВставитьТовар(con, item);
 
-        if (current == null)
-            return;
+        ShopChangedEvent.Notify();
+    }
 
-        current.Name = item.Name;
-        current.Description = item.Description;
-        current.Price = item.Price;
-        current.Stock = item.Stock;
-        current.Hidden = item.Hidden;
-        current.Featured = item.Featured;
-        current.IsNew = item.IsNew;
-        current.Image = item.Image;
-        current.CategoryId = item.CategoryId;
+    private static void ВставитьТовар(SqliteConnection con, ShopItem item)
+    {
+        var cmd = con.CreateCommand();
 
-        SaveItems(list);
+        cmd.CommandText =
+        """
+        INSERT INTO ShopItems
+        (Id, CategoryId, Name, Description, Price, Image, Hidden, Featured, IsNew, Stock)
+        VALUES($id,$cat,$name,$desc,$price,$img,$hidden,$feat,$new,$stock)
+        ON CONFLICT(Id) DO UPDATE SET
+            CategoryId=$cat, Name=$name, Description=$desc, Price=$price,
+            Image=$img, Hidden=$hidden, Featured=$feat, IsNew=$new, Stock=$stock;
+        """;
+
+        cmd.Parameters.AddWithValue("$id", item.Id.ToString());
+        cmd.Parameters.AddWithValue("$cat", item.CategoryId.ToString());
+        cmd.Parameters.AddWithValue("$name", item.Name);
+        cmd.Parameters.AddWithValue("$desc", item.Description);
+        cmd.Parameters.AddWithValue("$price", item.Price);
+        cmd.Parameters.AddWithValue("$img", item.Image);
+        cmd.Parameters.AddWithValue("$hidden", item.Hidden ? 1 : 0);
+        cmd.Parameters.AddWithValue("$feat", item.Featured ? 1 : 0);
+        cmd.Parameters.AddWithValue("$new", item.IsNew ? 1 : 0);
+        cmd.Parameters.AddWithValue("$stock", item.Stock);
+
+        cmd.ExecuteNonQuery();
     }
 
     public void DeleteItem(Guid id)
     {
-        var list = GetItems();
+        using var con = Open();
 
-        list.RemoveAll(x => x.Id == id);
+        var cmd = con.CreateCommand();
+        cmd.CommandText = "DELETE FROM ShopItems WHERE Id=$id;";
+        cmd.Parameters.AddWithValue("$id", id.ToString());
+        cmd.ExecuteNonQuery();
 
-        SaveItems(list);
+        ShopChangedEvent.Notify();
     }
 
-    private void SaveItems(List<ShopItem> list)
+    private static ShopItem ПрочитатьТовар(SqliteDataReader r)
     {
-        File.WriteAllText(
-            ShopPaths.Items,
-            JsonSerializer.Serialize(list, json));
-
-        ShopSyncService.Notify();
-    }
-
-    public List<ShopItem> GetItemsByCategory(Guid categoryId)
-    {
-        return GetItems()
-            .Where(x =>
-                x.CategoryId == categoryId &&
-                !x.Hidden)
-            .ToList();
-    }
-
-    public List<ShopItem> GetVisibleItems()
-    {
-        return GetItems()
-            .Where(x => !x.Hidden)
-            .ToList();
-    }
-
-    public IEnumerable<ShopItem> GetItems(Guid categoryId)
-    {
-        return GetItems()
-            .Where(x => x.CategoryId == categoryId);
-    }
-
-    // =========================
-    // ЗАКАЗЫ
-    // =========================
-
-    public List<ShopOrder> GetOrders()
-    {
-        if (!File.Exists(ShopPaths.Orders))
-            return [];
-
-        try
+        return new ShopItem
         {
-            return JsonSerializer.Deserialize<List<ShopOrder>>(
-                       File.ReadAllText(ShopPaths.Orders))
-                   ?? [];
-        }
-        catch
-        {
-            return [];
-        }
-    }
-
-    public void AddOrder(ShopOrder order)
-    {
-        var list = GetOrders();
-
-        list.Add(order);
-
-        SaveOrders(list);
-    }
-
-    public void CompleteOrder(Guid id)
-    {
-        var list = GetOrders();
-
-        var order =
-            list.FirstOrDefault(x => x.Id == id);
-
-        if (order == null)
-            return;
-
-        order.Completed = true;
-
-        SaveOrders(list);
-    }
-
-    private void SaveOrders(List<ShopOrder> list)
-    {
-        File.WriteAllText(
-            ShopPaths.Orders,
-            JsonSerializer.Serialize(list, json));
-
-        ShopSyncService.Notify();
-    }
-
-    public ShopOrder CreateOrder(
-        Guid itemId,
-        Guid playerId,
-        string playerName,
-        string pcName)
-    {
-        var item =
-            GetItems()
-                .First(x => x.Id == itemId);
-
-        var order =
-            new ShopOrder
-            {
-                ItemId = itemId,
-                PlayerId = playerId,
-                PlayerName = playerName,
-                PcName = pcName
-            };
-
-        AddOrder(order);
-
-        ShopEvents.RaiseOrder(
-            new ShopOrderNotification
-            {
-                OrderId = order.Id,
-                PlayerId = playerId,
-                PlayerName = playerName,
-                PcName = pcName,
-                ItemName = item.Name,
-                Price = item.Price
-            });
-
-        return order;
+            Id = Guid.Parse(r.GetString(0)),
+            CategoryId = Guid.Parse(r.GetString(1)),
+            Name = r.GetString(2),
+            Description = r.GetString(3),
+            Price = r.GetDecimal(4),
+            Image = r.GetString(5),
+            Hidden = r.GetInt32(6) == 1,
+            Featured = r.GetInt32(7) == 1,
+            IsNew = r.GetInt32(8) == 1,
+            Stock = r.GetInt32(9)
+        };
     }
 }

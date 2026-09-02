@@ -1,5 +1,4 @@
 ﻿using System.Windows;
-using серьёзный.Core.CoreEvents;
 using серьёзный.Core.CoreShop;
 using System.IO;
 
@@ -22,7 +21,7 @@ public partial class ОкноСозданияРаздела : Window
                     Name = Имя.Text
                 });
 
-            ShopChangedEvent.Notify();
+            
 
             DialogResult = true;
         };

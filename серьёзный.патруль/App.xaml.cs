@@ -272,6 +272,11 @@ namespace серьёзный.Патруль
 
             _ = balanceBridge.ЗапуститьAsync(токен);
 
+            var gameSessionBridge =
+                  new GameSessionReportBridgeWorker(клиент, конфигурация);
+
+            _ = gameSessionBridge.ЗапуститьAsync(токен);
+
             try
             {
                 await сервисПатруля

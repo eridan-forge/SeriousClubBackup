@@ -1,7 +1,6 @@
 ﻿using System.IO;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
-using серьёзный.Core.CoreEvents;
 using серьёзный.Core.CoreShop;
 using серьёзный.Core.CoreVideo;
 using серьёзный.Сервисы;
@@ -41,6 +40,7 @@ public partial class КарточкаТовара : UserControl
         Название.Text = Item.Name;
         Цена.Text = Item.Price.ToString();
         Остаток.Text = Item.Stock.ToString();
+        Скрыт.IsChecked = Item.Hidden;
 
         if (File.Exists(Item.Image))
         {
@@ -66,7 +66,7 @@ public partial class КарточкаТовара : UserControl
 
         shop.UpdateItem(Item);
 
-        ShopChangedEvent.Notify();
+        
     }
 
     private void Save()
@@ -83,9 +83,10 @@ public partial class КарточкаТовара : UserControl
 
         Item.Price = price;
         Item.Stock = stock;
+        Item.Hidden = Скрыт.IsChecked == true;
 
         shop.UpdateItem(Item);
 
-        ShopChangedEvent.Notify();
+       
     }
 }

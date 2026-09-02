@@ -1,6 +1,5 @@
 ﻿using System.Windows;
 using System.Windows.Media.Imaging;
-using серьёзный.Core.CoreEvents;
 using серьёзный.Core.CoreShop;
 using серьёзный.Core.CoreVideo;
 using серьёзный.Сервисы;
@@ -67,8 +66,6 @@ public partial class ОкноСозданияТовара : Window
             };
 
         shop.AddItem(item);
-
-        ShopChangedEvent.Notify();
 
         DialogResult = true;
     }
