@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using серьёзный.Core.CoreAudit;
 using серьёзный.Core.CoreEconomy;
+using серьёзный.Core.CoreProfiles;
 
 namespace серьёзный.Окна;
 
@@ -15,6 +16,7 @@ public partial class ОкноРазвлеченияАдмин : Window
     private readonly CaseService cases = new();
     private readonly PointsService points = new();
     private readonly AdminActionLogService audit = new();
+    private readonly AchievementThresholdsService пороги = new();
 
     private readonly string имяАдмина;
 
@@ -53,6 +55,14 @@ public partial class ОкноРазвлеченияАдмин : Window
 
         ГридИстория.ItemsSource = null;
         ГридИстория.ItemsSource = audit.GetRecent();
+
+        var текущиеПороги = пороги.Get();
+
+        ПолеПорогЧасов.Text =
+               (текущиеПороги.TenHoursSeconds / 3600.0).ToString("0.##");
+
+        ПолеПорогДрузей.Text = текущиеПороги.FiveFriendsCount.ToString();
+        ПолеПорогСеансов.Text = текущиеПороги.VeteranSessionsCount.ToString();
     }
 
     // ============== ЭКОНОМИКА ==============
@@ -211,5 +221,39 @@ public partial class ОкноРазвлеченияАдмин : Window
     {
         ГридИстория.ItemsSource = null;
         ГридИстория.ItemsSource = audit.GetRecent();
+
+  
+    }
+
+    // ============== ДОСТИЖЕНИЯ ==============
+
+    private void СохранитьПорогиДостижений_Click(object sender, RoutedEventArgs e)
+    {
+        if (!double.TryParse(ПолеПорогЧасов.Text, out var часы) || часы < 0)
+        {
+            MessageBox.Show("Введите корректное количество часов.");
+            return;
+        }
+
+        if (!int.TryParse(ПолеПорогДрузей.Text, out var друзья) || друзья < 0)
+        {
+            MessageBox.Show("Введите корректное количество друзей.");
+            return;
+        }
+
+        if (!int.TryParse(ПолеПорогСеансов.Text, out var сеансы) || сеансы < 0)
+        {
+            MessageBox.Show("Введите корректное количество сеансов.");
+            return;
+        }
+
+        пороги.Save(new AchievementThresholds
+        {
+            TenHoursSeconds = (long)(часы * 3600),
+            FiveFriendsCount = друзья,
+            VeteranSessionsCount = сеансы
+        }, имяАдмина);
+
+        MessageBox.Show("Пороги достижений сохранены.");
     }
 }

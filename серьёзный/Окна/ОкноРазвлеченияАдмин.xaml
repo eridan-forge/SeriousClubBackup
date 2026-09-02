@@ -129,6 +129,45 @@
             </StackPanel>
         </TabItem>
 
+        <TabItem Header="Достижения">
+            <StackPanel Margin="16">
+
+                <TextBlock Text="Пороги встроенных достижений"
+               FontSize="20"
+             FontWeight="Bold"
+             Foreground="White"
+             Margin="0,0,0,16"/>
+
+                <TextBlock Text="«10 часов» — сыгранное время (в часах)"
+             Foreground="White"/>
+                <TextBox x:Name="ПолеПорогЧасов"
+               Width="150"
+             HorizontalAlignment="Left"
+             Margin="0,4,0,14"/>
+
+                <TextBlock Text="«Компания» — количество друзей"
+            Foreground="White"/>
+                <TextBox x:Name="ПолеПорогДрузей"
+              Width="150"
+              HorizontalAlignment="Left"
+            Margin="0,4,0,14"/>
+
+                <TextBlock Text="«Ветеран» — количество сеансов"
+               Foreground="White"/>
+                <TextBox x:Name="ПолеПорогСеансов"
+            Width="150"
+              HorizontalAlignment="Left"
+             Margin="0,4,0,20"/>
+
+                <Button Content="💾 Сохранить пороги"
+              Width="180"
+              HorizontalAlignment="Left"
+             Click="СохранитьПорогиДостижений_Click"/>
+
+            </StackPanel>
+
+        </TabItem>
+
     </TabControl>
 
 </Window>

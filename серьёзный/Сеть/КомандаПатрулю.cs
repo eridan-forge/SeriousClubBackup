@@ -59,6 +59,10 @@ namespace серьёзный.Сеть
 
         public string? Файл { get; set; }
 
+        public Guid? ItemId { get; set; }
+
+        public серьёзный.Core.CoreShop.ShopDeliveryType? Delivery { get; set; }
+
 
         // =========================================================
         // ГОЛОСОВОЕ СООБЩЕНИЕ

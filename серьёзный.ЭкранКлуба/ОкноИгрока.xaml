@@ -74,6 +74,12 @@
                         Margin="0,6"
                         Content="🛒  Магазин"/>
 
+                    <Button
+                     x:Name="КнопкаЗаказы"
+                    Height="46"
+                      Margin="0,6"
+                      Content="📦  Мои заказы"/>
+
 					<Button
     x:Name="КнопкаИгроки"
     Height="46"
@@ -350,6 +356,41 @@
 
 				</Grid>
 
+                <!-- ========================= -->
+                <!-- МОИ ЗАКАЗЫ -->
+                <!-- ========================= -->
+
+                <Grid x:Name="СтраницаЗаказы"
+                  Visibility="Collapsed">
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Margin="0,0,0,18">
+
+                        <TextBlock Text="Мои заказы"
+                           FontSize="26"
+                        	   FontWeight="Bold"
+                           Foreground="White"/>
+
+                        <Button x:Name="КнопкаОбновитьЗаказы"
+                        DockPanel.Dock="Right"
+                        Width="120"
+                        Height="34"
+                        	Content="🔄 Обновить"/>
+
+                    </DockPanel>
+
+                    <ScrollViewer Grid.Row="1"
+                                   VerticalScrollBarVisibility="Auto">
+
+                        <StackPanel x:Name="ПанельЗаказов"/>
+
+                    </ScrollViewer>
+
+                </Grid>
             </Grid>
 
         </Grid>

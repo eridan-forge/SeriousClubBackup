@@ -38,6 +38,30 @@ public partial class ОкноИгроки : Window
     {
         Players.Children.Clear();
 
+        // ---------------- ВХОДЯЩИЕ ЗАЯВКИ ----------------
+
+        var входящие = social.Incoming(me);
+
+        if (входящие.Count > 0)
+        {
+            Players.Children.Add(СоздатьЗаголовокЗаявок(входящие.Count));
+
+            foreach (var заявка in входящие)
+            {
+                Players.Children.Add(СоздатьКарточкуЗаявки(заявка));
+            }
+
+            Players.Children.Add(
+                new Border
+                {
+                    Height = 1,
+                    Background = new SolidColorBrush(Color.FromRgb(51, 65, 85)),
+                    Margin = new Thickness(0, 4, 0, 16)
+                });
+        }
+
+        // ---------------- СПИСОК ИГРОКОВ ----------------
+
         var text =
             Search.Text.Trim().ToLower();
 
@@ -52,6 +76,100 @@ public partial class ОкноИгроки : Window
 
             Players.Children.Add(CreateCard(account));
         }
+    }
+
+    // =====================================================
+    // ЗАГОЛОВОК БЛОКА ЗАЯВОК
+    // =====================================================
+
+    private UIElement СоздатьЗаголовокЗаявок(int count)
+    {
+        return new TextBlock
+        {
+            Text = $"📨 Заявки в друзья ({count})",
+            Foreground = Brushes.White,
+            FontSize = 18,
+            FontWeight = FontWeights.Bold,
+            Margin = new Thickness(0, 0, 0, 10)
+        };
+    }
+
+    // =====================================================
+    // КАРТОЧКА ОДНОЙ ЗАЯВКИ
+    // =====================================================
+
+    private UIElement СоздатьКарточкуЗаявки(FriendRelation заявка)
+    {
+        var отправитель =
+            accounts.Получить(заявка.From);
+
+        var имя =
+            отправитель?.ПолноеИмя ?? "Неизвестный игрок";
+
+        var принять =
+            new Button
+            {
+                Content = "✅ Принять",
+                Width = 110,
+                Height = 34,
+                Margin = new Thickness(4)
+            };
+
+        принять.Click += (_, _) =>
+        {
+            social.Accept(заявка.Id);
+            Refresh();
+        };
+
+        var отклонить =
+            new Button
+            {
+                Content = "✕ Отклонить",
+                Width = 110,
+                Height = 34,
+                Margin = new Thickness(4)
+            };
+
+        отклонить.Click += (_, _) =>
+        {
+            social.Remove(заявка.From, заявка.To);
+            Refresh();
+        };
+
+        var buttons =
+            new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right
+            };
+
+        buttons.Children.Add(принять);
+        buttons.Children.Add(отклонить);
+
+        var row = new DockPanel();
+
+        row.Children.Add(
+            new TextBlock
+            {
+                Text = имя,
+                Foreground = Brushes.White,
+                FontSize = 16,
+                FontWeight = FontWeights.SemiBold,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+        DockPanel.SetDock(buttons, Dock.Right);
+        row.Children.Add(buttons);
+
+        return new Border
+        {
+            Margin = new Thickness(0, 0, 0, 10),
+            Padding = new Thickness(16),
+            CornerRadius = new CornerRadius(14),
+            Background =
+                new SolidColorBrush(Color.FromRgb(30, 58, 95)),
+            Child = row
+        };
     }
 
     private UIElement CreateCard(dynamic account)
@@ -71,7 +189,13 @@ public partial class ОкноИгроки : Window
                 Content =
                     social.IsFriend(me, account.Id)
                         ? "Удалить"
-                        : "Добавить",
+                        : social.HasPending(me, account.Id)
+                            ? "Заявка отправлена"
+                            : "Добавить",
+
+                IsEnabled =
+                    social.IsFriend(me, account.Id) ||
+                    !social.HasPending(me, account.Id),
 
                 Width = 90,
                 Margin = new Thickness(4)
@@ -261,8 +385,6 @@ public partial class ОкноИгроки : Window
                         }
                     }
             };
-
-        // Клик по карточке → профиль
 
         card.MouseLeftButtonUp += (_, _) =>
         {

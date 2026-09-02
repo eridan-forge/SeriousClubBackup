@@ -1319,6 +1319,24 @@ new SessionStartedEvent(
 
                     return;
                 }
+
+                if (входныеДанные?.Команда ==
+                       серьёзный.Сеть.КомандаПК.ЗапроситьПокупку)
+                {
+                    _ = ОбработатьЗапросПокупкиAsync(
+                         подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+                      серьёзный.Сеть.КомандаПК.ЗапроситьМоиЗаказы)
+                {
+                    _ = ОбработатьЗапросМоихЗаказовAsync(
+                         подключение, сообщение, входныеДанные);
+
+                    return;
+                }
             }
 
             Dispatcher.Invoke(
@@ -2766,6 +2784,113 @@ new SessionStartedEvent(
                 ответ.Успешно = false;
                 ответ.Ошибка = ex.Message;
             }
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        private async Task ОбработатьЗапросПокупкиAsync(
+ПодключениеПатруля подключение,
+СетевоеСообщение исходное,
+серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.АккаунтId.HasValue || !данные.ItemId.HasValue || !данные.Delivery.HasValue)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Некорректные данные заказа.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            try
+            {
+                var сервисЗаказов = new серьёзный.Core.CoreShop.ShopRequestService();
+                var магазин = new серьёзный.Core.CoreShop.ShopService();
+
+                var товар = магазин.GetItems()
+                    .FirstOrDefault(x => x.Id == данные.ItemId.Value);
+
+                if (товар == null)
+                {
+                    ответ.Успешно = false;
+                    ответ.Ошибка = "Товар не найден.";
+
+                    await подключение.ОтправитьAsync(ответ);
+                    return;
+                }
+
+                var заказ = сервисЗаказов.Create(
+                    данные.АккаунтId.Value,
+                    исходное.КомпьютерId ?? 0,
+                    товар.Id,
+                    товар.Name,
+                    товар.Price,
+                    данные.Delivery.Value);
+
+                ответ.Успешно = true;
+
+                ответ.УстановитьДанные(new серьёзный.Core.CoreModels.ShopPurchaseResultDto
+                {
+                    Success = true,
+                    RequestId = заказ.Id
+                });
+            }
+            catch (Exception ex)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = ex.Message;
+            }
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        private async Task ОбработатьЗапросМоихЗаказовAsync(
+    ПодключениеПатруля подключение,
+    СетевоеСообщение исходное,
+    серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.АккаунтId.HasValue)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Не указан AccountId.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            var сервисЗаказов = new серьёзный.Core.CoreShop.ShopRequestService();
+
+            var заказы = сервисЗаказов.All
+                .Where(x => x.AccountId == данные.АккаунтId.Value)
+                .OrderByDescending(x => x.Time)
+                .Take(20)
+                .Select(x => new серьёзный.Core.CoreModels.ShopOrderDto
+                {
+                    Id = x.Id,
+                    ItemName = x.ItemName,
+                    Price = x.Price,
+                    Status = x.Status.ToString(),
+                    Delivery = x.Delivery.ToString(),
+                    Time = x.Time
+                })
+                .ToList();
+
+            ответ.Успешно = true;
+
+            ответ.УстановитьДанные(new серьёзный.Core.CoreModels.ShopOrdersDto
+            {
+                Orders = заказы
+            });
 
             await подключение.ОтправитьAsync(ответ);
         }

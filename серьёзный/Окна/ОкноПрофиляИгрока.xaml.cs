@@ -355,3 +355,113 @@ public partial class ОкноПрофиляИгрока : Window
         var brush = (SolidColorBrush)AvatarBorder.BorderBrush;
 
         brush.BeginAnimation(
+            SolidColorBrush.ColorProperty,
+            null);
+
+        var анимация =
+            new ColorAnimation
+            {
+                From = Color.FromRgb(255, 204, 0),
+                To = Color.FromRgb(255, 240, 150),
+                Duration = TimeSpan.FromSeconds(1.2),
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever
+            };
+
+        brush.BeginAnimation(
+            SolidColorBrush.ColorProperty,
+            анимация);
+
+        AvatarBorder.Effect =
+            new DropShadowEffect
+            {
+                Color = Color.FromRgb(255, 204, 0),
+                BlurRadius = 24,
+                ShadowDepth = 0,
+                Opacity = 0.75
+            };
+    }
+
+    private void NeonAnimation()
+    {
+        var brush = (SolidColorBrush)AvatarBorder.BorderBrush;
+
+        brush.BeginAnimation(
+            SolidColorBrush.ColorProperty,
+            null);
+
+        var анимация =
+            new ColorAnimation
+            {
+                From = Color.FromRgb(0, 255, 255),
+                To = Color.FromRgb(0, 140, 255),
+                Duration = TimeSpan.FromSeconds(0.9),
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever
+            };
+
+        brush.BeginAnimation(
+            SolidColorBrush.ColorProperty,
+            анимация);
+
+        AvatarBorder.Effect =
+            new DropShadowEffect
+            {
+                Color = Color.FromRgb(0, 255, 255),
+                BlurRadius = 30,
+                ShadowDepth = 0,
+                Opacity = 0.85
+            };
+    }
+
+    private void LegendAnimation()
+    {
+        var brush = (SolidColorBrush)AvatarBorder.BorderBrush;
+
+        brush.BeginAnimation(
+            SolidColorBrush.ColorProperty,
+            null);
+
+        var анимация =
+            new ColorAnimation
+            {
+                From = Color.FromRgb(180, 90, 255),
+                To = Color.FromRgb(255, 90, 200),
+                Duration = TimeSpan.FromSeconds(1.5),
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever
+            };
+
+        brush.BeginAnimation(
+            SolidColorBrush.ColorProperty,
+            анимация);
+
+        var scale = new ScaleTransform(1, 1);
+
+        AvatarBorder.RenderTransformOrigin = new Point(0.5, 0.5);
+        AvatarBorder.RenderTransform = scale;
+
+        var pulse =
+            new DoubleAnimation
+            {
+                From = 1.0,
+                To = 1.05,
+                Duration = TimeSpan.FromSeconds(1.0),
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever,
+                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+            };
+
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, pulse);
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, pulse);
+
+        AvatarBorder.Effect =
+            new DropShadowEffect
+            {
+                Color = Color.FromRgb(180, 90, 255),
+                BlurRadius = 36,
+                ShadowDepth = 0,
+                Opacity = 0.9
+            };
+    }
+}

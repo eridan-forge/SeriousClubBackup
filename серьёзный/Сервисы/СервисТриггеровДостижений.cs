@@ -12,18 +12,14 @@ namespace серьёзный.Сервисы;
 // поэтому сервис намеренно не пытается слушать что-то, рождающееся на
 // стороне ЭкранКлуба/Патруля на клиентских ПК.
 //
-// Пороги (10 часов, 5 друзей, 50 сеансов) пока захардкожены — следующим
-// шагом вынесем их в таблицу, редактируемую из админки, по тому же
-// принципу, что и EconomyConfig/LevelTiers.
+// Пороги (10 часов, 5 друзей, 50 сеансов) хранятся в
+// AchievementThresholdsService и правятся из админки без пересборки.
 public class СервисТриггеровДостижений
 {
     private readonly AchievementService достижения = new();
     private readonly SocialService social = new();
     private readonly ShopRequestService заказы = new();
-
-    private const long ДесятьЧасовВСекундах = 10 * 3600;
-    private const int ДрузейДляДостижения = 5;
-    private const int СеансовДляВетерана = 50;
+    private readonly AchievementThresholdsService пороги = new();
 
     public void Инициализировать()
     {
@@ -56,13 +52,15 @@ public class СервисТриггеровДостижений
         if (аккаунт == null)
             return;
 
-        if (аккаунт.ВсегоСыграно.TotalSeconds >= ДесятьЧасовВСекундах)
+        var текущиеПороги = пороги.Get();
+
+        if (аккаунт.ВсегоСыграно.TotalSeconds >= текущиеПороги.TenHoursSeconds)
             достижения.Unlock(accountId, AchievementType.TenHours);
 
-        if (аккаунт.ВсегоСеансов >= СеансовДляВетерана)
+        if (аккаунт.ВсегоСеансов >= текущиеПороги.VeteranSessionsCount)
             достижения.Unlock(accountId, AchievementType.Veteran);
 
-        if (social.GetFriendIds(accountId).Count >= ДрузейДляДостижения)
+        if (social.GetFriendIds(accountId).Count >= текущиеПороги.FiveFriendsCount)
             достижения.Unlock(accountId, AchievementType.FiveFriends);
 
         if (заказы.All.Any(x => x.AccountId == accountId))

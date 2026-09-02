@@ -277,6 +277,11 @@ namespace серьёзный.Патруль
 
             _ = gameSessionBridge.ЗапуститьAsync(токен);
 
+            var shopBridge =
+                 new ShopBridgeWorker(клиент, конфигурация);
+
+            _ = shopBridge.ЗапуститьAsync(токен);
+
             try
             {
                 await сервисПатруля

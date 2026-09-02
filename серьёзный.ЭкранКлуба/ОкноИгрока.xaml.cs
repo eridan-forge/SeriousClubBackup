@@ -22,6 +22,8 @@ using серьёзный.ЭкранКлуба.Модели;
 using серьёзный.ЭкранКлуба.Сервисы;
 using серьёзный.Карточки;
 using серьёзный.Core.CoreServices;
+using серьёзный.Core.CoreModels;
+using System.Threading;
 
 namespace серьёзный.ЭкранКлуба
 {
@@ -92,6 +94,8 @@ namespace серьёзный.ЭкранКлуба
             КнопкаГлавная.Click += (_, _) => ПоказатьГлавную();
             КнопкаИгры.Click += (_, _) => ПоказатьИгры();
             КнопкаМагазин.Click += (_, _) => ПоказатьМагазин();
+            КнопкаЗаказы.Click += (_, _) => ПоказатьЗаказы();
+            КнопкаОбновитьЗаказы.Click += (_, _) => ЗагрузитьЗаказы();
 
             КнопкаИгроки.Click += (_, _) =>
             {
@@ -431,6 +435,25 @@ namespace серьёзный.ЭкранКлуба
             Выделить(КнопкаМагазин);
         }
 
+        private void ПоказатьЗаказы()
+        {
+            СтраницаГлавная.Visibility =
+                Visibility.Collapsed;
+
+            СтраницаИгры.Visibility =
+                Visibility.Collapsed;
+
+            СтраницаМагазин.Visibility =
+                Visibility.Collapsed;
+
+            СтраницаЗаказы.Visibility =
+                Visibility.Visible;
+
+            Выделить(КнопкаЗаказы);
+
+            ЗагрузитьЗаказы();
+        }
+
         private void ПостроитьИгры()
         {
             игры =
@@ -694,6 +717,7 @@ namespace серьёзный.ЭкранКлуба
                 КнопкаГлавная,
                 КнопкаИгры,
                 КнопкаМагазин,
+                КнопкаЗаказы,
                 КнопкаЧат
             })
             {
@@ -799,23 +823,184 @@ namespace серьёзный.ЭкранКлуба
             if (win.ShowDialog() != true)
                 return;
 
-            var requests = new ShopRequestService();
+            var requestId =
+                серьёзный.Core.CoreServices.ShopPurchaseBridgeService.CreateRequest(
+                     аккаунтId, компьютерId, item.Id, win.Result);
 
-            requests.Create(
-                аккаунтId,
-                компьютерId,
-                item.Id,
-                item.Name,
-                item.Price,
-                win.Result);
+            // Заказ реально существует только на сервере (у админа);
+            // ждём подтверждения, как и при логине/балансе.
+            for (int i = 0; i < 30; i++) // до ~6 секунд
+            {
+                var результат =
+    серьёзный.Core.CoreServices.ShopPurchaseBridgeService.GetResult(requestId);
 
-            MessageBox.Show(
-                win.Result == ShopDeliveryType.BringToPc
-                    ? "Администратор получил запрос и принесёт заказ."
-                    : "Подойдите к администратору за заказом.",
-                "Заказ отправлен");
+                if (результат.HasValue && результат.Value.Status != 0)
+                {
+                    if (результат.Value.Status == 1)
+                    {
+                        MessageBox.Show(
+                              win.Result == ShopDeliveryType.BringToPc
+ ? "Администратор получил запрос и принесёт заказ."
+    : "Подойдите к администратору за заказом.",
+  "Заказ отправлен");
+                    }
+                    else
+                    {
+                        MessageBox.Show(
+  результат.Value.Error ?? "Не удалось оформить заказ.",
+    "Ошибка");
+                    }
+
+
+                                   return;
+                }
+
+                System.Threading.Thread.Sleep(200);
+            }
+
+            MessageBox.Show("Сервер не ответил. Попробуйте ещё раз.", "Ошибка");
+
+        }
+
+
+        private async void ЗагрузитьЗаказы()
+        {
+            if (аккаунт == null)
+                return;
+
+            ПанельЗаказов.Children.Clear();
+
+            ПанельЗаказов.Children.Add(
+                new TextBlock
+                {
+                    Text = "Загрузка...",
+                    Foreground = Brushes.Gray,
+                    FontSize = 15
+                });
+
+            var requestId =
+                ShopOrdersBridgeService.CreateRequest(аккаунтId);
+
+            ShopOrdersDto? результат = null;
+
+            for (int i = 0; i < 30; i++) // до ~6 секунд
+            {
+                await Task.Delay(200);
+
+                if (окноЗакрывается)
+                    return;
+
+                результат = ShopOrdersBridgeService.GetResult(requestId);
+
+                if (результат != null)
+                    break;
+            }
+
+            ПанельЗаказов.Children.Clear();
+
+            if (результат == null)
+            {
+                ПанельЗаказов.Children.Add(
+                    new TextBlock
+                    {
+                        Text = "Сервер не ответил. Нажмите «Обновить».",
+                        Foreground = Brushes.OrangeRed,
+                        FontSize = 15
+                    });
+
+                return;
+            }
+
+            if (результат.Orders.Count == 0)
+            {
+                ПанельЗаказов.Children.Add(
+                    new TextBlock
+                    {
+                        Text = "У вас пока нет заказов.",
+                        Foreground = Brushes.Gray,
+                        FontSize = 15
+                    });
+
+                return;
+            }
+
+            foreach (var заказ in результат.Orders)
+            {
+                ПанельЗаказов.Children.Add(СоздатьКарточкуЗаказа(заказ));
+            }
+        }
+
+        private static UIElement СоздатьКарточкуЗаказа(ShopOrderDto заказ)
+        {
+            var (иконка, цвет, текстСтатуса) = ОтобразитьСтатус(заказ.Status);
+
+            var header = new DockPanel();
+
+            header.Children.Add(
+                new TextBlock
+                {
+                    Text = заказ.ItemName,
+                    Foreground = Brushes.White,
+                    FontSize = 18,
+                    FontWeight = FontWeights.Bold
+                });
+
+            var статусБлок =
+                new TextBlock
+                {
+                    Text = $"{иконка} {текстСтатуса}",
+                    Foreground = цвет,
+                    FontWeight = FontWeights.Bold
+                };
+
+            DockPanel.SetDock(статусБлок, Dock.Right);
+            header.Children.Add(статусБлок);
+
+            var подробности =
+                new TextBlock
+                {
+                    Text =
+                        $"{заказ.Price:0} ₽ • " +
+                        (заказ.Delivery == "BringToPc"
+                            ? "Принести к ПК"
+                            : "Подойти к администратору") +
+                        $" • {заказ.Time:dd.MM HH:mm}",
+                    Foreground = Brushes.LightGray,
+                    FontSize = 13,
+                    Margin = new Thickness(0, 6, 0, 0)
+                };
+
+            var stack = new StackPanel();
+
+            stack.Children.Add(header);
+            stack.Children.Add(подробности);
+
+            return new Border
+            {
+                Margin = new Thickness(0, 0, 0, 12),
+                Padding = new Thickness(18),
+                CornerRadius = new CornerRadius(14),
+                Background =
+                    new SolidColorBrush(Color.FromRgb(30, 41, 59)),
+                Child = stack
+            };
+        }
+
+        private static (string Icon, Brush Color, string Text) ОтобразитьСтатус(string status)
+        {
+            return status switch
+            {
+                "Pending" => ("⏳", Brushes.Gold, "Ожидает"),
+                "Preparing" => ("🛠", Brushes.DodgerBlue, "Готовится"),
+                "Ready" => ("✅", Brushes.LimeGreen, "Готово"),
+                "Completed" => ("📦", Brushes.Gray, "Выдано"),
+                "Cancelled" => ("✕", Brushes.OrangeRed, "Отменено"),
+                _ => ("•", Brushes.Gray, status)
+            };
         }
     }
+
+
 
 
 }
