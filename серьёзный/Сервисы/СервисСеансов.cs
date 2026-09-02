@@ -36,6 +36,8 @@ namespace серьёзный.Сервисы
 
         public event Action<Сеанс>? СеансОбновился;
 
+        public event Action<Сеанс>? СеансНачался;
+
         public event Action<Сеанс>? Предупреждение15Минут;
 
         public event Action<Сеанс>? Предупреждение10Минут;
@@ -487,7 +489,10 @@ namespace серьёзный.Сервисы
                 СеансОбновился?.Invoke(
                     сеанс);
 
+                СеансНачался?.Invoke(
+                                   сеанс);
                 return сеанс;
+
             }
         }
 
