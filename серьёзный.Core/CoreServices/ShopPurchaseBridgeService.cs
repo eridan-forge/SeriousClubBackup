@@ -31,34 +31,7 @@ public static class ShopPurchaseBridgeService
             "SeriousClub",
             "SeriousClub.db");
 
-    private static SqliteConnection Open()
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(db)!);
-
-        var con = new SqliteConnection($"Data Source={db}");
-        con.Open();
-
-        var cmd = con.CreateCommand();
-
-        cmd.CommandText =
-        """
-        CREATE TABLE IF NOT EXISTS ShopPurchaseRequests(
-            Id INTEGER PRIMARY KEY AUTOINCREMENT,
-            AccountId TEXT NOT NULL,
-            PcId INTEGER NOT NULL,
-            ItemId TEXT NOT NULL,
-            Delivery TEXT NOT NULL,
-            Status INTEGER NOT NULL DEFAULT 0,
-            ResultRequestId TEXT,
-            Error TEXT,
-            Created TEXT NOT NULL
-        );
-        """;
-
-        cmd.ExecuteNonQuery();
-
-        return con;
-    }
+    private static SqliteConnection Open() => серьёзный.Core.CoreDb.SqliteDb.Open();
 
     // Вызывает ОкноИгрока при нажатии "Хочу купить".
     public static long CreateRequest(

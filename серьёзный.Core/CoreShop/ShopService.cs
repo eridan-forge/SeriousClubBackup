@@ -2,6 +2,7 @@
 using System.IO;
 using System.Text.Json;
 using серьёзный.Core.CoreEvents;
+using серьёзный.Core.CoreDb;
 
 namespace серьёзный.Core.CoreShop;
 
@@ -59,13 +60,7 @@ public class ShopService
 
         МигрироватьИзJson();
     }
-
-    private SqliteConnection Open()
-    {
-        var con = new SqliteConnection($"Data Source={db}");
-        con.Open();
-        return con;
-    }
+    private SqliteConnection Open() => SqliteDb.Open();
 
     // Одноразовый перенос старых данных из JSON (если они есть) в
     // SQLite, чтобы витрина/товары, накопленные до перехода, не

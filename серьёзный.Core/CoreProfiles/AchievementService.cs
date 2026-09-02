@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using серьёзный.Core.CoreDb;
 using серьёзный.Core.CoreEvents;
 
 namespace серьёзный.Core.CoreProfiles;
@@ -60,15 +61,7 @@ public class AchievementService
         cmd.ExecuteNonQuery();
     }
 
-    private SqliteConnection Open()
-    {
-        var con =
-            new SqliteConnection($"Data Source={db}");
-
-        con.Open();
-
-        return con;
-    }
+    private SqliteConnection Open() => SqliteDb.Open();
 
     // ==========================================
     // ВСЕ ДОСТИЖЕНИЯ

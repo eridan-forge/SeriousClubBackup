@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.Sqlite;
 using System.IO;
+using серьёзный.Core.CoreDb;
 
 namespace серьёзный.Core.CoreAudit;
 
@@ -47,12 +48,7 @@ public class AdminActionLogService
         cmd.ExecuteNonQuery();
     }
 
-    private SqliteConnection Open()
-    {
-        var con = new SqliteConnection($"Data Source={db}");
-        con.Open();
-        return con;
-    }
+    private SqliteConnection Open() => SqliteDb.Open();
 
     public void Log(string action, string details = "", string? adminName = null)
     {

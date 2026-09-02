@@ -17,30 +17,7 @@ public static class ShopOrdersBridgeService
             "SeriousClub",
             "SeriousClub.db");
 
-    private static SqliteConnection Open()
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(db)!);
-
-        var con = new SqliteConnection($"Data Source={db}");
-        con.Open();
-
-        var cmd = con.CreateCommand();
-
-        cmd.CommandText =
-        """
-        CREATE TABLE IF NOT EXISTS ShopOrdersRequests(
-            Id INTEGER PRIMARY KEY AUTOINCREMENT,
-            AccountId TEXT NOT NULL,
-            Done INTEGER NOT NULL DEFAULT 0,
-            OrdersJson TEXT,
-            Created TEXT NOT NULL
-        );
-        """;
-
-        cmd.ExecuteNonQuery();
-
-        return con;
-    }
+    private static SqliteConnection Open() => серьёзный.Core.CoreDb.SqliteDb.Open();
 
     public static long CreateRequest(Guid accountId)
     {

@@ -403,30 +403,38 @@ namespace серьёзный.Сервисы
         // =========================================================
 
         public Сеанс НачатьСеанс(
-            int компьютерId,
-            int? клиентId,
-            string имяКлиента,
-            TimeSpan продолжительность,
-            decimal стоимость)
+    int компьютерId,
+    int? клиентId,
+    string имяКлиента,
+    TimeSpan продолжительность,
+    decimal стоимость,
+    Guid? аккаунтId = null)
         {
-            if (продолжительность <=
-                TimeSpan.Zero)
+            if (продолжительность <= TimeSpan.Zero)
             {
-                throw new ArgumentOutOfRangeException(
-                    nameof(продолжительность));
+                throw new ArgumentOutOfRangeException(nameof(продолжительность));
             }
 
             lock (синхронизация)
             {
-                if (ПолучитьАктивныйПоКомпьютеруВнутри(
-                        компьютерId) != null)
+                if (ПолучитьАктивныйПоКомпьютеруВнутри(компьютерId) != null)
                 {
                     throw new InvalidOperationException(
                         "На этом компьютере уже идёт сеанс.");
                 }
 
-                var сейчас =
-                    DateTime.Now;
+                if (аккаунтId.HasValue)
+                {
+                    var занятыйСеанс = ПолучитьАктивныйПоАккаунтуВнутри(аккаунтId.Value);
+
+                    if (занятыйСеанс != null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Этот аккаунт уже играет на ПК-{занятыйСеанс.КомпьютерId}.");
+                    }
+                }
+
+                var сейчас = DateTime.Now;
 
                 var сеанс =
                     new Сеанс
@@ -1069,6 +1077,28 @@ namespace серьёзный.Сервисы
                             СтатусСеанса.Активен ||
                          x.Статус ==
                             СтатусСеанса.НаПаузе));
+        }
+
+        private Сеанс? ПолучитьАктивныйПоАккаунтуВнутри(Guid accountId)
+        {
+            return сеансы.FirstOrDefault(
+                x =>
+                    x.АккаунтGuid == accountId &&
+                    (x.Статус == СтатусСеанса.Активен ||
+                     x.Статус == СтатусСеанса.НаПаузе));
+        }
+
+        // Публичная версия — используется MainWindow при входе через логин/пароль
+        public bool АккаунтУжеИгра(Guid accountId, out int? компьютерId)
+        {
+            lock (синхронизация)
+            {
+                var сеанс = ПолучитьАктивныйПоАккаунтуВнутри(accountId);
+
+                компьютерId = сеанс?.КомпьютерId;
+
+                return сеанс != null;
+            }
         }
 
 

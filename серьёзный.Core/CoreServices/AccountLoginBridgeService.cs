@@ -45,34 +45,7 @@ public static class AccountLoginBridgeService
             "SeriousClub",
             "SeriousClub.db");
 
-    private static SqliteConnection Open()
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(db)!);
-
-        var con = new SqliteConnection($"Data Source={db}");
-        con.Open();
-
-        var cmd = con.CreateCommand();
-
-        cmd.CommandText =
-        """
-        CREATE TABLE IF NOT EXISTS AccountLoginRequests(
-            Id INTEGER PRIMARY KEY AUTOINCREMENT,
-            Login TEXT NOT NULL,
-            Password TEXT NOT NULL,
-            Status INTEGER NOT NULL DEFAULT 0,
-            AccountId TEXT,
-            FullName TEXT,
-            RemainingSeconds INTEGER NOT NULL DEFAULT 0,
-            Error TEXT,
-            Created TEXT NOT NULL
-        );
-        """;
-
-        cmd.ExecuteNonQuery();
-
-        return con;
-    }
+    private static SqliteConnection Open() => серьёзный.Core.CoreDb.SqliteDb.Open();
 
     // Вызывает ЭкранКлуба при нажатии "Войти".
     public static long CreateRequest(string login, string password)

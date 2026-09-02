@@ -28,31 +28,7 @@ public static class GameSessionReportBridgeService
             "SeriousClub",
             "SeriousClub.db");
 
-    private static SqliteConnection Open()
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(db)!);
-
-        var con = new SqliteConnection($"Data Source={db}");
-        con.Open();
-
-        var cmd = con.CreateCommand();
-
-        cmd.CommandText =
-        """
-        CREATE TABLE IF NOT EXISTS GameSessionReports(
-            Id INTEGER PRIMARY KEY AUTOINCREMENT,
-            AccountId TEXT NOT NULL,
-            PcId INTEGER NOT NULL,
-            PlayedSeconds INTEGER NOT NULL,
-            Done INTEGER NOT NULL DEFAULT 0,
-            Created TEXT NOT NULL
-        );
-        """;
-
-        cmd.ExecuteNonQuery();
-
-        return con;
-    }
+    private static SqliteConnection Open() => серьёзный.Core.CoreDb.SqliteDb.Open();
 
     // Вызывает ЭкранКлуба, когда игра на клиентском ПК закрылась.
     public static void CreateRequest(Guid accountId, int pcId, long playedSeconds)

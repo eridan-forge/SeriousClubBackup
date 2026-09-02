@@ -28,31 +28,7 @@ public static class AchievementNotificationBridgeService
             "SeriousClub",
             "SeriousClub.db");
 
-    private static SqliteConnection Open()
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(db)!);
-
-        var con = new SqliteConnection($"Data Source={db}");
-        con.Open();
-
-        var cmd = con.CreateCommand();
-
-        cmd.CommandText =
-        """
-        CREATE TABLE IF NOT EXISTS AchievementNotifications(
-            Id INTEGER PRIMARY KEY AUTOINCREMENT,
-            AccountId TEXT NOT NULL,
-            Name TEXT NOT NULL,
-            Description TEXT NOT NULL DEFAULT '',
-            Delivered INTEGER NOT NULL DEFAULT 0,
-            Created TEXT NOT NULL
-        );
-        """;
-
-        cmd.ExecuteNonQuery();
-
-        return con;
-    }
+    private static SqliteConnection Open() => серьёзный.Core.CoreDb.SqliteDb.Open();
 
     // Вызывает Патруль, когда от сервера пришла команда
     // ДостижениеРазблокировано.

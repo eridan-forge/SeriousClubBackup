@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.Sqlite;
-using серьёзный.Core.CoreAudit;
 using System.IO;
+using серьёзный.Core.CoreAudit;
+using серьёзный.Core.CoreDb;
 
 namespace серьёзный.Core.CoreEconomy;
 
@@ -16,12 +17,7 @@ public class PremiumService
     private readonly PointsService points = new(); // гарантирует наличие строки в PlayerPoints
     private readonly AdminActionLogService лог = new();
 
-    private SqliteConnection Open()
-    {
-        var con = new SqliteConnection($"Data Source={db}");
-        con.Open();
-        return con;
-    }
+    private SqliteConnection Open() => SqliteDb.Open();
 
     public bool IsPremium(Guid playerId)
     {

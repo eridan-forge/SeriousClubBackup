@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.Sqlite;
 using System.IO;
 using System.Text.Json;
+using серьёзный.Core.CoreDb;
 
 namespace серьёзный.Core.CoreChat;
 
@@ -79,16 +80,7 @@ public class ChatService
         cmd.ExecuteNonQuery();
     }
 
-    private SqliteConnection Open()
-    {
-        var con =
-            new SqliteConnection(
-                $"Data Source={dbPath}");
-
-        con.Open();
-
-        return con;
-    }
+    private SqliteConnection Open() => SqliteDb.Open();
 
     // ==========================================
     // Диалог

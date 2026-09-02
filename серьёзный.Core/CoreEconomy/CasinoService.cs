@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.Sqlite;
 using серьёзный.Core.CoreAudit;
 using System.IO;
+using серьёзный.Core.CoreDb;
 
 namespace серьёзный.Core.CoreEconomy;
 
@@ -44,12 +45,7 @@ public class CasinoService
         cmd.ExecuteNonQuery();
     }
 
-    private SqliteConnection Open()
-    {
-        var con = new SqliteConnection($"Data Source={db}");
-        con.Open();
-        return con;
-    }
+    private SqliteConnection Open() => SqliteDb.Open();
 
     public CasinoConfig GetConfig()
     {

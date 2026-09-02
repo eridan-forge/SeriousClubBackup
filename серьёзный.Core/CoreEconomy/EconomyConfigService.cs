@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.Sqlite;
-using серьёзный.Core.CoreAudit;
 using System.IO;
+using серьёзный.Core.CoreAudit;
+using серьёзный.Core.CoreDb;
 
 namespace серьёзный.Core.CoreEconomy;
 
@@ -76,12 +77,7 @@ public class EconomyConfigService
         }
     }
 
-    private SqliteConnection Open()
-    {
-        var con = new SqliteConnection($"Data Source={db}");
-        con.Open();
-        return con;
-    }
+    private SqliteConnection Open() => SqliteDb.Open();
 
     // =====================================================
     // БАЗОВЫЕ СТАВКИ
