@@ -64,6 +64,13 @@ namespace серьёзный.Патруль.Система
 
                 switch (команда.Команда)
                 {
+
+
+                    case КомандаПК.ЗапроситьСписокИгр:
+
+                        return СканироватьИгры();
+
+
                     // =================================================
                     // СОСТОЯНИЕ
                     // =================================================
@@ -363,6 +370,32 @@ namespace серьёзный.Патруль.Система
             }
         }
 
+        private static РезультатКоманды СканироватьИгры()
+        {
+            try
+            {
+                var игры =
+                    серьёзный.Core.CoreDetectors.GameAutoScanService.Сканировать();
+
+                var json =
+                    System.Text.Json.JsonSerializer.Serialize(
+                        new серьёзный.Core.CoreModels.GameScanResultDto
+                        {
+                            Games = игры
+                        });
+
+                return new РезультатКоманды
+                {
+                    Успешно = true,
+                    Данные = json
+                };
+            }
+            catch (Exception ошибка)
+            {
+                return Ошибка(
+                    "Не удалось просканировать игры: " + ошибка.Message);
+            }
+        }
 
         // =========================================================
         // ГОЛОСОВОЕ
@@ -911,5 +944,7 @@ namespace серьёзный.Патруль.Система
         public bool Успешно { get; set; }
 
         public string? Ошибка { get; set; }
+
+        public string? Данные { get; set; }
     }
 }

@@ -93,6 +93,12 @@ public class СервисПатруля : IDisposable
                         ответ.Ошибка =
                             результат.Ошибка;
 
+                        if (!string.IsNullOrWhiteSpace(результат.Данные))
+                        {
+                            ответ.Данные =
+                                 результат.Данные;
+                        }
+
                         await клиент.ОтправитьAsync(ответ);
 
                         break;

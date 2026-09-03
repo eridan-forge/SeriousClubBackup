@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿using System.Threading.Tasks;
+using Microsoft.Win32;
 using System;
 using System.IO;
 using System.Windows;
@@ -17,9 +18,13 @@ namespace серьёзный.Окна
 
         private readonly int idПК;
 
+        private readonly Func<int, Task<List<серьёзный.Core.CoreModels.GameEntry>?>>? сканерИгр;
+
         private Игра? текущая;
 
-        public ОкноНастройкиИгр(int idПК)
+        public ОкноНастройкиИгр(
+            int idПК,
+             Func<int, Task<List<серьёзный.Core.CoreModels.GameEntry>?>>? сканерИгр = null)
         {
             InitializeComponent();
 
@@ -35,6 +40,7 @@ namespace серьёзный.Окна
                 СеткаКарточек);
 
             this.idПК = idПК;
+            this.сканерИгр = сканерИгр;
 
             Title = $"Игры ПК-{idПК}";
 
@@ -272,6 +278,71 @@ namespace серьёзный.Окна
             Обложка.Source =
                 new BitmapImage(
                     new Uri(destination));
+        }
+
+        private async void НайтиНаПК_Click(
+    object sender,
+    RoutedEventArgs e)
+        {
+            if (сканерИгр == null)
+            {
+                MessageBox.Show("Поиск игр недоступен для этого окна.");
+                return;
+            }
+
+            КнопкаНайтиНаПК.IsEnabled = false;
+            КнопкаНайтиНаПК.Content = "🔍 Сканирование...";
+
+            List<серьёзный.Core.CoreModels.GameEntry>? найденные;
+
+            try
+            {
+                найденные = await сканерИгр(idПК);
+            }
+            finally
+            {
+                КнопкаНайтиНаПК.IsEnabled = true;
+                КнопкаНайтиНаПК.Content = "🔍 Найти игры на ПК";
+            }
+
+            if (найденные == null)
+            {
+                MessageBox.Show("ПК не подключён или не ответил на запрос сканирования.");
+                return;
+            }
+
+            if (найденные.Count == 0)
+            {
+                MessageBox.Show("На этом ПК не найдено установленных игр.");
+                return;
+            }
+
+            var окно = new ОкноПоискИгр(найденные) { Owner = this };
+
+            if (окно.ShowDialog() != true)
+                return;
+
+            foreach (var выбранная in окно.Выбранные)
+            {
+                сервис.Добавить(
+                    idПК,
+                    new Игра
+                    {
+                        Id = Guid.NewGuid(),
+                        Название = выбранная.Name,
+                        Категория = string.IsNullOrWhiteSpace(выбранная.Category)
+                            ? "Игры"
+                            : выбранная.Category,
+                        Описание = выбранная.Description,
+                        Путь = выбранная.Path,
+                        Обложка = "",
+                        Скрыта = false
+                    });
+            }
+
+            LiveGameSync.Notify(idПК);
+
+            ПостроитьКарточки();
         }
     }
 }

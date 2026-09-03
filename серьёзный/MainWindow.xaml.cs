@@ -20,7 +20,7 @@ using серьёзный.Окна;
 using серьёзный.Core.CoreComputers;
 using серьёзный.Сервисы;
 using серьёзный.Сеть;
-
+using System.Collections.Concurrent;
 
 namespace серьёзный
 {
@@ -60,6 +60,11 @@ namespace серьёзный
             int,
             ПодключениеПатруля> подключения =
             new();
+
+        private readonly ConcurrentDictionary<
+    string,
+    TaskCompletionSource<СетевоеСообщение>> ожиданиеОтветовАдмина =
+    new ();
 
         private readonly СервисСеансов сервисСеансов =
             new();
@@ -1289,6 +1294,16 @@ new SessionStartedEvent(
             подключение.ПоследнийСигнал =
                 DateTime.Now;
 
+            if (сообщение.Тип == ТипСообщения.ОтветНаКоманду &&
+    ожиданиеОтветовАдмина.TryRemove(
+        сообщение.ИдентификаторСообщения,
+        out var tcsОжидание))
+            {
+                tcsОжидание.TrySetResult(сообщение);
+
+                return;
+            }
+
             if (сообщение.Тип == ТипСообщения.Команда)
             {
                 var входныеДанные =
@@ -1562,6 +1577,66 @@ new SessionStartedEvent(
             }
 
             return успешно;
+        }
+
+
+        private async Task<List<серьёзный.Core.CoreModels.GameEntry>?>
+    ЗапроситьСписокИгрAsync(int компьютерId)
+        {
+            if (!подключения.TryGetValue(компьютерId, out var подключение))
+                return null;
+
+            var сообщение =
+                СетевоеСообщение.Создать(ТипСообщения.Команда);
+
+            сообщение.КомпьютерId = компьютерId;
+
+            сообщение.УстановитьДанные(
+                new серьёзный.Сеть.КомандаПатрулю
+                {
+                    Команда = КомандаПК.ЗапроситьСписокИгр
+                });
+
+            var tcs =
+                new TaskCompletionSource<СетевоеСообщение>(
+                    TaskCreationOptions.RunContinuationsAsynchronously);
+
+            ожиданиеОтветовАдмина[сообщение.ИдентификаторСообщения] = tcs;
+
+            var отправлено = await подключение.ОтправитьAsync(сообщение);
+
+            if (!отправлено)
+            {
+                ожиданиеОтветовАдмина.TryRemove(
+                    сообщение.ИдентификаторСообщения, out _);
+
+                return null;
+            }
+
+            using var таймаут =
+                new CancellationTokenSource(TimeSpan.FromSeconds(25));
+
+            try
+            {
+                var ответ = await tcs.Task.WaitAsync(таймаут.Token);
+
+                if (!ответ.Успешно || string.IsNullOrWhiteSpace(ответ.Данные))
+                    return null;
+
+                var результат =
+                    ответ.ПолучитьДанные
+                        серьёзный.Core.CoreModels.GameScanResultDto > ();
+
+                return результат?.Games ??
+                    new List<серьёзный.Core.CoreModels.GameEntry>();
+            }
+            catch (OperationCanceledException)
+            {
+                ожиданиеОтветовАдмина.TryRemove(
+                    сообщение.ИдентификаторСообщения, out _);
+
+                return null;
+            }
         }
 
 
@@ -2233,11 +2308,9 @@ new SessionStartedEvent(
                     var остаток =
                         окно.Аккаунт.ОсталосьВремени;
 
-                    if (остаток 
-                TimeSpan.Zero)
+                    if (остаток < TimeSpan.Zero)
                     {
-                        остаток =
-                            TimeSpan.Zero;
+                        остаток = TimeSpan.Zero;
                     }
 
                     var доступныеМинуты =
@@ -2387,45 +2460,6 @@ new SessionStartedEvent(
 
             await подключение.ОтправитьAsync(ответ);
         }
-
-
-        // -----------------------------------------------------
-        // ЗАПУСК СЕАНСА НА СТОРОНЕ ПАТРУЛЯ
-        //
-        // Отправляем именно КомандаПК.НачатьСеанс (а не просто
-        // Разблокировать), чтобы Патруль знал АккаунтId — тогда
-        // Экран Клуба сам откроет окно игрока нужного аккаунта.
-        // -----------------------------------------------------
-
-        var отправлено =
-                  await ОтправитьКомандуAsync(
-                          КомандаПК.НачатьСеанс,
-     компьютерId:
-          пк.Id,
-      сеансId:
-      сеанс.Id,
-           длительностьСекунд:
-           (int)длительность.TotalSeconds,
-             аккаунтId:
-              окно.Аккаунт?.Id,
-имяАккаунта:
- окно.Аккаунт?.ПолноеИмя);
-
-
-
-            if (!отправлено)
-            {
-                сервисСеансов
-                    .ЗавершитьПоКомпьютеру(
-                        пк.Id,
-                        "Не удалось разблокировать ПК после запуска сеанса");
-
-                return;
-            }
-
-            ОбновитьОтображениеТекущегоСеанса();
-        }
-
 
         // =========================================================
         // ПАУЗА / ПРОДОЛЖЕНИЕ
@@ -3469,7 +3503,7 @@ new SessionStartedEvent(
 
         private void КнопкаИгры_Click(object sender, RoutedEventArgs e)
         {
-            new ОкноНастройкиИгр(выбранныйКомпьютерId)
+            new ОкноНастройкиИгр(выбранныйКомпьютерId, ЗапроситьСписокИгрAsync)
             {
                 Owner = this
             }.ShowDialog();

@@ -28,6 +28,13 @@
                         Content="➕ Добавить игру"
                         Click="Добавить_Click"/>
 
+				<Button x:Name="КнопкаНайтиНаПК"
+						  DockPanel.Dock="Top"
+						 Height="38"
+						 Margin="0,0,0,10"
+						Content="🔍 Найти игры на ПК"
+ Click="НайтиНаПК_Click"/>
+				
                 <ScrollViewer>
 
                     <WrapPanel x:Name="СеткаКарточек"/>
