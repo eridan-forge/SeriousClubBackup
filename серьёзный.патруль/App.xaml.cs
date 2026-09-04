@@ -287,6 +287,11 @@ namespace серьёзный.Патруль
 
             _ = chatBridge.ЗапуститьAsync(токен);
 
+            var economyBridge =
+                new EconomyBridgeWorker(клиент, конфигурация);
+
+            _ = economyBridge.ЗапуститьAsync(токен);
+
             var shopCatalogBridge =
                 new ShopCatalogBridgeWorker(клиент, конфигурация);
 

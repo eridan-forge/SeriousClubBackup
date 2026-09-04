@@ -1380,6 +1380,14 @@ new SessionStartedEvent(
                     return;
                 }
 
+                if (входныеДанные?.Команда ==
+                    серьёзный.Сеть.КомандаПК.ЗапроситьЭкономику)
+                {
+                    _ = ОбработатьЗапросЭкономикиAsync(
+                           подключение, сообщение, входныеДанные);
+
+                    return;
+                }
             }
 
             Dispatcher.Invoke(
@@ -2952,6 +2960,144 @@ new SessionStartedEvent(
             }
 
             await подключение.ОтправитьAsync(ответ);
+        }
+
+        private async Task ОбработатьЗапросЭкономикиAsync(
+    ПодключениеПатруля подключение,
+    СетевоеСообщение исходное,
+    серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.АккаунтId.HasValue || string.IsNullOrWhiteSpace(данные.Параметры))
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Некорректный запрос экономики.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            try
+            {
+                var запрос =
+                    System.Text.Json.JsonSerializer.Deserialize
+                        серьёзный.Core.CoreModels.EconomyRequestDto > (данные.Параметры);
+
+                if (запрос == null)
+                    throw new InvalidOperationException("Пустой запрос.");
+
+                var результат = ВыполнитьЭкономику(данные.АккаунтId.Value, запрос);
+
+                ответ.Успешно = true;
+                ответ.УстановитьДанные(результат);
+            }
+            catch (Exception ex)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = ex.Message;
+            }
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        private static серьёзный.Core.CoreModels.EconomyResultDto ВыполнитьЭкономику(
+            Guid accountId,
+            серьёзный.Core.CoreModels.EconomyRequestDto запрос)
+        {
+            var points = new PointsService();
+            var casino = new CasinoService();
+            var cases = new CaseService();
+            var inventory = new InventoryService();
+            var premium = new PremiumService();
+
+            string? error = null;
+            bool win = false;
+            long payout = 0;
+            string? rewardLabel = null;
+
+            switch (запрос.Action)
+            {
+                case серьёзный.Core.CoreModels.EconomyAction.PlayCasino:
+                    {
+                        var result = casino.Play(accountId, запрос.Bet, out error);
+                        win = result.Win;
+                        payout = result.Payout;
+                        break;
+                    }
+
+                case серьёзный.Core.CoreModels.EconomyAction.OpenCase:
+                    {
+                        var result = cases.Open(accountId, запрос.CaseId, out error);
+                        rewardLabel = result?.Label;
+                        break;
+                    }
+
+                case серьёзный.Core.CoreModels.EconomyAction.SetEquipped:
+                    {
+                        inventory.SetEquipped(accountId, запрос.ItemId, запрос.Equipped);
+                        break;
+                    }
+
+                case серьёзный.Core.CoreModels.EconomyAction.GetSummary:
+                    break;
+            }
+
+            if (error != null)
+            {
+                return new серьёзный.Core.CoreModels.EconomyResultDto
+                {
+                    Success = false,
+                    Error = error
+                };
+            }
+
+            var owned = inventory.GetOwned(accountId);
+            var casinoConfig = casino.GetConfig();
+
+            var summary = new серьёзный.Core.CoreModels.EconomySummaryDto
+            {
+                Points = points.Get(accountId).Points,
+                Premium = premium.IsPremium(accountId),
+
+                Inventory = owned.Select(x => new серьёзный.Core.CoreModels.InventoryItemDto
+                {
+                    Id = x.Item.Id,
+                    Name = x.Item.Name,
+                    Icon = x.Item.Icon,
+                    PointsBonusPercent = x.Item.PointsBonusPercent,
+                    TimeBonusPercent = x.Item.TimeBonusPercent,
+                    PriceInPoints = x.Item.PriceInPoints,
+                    Owned = true,
+                    Equipped = x.Entry.Equipped
+                }).ToList(),
+
+                Cases = cases.GetAll()
+                    .Where(c => c.Enabled)
+                    .Select(c => new серьёзный.Core.CoreModels.CaseDto
+                    {
+                        Id = c.Id,
+                        Name = c.Name,
+                        Icon = c.Icon,
+                        PriceInPoints = c.PriceInPoints
+                    }).ToList(),
+
+                CasinoMinBet = casinoConfig.MinBet,
+                CasinoMaxBet = casinoConfig.MaxBet,
+                CasinoEnabled = casinoConfig.Enabled
+            };
+
+            return new серьёзный.Core.CoreModels.EconomyResultDto
+            {
+                Success = true,
+                Win = win,
+                Payout = payout,
+                RewardLabel = rewardLabel,
+                Summary = summary
+            };
         }
 
         private async Task ОбработатьЗапросМоихЗаказовAsync(

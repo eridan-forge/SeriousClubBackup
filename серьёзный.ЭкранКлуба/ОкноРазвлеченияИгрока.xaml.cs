@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using серьёзный.Core.CoreEconomy;
-using серьёзный.Сервисы;
+using серьёзный.Core.CoreModels;
+using серьёзный.Core.CoreServices;
 
 namespace серьёзный.ЭкранКлуба;
 
@@ -11,11 +12,7 @@ public partial class ОкноРазвлеченияИгрока : Window
 {
     private readonly Guid playerId;
 
-    private readonly PointsService points = new();
-    private readonly CasinoService casino = new();
-    private readonly CaseService cases = new();
-    private readonly InventoryService inventory = new();
-    private readonly СервисАккаунтов accounts = new();
+    private EconomySummaryDto? текущаяСводка;
 
     public ОкноРазвлеченияИгрока(Guid playerId)
     {
@@ -23,14 +20,64 @@ public partial class ОкноРазвлеченияИгрока : Window
 
         this.playerId = playerId;
 
-        Loaded += (_, _) => Обновить();
+        Loaded += (_, _) =>
+            _ = ОбновитьAsync(new EconomyRequestDto { Action = EconomyAction.GetSummary });
+    }
+
+    private async Task ОбновитьAsync(EconomyRequestDto запрос)
+    {
+        var requestId = EconomyBridgeService.CreateRequest(playerId, запрос);
+
+        EconomyResultDto? результат = null;
+
+        for (int i = 0; i < 30; i++) // до ~6 сек
+        {
+            await Task.Delay(200);
+
+            результат = EconomyBridgeService.GetResult(requestId);
+
+            if (результат != null)
+                break;
+        }
+
+        if (результат == null)
+        {
+            MessageBox.Show("Сервер не ответил. Попробуйте ещё раз.", "Развлечения");
+            return;
+        }
+
+        if (!результат.Success)
+        {
+            MessageBox.Show(результат.Error ?? "Ошибка.", "Развлечения");
+        }
+
+        if (результат.RewardLabel != null)
+        {
+            MessageBox.Show($"🎉 Выпало: {результат.RewardLabel}", "Кейс открыт");
+        }
+
+        if (запрос.Action == EconomyAction.PlayCasino && результат.Success)
+        {
+            MessageBox.Show(
+                результат.Win
+                    ? $"🎉 Выигрыш! +{результат.Payout} баллов"
+                    : "😔 Не повезло. Попробуй ещё раз!",
+                "Казино");
+        }
+
+        текущаяСводка = результат.Summary;
+
+        if (текущаяСводка != null)
+            Обновить();
     }
 
     private void Обновить()
     {
-        var баланс = points.Get(playerId);
+        if (текущаяСводка == null)
+            return;
 
-        ТекстБаланса.Text = $"⭐ {баланс.Points} баллов";
+        ТекстБаланса.Text = $"⭐ {текущаяСводка.Points} баллов" +
+            (текущаяСводка.Premium ? " • ПРЕМИУМ" : "");
 
         ПостроитьКейсы();
         ПостроитьИнвентарь();
@@ -40,7 +87,7 @@ public partial class ОкноРазвлеченияИгрока : Window
     {
         ПанельКейсов.Children.Clear();
 
-        foreach (var кейс in cases.GetAll().Where(x => x.Enabled))
+        foreach (var кейс in текущаяСводка!.Cases)
         {
             var кнопка = new Button
             {
@@ -50,60 +97,39 @@ public partial class ОкноРазвлеченияИгрока : Window
                 Margin = new Thickness(8)
             };
 
-            кнопка.Click += (_, _) => ОткрытьКейс(кейс.Id);
+            кнопка.Click += (_, _) => _ = ОбновитьAsync(new EconomyRequestDto
+            {
+                Action = EconomyAction.OpenCase,
+                CaseId = кейс.Id
+            });
 
             ПанельКейсов.Children.Add(кнопка);
         }
-    }
-
-    private void ОткрытьКейс(Guid caseId)
-    {
-        var результат = cases.Open(playerId, caseId, out var ошибка);
-
-        if (результат == null)
-        {
-            MessageBox.Show(ошибка, "Кейс");
-            return;
-        }
-
-        if (результат.Type == CaseRewardType.TimeMinutes &&
-            int.TryParse(результат.Value, out var минуты))
-        {
-            var аккаунт = accounts.Получить(playerId);
-
-            if (аккаунт != null)
-            {
-                accounts.ДобавитьВремя(playerId, TimeSpan.FromMinutes(минуты));
-            }
-        }
-
-        MessageBox.Show($"🎉 Выпало: {результат.Label}", "Кейс открыт");
-
-        Обновить();
     }
 
     private void ПостроитьИнвентарь()
     {
         ПанельИнвентаря.Children.Clear();
 
-        foreach (var (item, entry) in inventory.GetOwned(playerId))
+        foreach (var item in текущаяСводка!.Inventory)
         {
             var кнопка = new Button
             {
                 Content =
                     $"{item.Icon} {item.Name}\n" +
                     $"+{item.PointsBonusPercent}% баллов, +{item.TimeBonusPercent}% времени\n" +
-                    (entry.Equipped ? "✅ Надето" : "Надеть"),
+                    (item.Equipped ? "✅ Надето" : "Надеть"),
                 Width = 180,
                 Height = 80,
                 Margin = new Thickness(8)
             };
 
-            кнопка.Click += (_, _) =>
+            кнопка.Click += (_, _) => _ = ОбновитьAsync(new EconomyRequestDto
             {
-                inventory.SetEquipped(playerId, item.Id, !entry.Equipped);
-                Обновить();
-            };
+                Action = EconomyAction.SetEquipped,
+                ItemId = item.Id,
+                Equipped = !item.Equipped
+            });
 
             ПанельИнвентаря.Children.Add(кнопка);
         }
@@ -117,20 +143,10 @@ public partial class ОкноРазвлеченияИгрока : Window
             return;
         }
 
-        var результат = casino.Play(playerId, ставка, out var ошибка);
-
-        if (!string.IsNullOrEmpty(ошибка))
+        _ = ОбновитьAsync(new EconomyRequestDto
         {
-            MessageBox.Show(ошибка, "Казино");
-            return;
-        }
-
-        MessageBox.Show(
-            результат.Win
-                ? $"🎉 Выигрыш! +{результат.Payout} баллов"
-                : "😔 Не повезло. Попробуй ещё раз!",
-            "Казино");
-
-        Обновить();
+            Action = EconomyAction.PlayCasino,
+            Bet = ставка
+        });
     }
 }
