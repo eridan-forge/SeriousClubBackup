@@ -1388,6 +1388,42 @@ new SessionStartedEvent(
 
                     return;
                 }
+
+                if (входныеДанные?.Команда ==
+                      серьёзный.Сеть.КомандаПК.ЗапроситьСоциальныйСтатус)
+                {
+                    _ = ОбработатьЗапросСоциальногоAsync(
+                          подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+  серьёзный.Сеть.КомандаПК.ОтправитьЛичноеСообщение)
+                {
+                    _ = ОбработатьЛичноеСообщениеAsync(
+                         подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+                    серьёзный.Сеть.КомандаПК.ЗапроситьИсториюЛичногоЧата)
+                {
+                    _ = ОбработатьЗапросИсторииЛичногоЧатаAsync(
+                          подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+                      серьёзный.Сеть.КомандаПК.ЗапроситьПрофильИгрока)
+                {
+                    _ = ОбработатьЗапросПрофиляИгрокаAsync(
+                        подключение, сообщение, входныеДанные);
+
+                    return;
+                }
             }
 
             Dispatcher.Invoke(
@@ -2984,8 +3020,9 @@ new SessionStartedEvent(
             try
             {
                 var запрос =
-                    System.Text.Json.JsonSerializer.Deserialize
-                        серьёзный.Core.CoreModels.EconomyRequestDto > (данные.Параметры);
+    System.Text.Json.JsonSerializer.Deserialize<
+        серьёзный.Core.CoreModels.EconomyRequestDto>(
+        данные.Параметры);
 
                 if (запрос == null)
                     throw new InvalidOperationException("Пустой запрос.");
@@ -3098,6 +3135,303 @@ new SessionStartedEvent(
                 RewardLabel = rewardLabel,
                 Summary = summary
             };
+        }
+
+
+        private async Task ОбработатьЗапросСоциальногоAsync(
+    ПодключениеПатруля подключение,
+    СетевоеСообщение исходное,
+    серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.АккаунтId.HasValue)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Не указан AccountId.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            var me = данные.АккаунтId.Value;
+
+            try
+            {
+                var action = string.IsNullOrWhiteSpace(данные.Параметры)
+                    ? new серьёзный.Core.CoreModels.SocialActionDto
+                    {
+                        Action = серьёзный.Core.CoreModels.SocialAction.GetState
+                    }
+                    : System.Text.Json.JsonSerializer.Deserialize<
+                          серьёзный.Core.CoreModels.SocialActionDto>(
+                          данные.Параметры)
+                      ?? new серьёзный.Core.CoreModels.SocialActionDto
+                      {
+                          Action = серьёзный.Core.CoreModels.SocialAction.GetState
+                      };
+
+                var social = new серьёзный.Core.CoreSocial.SocialService();
+
+                switch (action.Action)
+                {
+                    case серьёзный.Core.CoreModels.SocialAction.SendFriendRequest:
+                        social.SendRequest(me, action.TargetId);
+                        break;
+
+                    case серьёзный.Core.CoreModels.SocialAction.AcceptFriendRequest:
+                        social.Accept(action.RequestId);
+                        break;
+
+                    case серьёзный.Core.CoreModels.SocialAction.RemoveFriend:
+                        social.Remove(me, action.TargetId);
+                        break;
+
+                    case серьёзный.Core.CoreModels.SocialAction.Block:
+                        social.Block(me, action.TargetId);
+                        break;
+
+                    case серьёзный.Core.CoreModels.SocialAction.Unblock:
+                        social.Unblock(me, action.TargetId);
+                        break;
+                }
+
+                ответ.Успешно = true;
+                ответ.УстановитьДанные(ПостроитьСоциальноеСостояние(me, social));
+            }
+            catch (Exception ex)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = ex.Message;
+            }
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        // Единственное место, где реально вычисляется "онлайн"/"в игре" —
+        // на основании активных сеансов сервера (сервисСеансов), а не по
+        // тому, что кто-то локально выставил флаг у себя на ПК.
+        private серьёзный.Core.CoreModels.SocialStateDto ПостроитьСоциальноеСостояние(
+            Guid me,
+            серьёзный.Core.CoreSocial.SocialService social)
+        {
+            var accounts = new СервисАккаунтов();
+
+            var активныеПоАккаунту =
+                сервисСеансов.ПолучитьАктивные()
+                    .Where(x => x.АккаунтGuid.HasValue)
+                    .ToDictionary(x => x.АккаунтGuid!.Value, x => x.КомпьютерId);
+
+            var друзья = social.GetFriendIds(me).ToHashSet();
+
+            var players = accounts.ПолучитьВсе()
+                .Where(x => x.Id != me)
+                .Where(x => !social.IsBlocked(me, x.Id))
+                .Select(x =>
+                {
+                    var онлайн = активныеПоАккаунту.TryGetValue(x.Id, out var pcId);
+
+                    return new серьёзный.Core.CoreModels.OnlinePlayerDto
+                    {
+                        AccountId = x.Id,
+                        FullName = x.ПолноеИмя,
+                        Online = онлайн,
+                        PcId = онлайн ? pcId : 0,
+                        CurrentGame = онлайн ? "В клубе" : null,
+                        IsFriend = друзья.Contains(x.Id),
+                        HasPendingOutgoing = social.HasPending(me, x.Id)
+                    };
+                })
+                .OrderByDescending(x => x.Online)
+                .ThenBy(x => x.FullName)
+                .ToList();
+
+            var incoming = social.Incoming(me)
+                .Select(x => new серьёзный.Core.CoreModels.IncomingFriendRequestDto
+                {
+                    RequestId = x.Id,
+                    FromAccountId = x.From,
+                    FromFullName = accounts.Получить(x.From)?.ПолноеИмя ?? "Игрок"
+                })
+                .ToList();
+
+            return new серьёзный.Core.CoreModels.SocialStateDto
+            {
+                Players = players,
+                Incoming = incoming
+            };
+        }
+
+        private async Task ОбработатьЛичноеСообщениеAsync(
+            ПодключениеПатруля подключение,
+            СетевоеСообщение исходное,
+            серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.АккаунтId.HasValue || !данные.ЦельАккаунтId.HasValue ||
+                string.IsNullOrWhiteSpace(данные.Текст))
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Некорректные данные личного сообщения.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            try
+            {
+                chat.Send(данные.АккаунтId.Value, данные.ЦельАккаунтId.Value, данные.Текст);
+
+                ответ.Успешно = true;
+            }
+            catch (Exception ex)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = ex.Message;
+            }
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        private async Task ОбработатьЗапросИсторииЛичногоЧатаAsync(
+            ПодключениеПатруля подключение,
+            СетевоеСообщение исходное,
+            серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.АккаунтId.HasValue || !данные.ЦельАккаунтId.HasValue)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Не указаны участники диалога.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            var accounts = new СервисАккаунтов();
+            var me = данные.АккаунтId.Value;
+            var friend = данные.ЦельАккаунтId.Value;
+
+            var friendName = accounts.Получить(friend)?.ПолноеИмя ?? "Игрок";
+
+            var сообщения = chat.Get(me, friend)
+                .OrderBy(x => x.Time)
+                .TakeLast(200)
+                .Select(x => new серьёзный.Core.CoreModels.PlayerChatMessageDto
+                {
+                    From = x.From,
+                    To = x.To,
+                    FromName = x.From == me ? "Вы" : friendName,
+                    Text = x.Text,
+                    Time = x.Time
+                })
+                .ToList();
+
+            ответ.Успешно = true;
+
+            ответ.УстановитьДанные(new серьёзный.Core.CoreModels.PlayerChatHistoryDto
+            {
+                Messages = сообщения
+            });
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        private async Task ОбработатьЗапросПрофиляИгрокаAsync(
+            ПодключениеПатруля подключение,
+            СетевоеСообщение исходное,
+            серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.ЦельАккаунтId.HasValue)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Не указан игрок.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            var targetId = данные.ЦельАккаунтId.Value;
+
+            var accounts = new СервисАккаунтов();
+            var account = accounts.Получить(targetId);
+
+            if (account == null)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Аккаунт не найден.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            var points = new PointsService();
+            var levels = new LevelService();
+            var premium = new PremiumService();
+            var styles = new серьёзный.Core.CoreProfiles.ProfileStyleService();
+            var achievements = new серьёзный.Core.CoreProfiles.AchievementService();
+
+            var balance = points.Get(targetId);
+            var tier = levels.GetTierByPlayedSeconds((long)account.ВсегоСыграно.TotalSeconds);
+            var style = styles.Get(targetId);
+            var owned = styles.Owned(targetId).ToHashSet();
+
+            var profile = new серьёзный.Core.CoreModels.PlayerProfileDto
+            {
+                AccountId = targetId,
+                FullName = account.ПолноеИмя,
+                RemainingSeconds = (long)account.ОсталосьВремени.TotalSeconds,
+                PlayedSeconds = (long)account.ВсегоСыграно.TotalSeconds,
+                SessionCount = account.ВсегоСеансов,
+                Points = balance.Points,
+                LevelName = tier.Name,
+                LevelMultiplierPercent = tier.MultiplierPercent,
+                Premium = premium.IsPremium(targetId),
+                PremiumUntil = balance.PremiumUntil,
+                CurrentFrame = (int)style.Frame,
+
+                Frames = Enum.GetValues(typeof(серьёзный.Core.CoreProfiles.ProfileFrame))
+                    .Cast<серьёзный.Core.CoreProfiles.ProfileFrame>()
+                    .Select(f => new серьёзный.Core.CoreModels.PlayerProfileFrameDto
+                    {
+                        Frame = (int)f,
+                        Owned = owned.Contains(f)
+                    })
+                    .ToList(),
+
+                Achievements = achievements.ForProfile(targetId)
+                    .Select(x => new серьёзный.Core.CoreModels.PlayerAchievementDto
+                    {
+                        Name = x.Info.Name,
+                        Description = x.Info.Description,
+                        Unlocked = x.Unlocked,
+                        RewardFrame = x.Info.RewardFrame.HasValue
+                            ? (int)x.Info.RewardFrame.Value
+                            : null
+                    })
+                    .ToList()
+            };
+
+            ответ.Успешно = true;
+            ответ.УстановитьДанные(profile);
+
+            await подключение.ОтправитьAsync(ответ);
         }
 
         private async Task ОбработатьЗапросМоихЗаказовAsync(
@@ -3245,8 +3579,6 @@ new SessionStartedEvent(
 
             await подключение.ОтправитьAsync(ответ);
         }
-
-        private async Task ОбработатьЗапросИсторииЧатаAsync(
 
         private async Task ОбработатьЗапросИсторииЧатаAsync(
     ПодключениеПатруля подключение,

@@ -302,6 +302,22 @@ namespace серьёзный.Патруль
 
             _ = gameCatalogBridge.ЗапуститьAsync(токен);
 
+            var socialBridge =
+                 new SocialBridgeWorker(клиент, конфигурация);
+
+            _ = socialBridge.ЗапуститьAsync(токен);
+
+            var playerChatBridge =
+                  new PlayerChatBridgeWorker(клиент, конфигурация);
+
+            _ = playerChatBridge.ЗапуститьAsync(токен);
+
+            var playerProfileBridge =
+                 new PlayerProfileBridgeWorker(клиент, конфигурация);
+
+            _ = playerProfileBridge.ЗапуститьAsync(токен);
+
+
 
             try
             {
