@@ -283,9 +283,19 @@ namespace серьёзный.Патруль
             _ = shopBridge.ЗапуститьAsync(токен);
 
             var chatBridge =
-                new ChatBridgeWorker(клиент, конфигурация);
+    new ChatBridgeWorker(клиент, конфигурация);
 
             _ = chatBridge.ЗапуститьAsync(токен);
+
+            var shopCatalogBridge =
+                new ShopCatalogBridgeWorker(клиент, конфигурация);
+
+            _ = shopCatalogBridge.ЗапуститьAsync(токен);
+
+            var gameCatalogBridge =
+                new GameCatalogBridgeWorker(клиент, конфигурация);
+
+            _ = gameCatalogBridge.ЗапуститьAsync(токен);
 
 
             try

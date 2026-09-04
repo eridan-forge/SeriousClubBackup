@@ -40,6 +40,13 @@ namespace серьёзный.ЭкранКлуба
 
         private readonly СервисНастроекИгрока сервисНастроек = new();
 
+        private readonly DispatcherTimer игрыОбновление = new()
+        {
+            Interval = TimeSpan.FromSeconds(15)
+        };
+
+        private bool каталогИгрЗагружается;
+
         private readonly DirectMessageService direct =
     new();
 
@@ -186,9 +193,12 @@ namespace серьёзный.ЭкранКлуба
             ТекстПК.Text = $"ПК-{компьютерId}";
 
             настройкиИгрока =
-    сервисНастроек.Загрузить(аккаунт.Id);
+сервисНастроек.Загрузить(аккаунт.Id);
 
-            ПостроитьИгры();
+            ЗагрузитьКаталогИгр();
+
+            игрыОбновление.Tick += (_, _) => ЗагрузитьКаталогИгр();
+            игрыОбновление.Start();
 
             таймер.Interval = TimeSpan.FromSeconds(1);
             таймер.Tick += Таймер;
@@ -214,7 +224,7 @@ namespace серьёзный.ЭкранКлуба
 
             Dispatcher.Invoke(() =>
             {
-                ПостроитьИгры();
+                ЗагрузитьКаталогИгр();
             });
         }
 
@@ -224,6 +234,7 @@ namespace серьёзный.ЭкранКлуба
 
             таймер.Stop();
             обновление.Stop();
+            игрыОбновление.Stop();
 
             LiveGameSync.Refresh -= ОбновитьКарточки;
 
@@ -265,7 +276,7 @@ namespace серьёзный.ЭкранКлуба
             if (окноЗакрывается)
                 return;
 
-            ПостроитьИгры();
+            ОбновитьСетку();
             ОбновитьИнформацию();
 
             ПроверитьДостижения();
@@ -488,14 +499,58 @@ namespace серьёзный.ЭкранКлуба
             ЗагрузитьЗаказы();
         }
 
-        private void ПостроитьИгры()
+        private async void ЗагрузитьКаталогИгр()
         {
-            игры =
-                сервисИгр
-                    .ПолучитьИгры(компьютерId)
-                    .Where(x => !x.Скрыта)
+            if (окноЗакрывается || каталогИгрЗагружается)
+                return;
+
+            каталогИгрЗагружается = true;
+
+            try
+            {
+                var requestId = GameCatalogBridgeService.CreateRequest(компьютерId);
+
+                GameCatalogDto? каталог = null;
+
+                for (int i = 0; i < 20; i++) // до ~6 секунд
+                {
+                    await Task.Delay(300);
+
+                    if (окноЗакрывается)
+                        return;
+
+                    каталог = GameCatalogBridgeService.GetResult(requestId);
+
+                    if (каталог != null)
+                        break;
+                }
+
+                if (каталог == null)
+                    return; // сервер не ответил — оставляем то, что уже показано
+
+                игры = каталог.Games
+                    .Select(x => new Игра
+                    {
+                        Id = x.Id,
+                        Название = x.Название,
+                        Категория = x.Категория,
+                        Описание = x.Описание,
+                        Путь = x.Путь,
+                        Обложка = x.Обложка,
+                        Порядок = x.Порядок
+                    })
                     .ToList();
 
+                ОбновитьСетку();
+            }
+            finally
+            {
+                каталогИгрЗагружается = false;
+            }
+        }
+
+        private void ОбновитьСетку()
+        {
             var выбраннаяКатегория =
                 Категории.SelectedItem as string ?? "Все";
 
@@ -675,21 +730,21 @@ namespace серьёзный.ЭкранКлуба
 
             сервисНастроек.Сохранить(настройкиИгрока);
 
-            ПостроитьИгры();
+            ОбновитьСетку();
         }
 
         private void ПоискИгр_TextChanged(
-    object sender,
-    TextChangedEventArgs e)
+object sender,
+TextChangedEventArgs e)
         {
-            ПостроитьИгры();
+            ОбновитьСетку();
         }
 
         private void Категории_SelectionChanged(
             object sender,
             SelectionChangedEventArgs e)
         {
-            ПостроитьИгры();
+            ОбновитьСетку();
         }
 
         // =====================================================
