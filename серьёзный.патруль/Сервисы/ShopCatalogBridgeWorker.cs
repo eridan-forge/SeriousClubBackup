@@ -118,4 +118,4 @@ public class ShopCatalogBridgeWorker
             ожидание.TryRemove(сообщение.ИдентификаторСообщения, out _);
         }
     }
-}
+} 

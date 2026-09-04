@@ -1362,6 +1362,15 @@ new SessionStartedEvent(
                     return;
                 }
 
+                if (входныеДанные?.Команда ==
+    серьёзный.Сеть.КомандаПК.ЗапроситьКаталогМагазина)
+                {
+                    _ = ОбработатьЗапросКаталогаМагазинаAsync(
+                         подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
             }
 
             Dispatcher.Invoke(
@@ -2983,6 +2992,58 @@ new SessionStartedEvent(
             await подключение.ОтправитьAsync(ответ);
         }
 
+        private async Task ОбработатьЗапросКаталогаМагазинаAsync(
+    ПодключениеПатруля подключение,
+    СетевоеСообщение исходное,
+    серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            var магазин = new серьёзный.Core.CoreShop.ShopService();
+
+            var settings = магазин.GetSettings();
+
+            var categories = магазин.GetCategories()
+                .Where(x => !x.Hidden)
+                .OrderBy(x => x.Order)
+                .Select(x => new серьёзный.Core.CoreModels.ShopCategoryDto
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    Order = x.Order
+                })
+                .ToList();
+
+            var items = магазин.GetItems()
+                .Where(x => !x.Hidden)
+                .Select(x => new серьёзный.Core.CoreModels.ShopItemDto
+                {
+                    Id = x.Id,
+                    CategoryId = x.CategoryId,
+                    Name = x.Name,
+                    Description = x.Description,
+                    Price = x.Price,
+                    Image = x.Image,
+                    Featured = x.Featured,
+                    IsNew = x.IsNew,
+                    Stock = x.Stock
+                })
+                .ToList();
+
+            ответ.Успешно = true;
+
+            ответ.УстановитьДанные(new серьёзный.Core.CoreModels.ShopCatalogDto
+            {
+                Enabled = settings.Enabled,
+                Categories = categories,
+                Items = items
+            });
+
+            await подключение.ОтправитьAsync(ответ);
+        }
 
         private async Task ОбработатьЗапросИсторииЧатаAsync(
     ПодключениеПатруля подключение,
@@ -4336,6 +4397,10 @@ new SessionStartedEvent(
         }  
 
     }
+
+
+
+
 
 
 

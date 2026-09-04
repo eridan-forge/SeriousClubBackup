@@ -45,8 +45,12 @@ namespace серьёзный.ЭкранКлуба
 
         private НастройкиИгрока настройкиИгрока = new();
 
-        private readonly ShopService магазин =
-    new();
+        private readonly DispatcherTimer магазинОбновление = new()
+        {
+            Interval = TimeSpan.FromSeconds(5)
+        };
+
+        private bool каталогЗагружается;
 
         private readonly SocialService social =
     new();
@@ -62,6 +66,7 @@ namespace серьёзный.ЭкранКлуба
 
         private bool окноЗакрывается;
 
+
         public ОкноИгрока(Guid idАккаунта, int idПК)
         {
             InitializeComponent();
@@ -71,16 +76,17 @@ namespace серьёзный.ЭкранКлуба
                 new ОкноРазвлеченияИгрока(аккаунтId) { Owner = this }.ShowDialog();
             };
 
-            ShopChangedEvent.Changed += МагазинИзменился;
-
             Loaded += (_, _) =>
             {
-                ПостроитьМагазин();
+                ЗагрузитьКаталогМагазина();
+
+                магазинОбновление.Tick += (_, _) => ЗагрузитьКаталогМагазина();
+                магазинОбновление.Start();
             };
 
             Closed += (_, _) =>
             {
-                ShopChangedEvent.Changed -= МагазинИзменился;
+                магазинОбновление.Stop();
             };
 
             аккаунтId = idАккаунта;
@@ -779,58 +785,91 @@ namespace серьёзный.ЭкранКлуба
             return время.ToString(@"hh\:mm");
         }
 
-        private void МагазинИзменился()
+        private async void ЗагрузитьКаталогМагазина()
         {
-            Dispatcher.Invoke(ПостроитьМагазин);
+            if (окноЗакрывается || каталогЗагружается)
+                return;
+
+            каталогЗагружается = true;
+
+            try
+            {
+                var requestId = ShopCatalogBridgeService.CreateRequest();
+
+                ShopCatalogDto? каталог = null;
+
+                for (int i = 0; i < 20; i++) // до ~6 секунд
+                {
+                    await Task.Delay(300);
+
+                    if (окноЗакрывается)
+                        return;
+
+                    каталог = ShopCatalogBridgeService.GetResult(requestId);
+
+                    if (каталог != null)
+                        break;
+                }
+
+                if (каталог == null)
+                    return; // сервер не ответил — оставляем то, что уже показано
+
+                ОтобразитьКаталог(каталог);
+            }
+            finally
+            {
+                каталогЗагружается = false;
+            }
         }
 
-        private void ПостроитьМагазин()
+        private void ОтобразитьКаталог(ShopCatalogDto каталог)
         {
             ПанельМагазина.Children.Clear();
 
-            var settings =
-                магазин.GetSettings();
-
             КнопкаМагазин.Visibility =
-                settings.Enabled
+                каталог.Enabled
                     ? Visibility.Visible
                     : Visibility.Collapsed;
 
             ЛентаРекламы.Children.Clear();
 
-            foreach (var item in магазин.GetItems().Take(8))
+            foreach (var item in каталог.Items.Take(8))
             {
                 ЛентаРекламы.Children.Add(
                     new TextBlock
                     {
                         Text = $"   {item.Name} • {item.Price:0} ₽   ",
                         FontSize = 20,
-                        Foreground =
-                            Brushes.White
+                        Foreground = Brushes.White
                     });
             }
 
-            Анимации.ShopTickerAnimation.Start(
-                ЛентаРекламы);
+            Анимации.ShopTickerAnimation.Start(ЛентаРекламы);
 
-            if (!settings.Enabled)
+            if (!каталог.Enabled)
                 return;
 
-            foreach (var item in магазин.GetItems())
+            foreach (var itemDto in каталог.Items)
             {
-                if (item.Hidden)
-                    continue;
+                var item = new ShopItem
+                {
+                    Id = itemDto.Id,
+                    CategoryId = itemDto.CategoryId,
+                    Name = itemDto.Name,
+                    Description = itemDto.Description,
+                    Price = itemDto.Price,
+                    Image = itemDto.Image,
+                    Featured = itemDto.Featured,
+                    IsNew = itemDto.IsNew,
+                    Stock = itemDto.Stock
+                };
 
                 var card = new КарточкаМагазина(item);
 
                 card.BuyRequested += КупитьТовар;
 
                 ПанельМагазина.Children.Add(card);
-
-
             }
-
-
         }
 
         private void КупитьТовар(ShopItem item)
