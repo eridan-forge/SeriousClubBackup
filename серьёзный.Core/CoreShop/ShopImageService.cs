@@ -27,6 +27,18 @@ public static class ShopImageService
         return destination;
     }
 
+    // Новый путь для сохранения уже отрендеренного (обрезанного через
+    // CoverEditorWindow) изображения — без исходного файла для
+    // копирования, поэтому результат всегда PNG.
+    public static string NewPath()
+    {
+        ShopPaths.Ensure();
+
+        return Path.Combine(
+            ShopPaths.Images,
+            $"{Guid.NewGuid()}.png");
+    }
+
     public static void Delete(string file)
     {
         try

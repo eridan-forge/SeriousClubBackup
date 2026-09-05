@@ -57,16 +57,23 @@ public partial class КарточкаТовара : UserControl
         if (editor.ShowDialog() != true)
             return;
 
-        Item.Image =
-            ShopImageService.Save(file);
+        var результат = editor.Result;
+
+        if (результат == null)
+            return;
+
+        // Раньше здесь копировался исходный "file" целиком —
+        // перетаскивание/масштаб в редакторе ни на что не влияли.
+        var путь = ShopImageService.NewPath();
+
+        ImageCropService.SaveCrop(результат, путь);
+
+        Item.Image = путь;
 
         Обложка.Source =
-            new BitmapImage(
-                new Uri(Item.Image));
+            new BitmapImage(new Uri(Item.Image));
 
         shop.UpdateItem(Item);
-
-        
     }
 
     private void Save()
@@ -86,7 +93,5 @@ public partial class КарточкаТовара : UserControl
         Item.Hidden = Скрыт.IsChecked == true;
 
         shop.UpdateItem(Item);
-
-       
     }
 }

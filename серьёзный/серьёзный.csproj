@@ -25,6 +25,7 @@
   <ItemGroup>
     <Folder Include="CrystalUI\Icons\" />
     <Folder Include="CrystalUI\Sounds\" />
+    <Folder Include="Графика\" />
   </ItemGroup>
 
   <ItemGroup>

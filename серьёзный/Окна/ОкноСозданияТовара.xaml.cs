@@ -36,8 +36,16 @@ public partial class ОкноСозданияТовара : Window
         if (editor.ShowDialog() != true)
             return;
 
-        image =
-            ShopImageService.Save(file);
+        var результат = editor.Result;
+
+        if (результат == null)
+            return;
+
+        // Раньше здесь копировался исходный "file" целиком —
+        // перетаскивание/масштаб в редакторе ни на что не влияли.
+        image = ShopImageService.NewPath();
+
+        ImageCropService.SaveCrop(результат, image);
 
         Обложка.Source =
             new BitmapImage(

@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace серьёзный.Окна
@@ -26,22 +27,56 @@ namespace серьёзный.Окна
                 new BitmapImage(new Uri(path));
 
             ImageEditor.Source = image;
+
+            // Стартовый масштаб — картинка сразу полностью закрывает
+            // рамку 300×420 (как background-size: cover). Раньше
+            // масштаб всегда был x1, и крупное фото открывалось
+            // "приближенным" на маленький кусочек в углу — выглядело
+            // так, будто редактор сломан.
+            scale =
+                Math.Max(
+                    300.0 / image.PixelWidth,
+                    420.0 / image.PixelHeight);
+
+            ImageEditor.Width = image.PixelWidth * scale;
+            ImageEditor.Height = image.PixelHeight * scale;
+
+            // Центрируем сразу при открытии. Раньше Canvas.Left/Top
+            // никогда явно не устанавливались, а их значение по
+            // умолчанию в WPF — NaN, а не 0. Из-за этого первое же
+            // перетаскивание считало NaN + число = NaN и оставалось
+            // NaN навсегда — подвинуть картинку мышью было физически
+            // невозможно, хотя обработчик мыши срабатывал исправно.
+            Canvas.SetLeft(ImageEditor, (300 - ImageEditor.Width) / 2.0);
+            Canvas.SetTop(ImageEditor, (420 - ImageEditor.Height) / 2.0);
         }
 
         private void Canvas_MouseWheel(
             object sender,
             MouseWheelEventArgs e)
         {
+            var центрX =
+                Canvas.GetLeft(ImageEditor) + ImageEditor.Width / 2.0;
+
+            var центрY =
+                Canvas.GetTop(ImageEditor) + ImageEditor.Height / 2.0;
+
             scale += e.Delta > 0 ? 0.08 : -0.08;
 
-            if (scale < 0.25)
-                scale = 0.25;
+            if (scale < 0.05)
+                scale = 0.05;
 
             ImageEditor.Width =
                 image.PixelWidth * scale;
 
             ImageEditor.Height =
                 image.PixelHeight * scale;
+
+            // Масштабируем от центра текущей позиции, а не от
+            // левого верхнего угла — иначе при зуме картинка
+            // "убегает" в сторону.
+            Canvas.SetLeft(ImageEditor, центрX - ImageEditor.Width / 2.0);
+            Canvas.SetTop(ImageEditor, центрY - ImageEditor.Height / 2.0);
         }
 
         private void Canvas_MouseDown(
@@ -89,7 +124,17 @@ namespace серьёзный.Окна
             object sender,
             RoutedEventArgs e)
         {
-            Result = image;
+            // Раньше здесь было "Result = image" — сохранялась исходная
+            // нетронутая картинка целиком, перетаскивание и масштаб
+            // ни на что не влияли. Теперь реально рендерим то, что
+            // видно внутри рамки 300×420.
+            var bmp =
+                new RenderTargetBitmap(
+                    300, 420, 96, 96, PixelFormats.Pbgra32);
+
+            bmp.Render(CanvasEditor);
+
+            Result = bmp;
 
             DialogResult = true;
         }
