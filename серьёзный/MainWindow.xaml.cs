@@ -3676,7 +3676,9 @@ new SessionStartedEvent(
             Обложка = x.Обложка,
             ОбложкаData = обложкаData,
             ОбложкаExtension = обложкаExt,
-            Порядок = x.Порядок
+            Порядок = x.Порядок,
+            AppId = x.AppId,
+            Launcher = x.Launcher
         };
     })
     .ToList();

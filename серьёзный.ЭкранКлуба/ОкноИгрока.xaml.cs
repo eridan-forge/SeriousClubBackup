@@ -533,7 +533,9 @@ namespace серьёзный.ЭкранКлуба
             серьёзный.Core.CoreServices.ImageCacheService.SaveIfNeeded(
                 $"game-{x.Id}", x.ОбложкаData, x.ОбложкаExtension)
             ?? x.Обложка,
-        Порядок = x.Порядок
+        Порядок = x.Порядок,
+        AppId = x.AppId,
+        Launcher = x.Launcher
     })
     .ToList();
 
@@ -683,9 +685,8 @@ namespace серьёзный.ЭкранКлуба
                     Name = игра.Название,
                     Path = игра.Путь,
 
-                    // Пока безопасные значения
-                    Launcher = "",
-                    AppId = "",
+                    Launcher = игра.Launcher,
+                    AppId = игра.AppId,
                     LaunchArguments = ""
                 };
 

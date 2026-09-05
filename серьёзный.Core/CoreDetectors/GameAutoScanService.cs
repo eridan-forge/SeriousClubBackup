@@ -60,7 +60,11 @@ public static class GameAutoScanService
 
                 Path = путь,
 
-                Hidden = false
+                Hidden = false,
+
+                AppId = игра.AppId ?? "",
+
+                Launcher = игра.Launcher ?? ""
             });
         }
 

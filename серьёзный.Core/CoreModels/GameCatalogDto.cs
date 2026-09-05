@@ -20,6 +20,10 @@ public class GameCatalogItemDto
     public string? ОбложкаExtension { get; set; }
 
     public int Порядок { get; set; }
+
+    public string AppId { get; set; } = "";
+
+    public string Launcher { get; set; } = "";
 }
 
 public class GameCatalogDto

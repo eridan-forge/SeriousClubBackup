@@ -336,7 +336,9 @@ namespace серьёзный.Окна
                         Описание = выбранная.Description,
                         Путь = выбранная.Path,
                         Обложка = "",
-                        Скрыта = false
+                        Скрыта = false,
+                        AppId = выбранная.AppId,
+                        Launcher = выбранная.Launcher
                     });
             }
 

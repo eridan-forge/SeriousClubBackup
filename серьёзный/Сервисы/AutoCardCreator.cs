@@ -19,7 +19,9 @@ namespace серьёзный.Сервисы
                 Категория = info.Category,
                 Путь = exePath,
                 Обложка = "",
-                Скрыта = false
+                Скрыта = false,
+                AppId = info.AppId,
+                Launcher = info.Launcher
             };
         }
     }

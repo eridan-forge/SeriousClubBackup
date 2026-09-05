@@ -9,11 +9,7 @@ public static class GameLaunchService
 {
     public static Process? Launch(GameInfo game)
     {
-        var path =
-            GamePathRepairService.Repair(game.Path);
-
-        if (string.IsNullOrWhiteSpace(path))
-            return null;
+        
 
         if (game.Launcher == "Steam" &&
             !string.IsNullOrWhiteSpace(game.AppId))
@@ -26,6 +22,12 @@ public static class GameLaunchService
 
             return FindSteamGame(game);
         }
+
+        var path =
+             GamePathRepairService.Repair(game.Path);
+
+        if (string.IsNullOrWhiteSpace(path))
+            return null;
 
         if (game.Launcher == "Rockstar")
         {

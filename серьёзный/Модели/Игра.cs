@@ -25,5 +25,9 @@ namespace серьёзный.Модели
         public int Порядок { get; set; }
 
         public bool Скрыта { get; set; }
+
+        public string AppId { get; set; } = string.Empty;
+
+        public string Launcher { get; set; } = string.Empty;
     }
 }
