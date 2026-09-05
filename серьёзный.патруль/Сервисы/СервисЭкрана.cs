@@ -35,7 +35,36 @@ PRAGMA busy_timeout=3000;
 
             pragma.ExecuteNonQuery();
 
-            ДобавитьКолонкуАккаунтаЕслиНужно(db);
+            using (var create = db.CreateCommand())
+            {
+                // Идемпотентно — на случай, если Патруль стартует раньше,
+                // чем Экран Клуба на этом ПК хотя бы раз создал базу.
+                create.CommandText =
+                       @"
+CREATE TABLE IF NOT EXISTS ScreenConfig
+(
+  Id INTEGER PRIMARY KEY CHECK(Id=1),
+AdminName TEXT NOT NULL,
+ Password TEXT NOT NULL,
+Title TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ScreenState
+(
+ Id INTEGER PRIMARY KEY CHECK(Id=1),
+Locked INTEGER NOT NULL,
+ PcId INTEGER NOT NULL
+);
+
+INSERT OR IGNORE INTO ScreenConfig
+VALUES(1, 'Администратор', '123456', 'Обратитесь к администратору');
+
+INSERT OR IGNORE INTO ScreenState
+VALUES(1, 1, 1);
+"";
+  create.ExecuteNonQuery();
+            }
+                ДобавитьКолонкуАккаунтаЕслиНужно(db);
 
             return db;
         }

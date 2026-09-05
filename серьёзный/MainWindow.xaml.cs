@@ -799,6 +799,8 @@ new SessionStartedEvent(
 
                 резервноеКопирование.Запустить();
 
+                отчётыСессий.УдалитьСтарые(TimeSpan.FromDays(90));
+
                 var автозапуск =
                     new СервисАвтозапуска010();
 
@@ -1241,6 +1243,35 @@ new SessionStartedEvent(
             Dispatcher.Invoke(
                 () =>
                 {
+                    if (!карточкиПК.ContainsKey(подключение.КомпьютерId))
+                    {
+                        // Новый ПК — авторегистрация уже создала запись в
+                        // КартаКомпьютеров, но список ComboBox/карточек
+                        // строился один раз в конструкторе. Перестраиваем
+                        // ровно так же, как это уже делает "⚙ Настройка ПК".
+                        var выбранныйId =
+                        (ВыборПК.SelectedItem as ЗаписьПК)?.Id;
+
+                        ВыборПК.ItemsSource = null;
+                        ВыборПК.ItemsSource = КартаКомпьютеров.Все;
+
+                        var восстановить =
+                         ВыборПК.Items
+                         .OfType<ЗаписьПК>()
+                          .FirstOrDefault(x => x.Id == выбранныйId);
+
+                        ВыборПК.SelectedItem =
+                         восстановить ??
+                           ВыборПК.Items.OfType<ЗаписьПК>().FirstOrDefault();
+
+                        СеткаПК.Children.Clear();
+                        карточкиПК.Clear();
+                        СоздатьКарточкиПК();
+                    }
+
+
+
+
                     подключения[
                         подключение.КомпьютерId] =
                         подключение;
@@ -3337,6 +3368,20 @@ new SessionStartedEvent(
 
             try
             {
+                var social = new серьёзный.Core.CoreSocial.SocialService();
+
+
+                if (social.IsBlocked(данные.ЦельАккаунтId.Value, данные.АккаунтId.Value))
+                {
+                    ответ.Успешно = false;
+                    ответ.Ошибка = "Собеседник заблокировал вас.";
+
+                    await подключение.ОтправитьAsync(ответ);
+                    return;
+                }
+
+
+
                 chat.Send(данные.АккаунтId.Value, данные.ЦельАккаунтId.Value, данные.Текст);
 
                 ответ.Успешно = true;

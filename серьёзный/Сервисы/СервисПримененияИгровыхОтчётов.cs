@@ -52,6 +52,24 @@ CREATE TABLE IF NOT EXISTS ProcessedSessionReports
         Аккаунты().ЗавершитьСтатистику(accountId);
     }
 
+
+    // Записи нужны только для защиты от повторной обработки того же
+    // отчёта — их не нужно хранить вечно. 90 дней — большой запас.
+    public void УдалитьСтарые(TimeSpan старше)
+    {
+        using var db = база.Открыть();
+        using var cmd = db.CreateCommand();
+
+        cmd.CommandText =
+            "DELETE FROM ProcessedSessionReports WHERE Time < $t;";
+
+        cmd.Parameters.AddWithValue(
+            "$t",
+            (DateTime.Now - старше).ToString("O"));
+
+        cmd.ExecuteNonQuery();
+    }
+
     private static bool ОтметитьВпервые(SqliteConnection db, int pcId, int reportId)
     {
         using var cmd = db.CreateCommand();

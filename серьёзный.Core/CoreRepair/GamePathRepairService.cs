@@ -6,6 +6,14 @@ public static class GamePathRepairService
 {
     public static string? Repair(string path)
     {
+        if (string.IsNullOrWhiteSpace(path))
+            return null;
+
+        // Протокольные ссылки (steam://, com.epicgames.launcher:// и
+        // т.п.) — не файлы, сканировать диски в их поисках бессмысленно.
+        if (path.Contains("://", StringComparison.Ordinal))
+            return path;
+
         if (File.Exists(path))
             return path;
 

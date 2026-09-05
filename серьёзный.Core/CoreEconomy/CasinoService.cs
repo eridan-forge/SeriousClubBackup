@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.Sqlite;
 using серьёзный.Core.CoreAudit;
 using System.IO;
+using System.Collections.Concurrent;
 using серьёзный.Core.CoreDb;
 
 namespace серьёзный.Core.CoreEconomy;
@@ -18,6 +19,11 @@ public class CasinoService
     private readonly AdminActionLogService лог = new();
 
     private static readonly Random random = new();
+
+    // Не более одной ставки за 700 мс на игрока — щит от дабл-клика,
+    // не полноценный анти-абуз.
+    private static readonly ConcurrentDictionary<Guid, DateTime> последняяСтавка = new();
+    private static readonly TimeSpan МинимальныйИнтервал = TimeSpan.FromMilliseconds(700);
 
     public CasinoService()
     {
@@ -109,6 +115,17 @@ public class CasinoService
             return new CasinoResult();
         }
 
+        var сейчас = DateTime.Now;
+
+        if (последняяСтавка.TryGetValue(playerId, out var последняя) &&
+               сейчас - последняя < МинимальныйИнтервал)
+        {
+            error = "Слишком часто. Подождите немного.";
+            return new CasinoResult();
+        }
+
+
+
         if (bet < config.MinBet || bet > config.MaxBet)
         {
             error = $"Ставка должна быть от {config.MinBet} до {config.MaxBet} баллов.";
@@ -122,6 +139,8 @@ public class CasinoService
             error = "Недостаточно баллов.";
             return new CasinoResult();
         }
+
+        последняяСтавка[playerId] = сейчас;
 
         points.Award(playerId, -bet, $"Казино: ставка {bet}");
 

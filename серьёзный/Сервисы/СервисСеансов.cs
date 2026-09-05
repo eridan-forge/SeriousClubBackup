@@ -448,6 +448,9 @@ namespace серьёзный.Сервисы
                         КлиентId =
                             клиентId,
 
+                        АккаунтGuid =
+                          аккаунтId,
+
                         ИмяКлиента =
                             string.IsNullOrWhiteSpace(
                                 имяКлиента)

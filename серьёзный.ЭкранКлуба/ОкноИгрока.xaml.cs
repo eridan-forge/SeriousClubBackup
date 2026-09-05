@@ -47,8 +47,7 @@ namespace серьёзный.ЭкранКлуба
 
         private bool каталогИгрЗагружается;
 
-        private readonly DirectMessageService direct =
-    new();
+        
 
         private НастройкиИгрока настройкиИгрока = new();
 
@@ -59,8 +58,7 @@ namespace серьёзный.ЭкранКлуба
 
         private bool каталогЗагружается;
 
-        private readonly SocialService social =
-    new();
+        
 
         private List<Игра> игры = new();
 
@@ -185,10 +183,7 @@ namespace серьёзный.ЭкранКлуба
                 return;
             }
 
-            social.SetOnline(
-    аккаунт.Id,
-    компьютерId,
-    null);
+            
 
             ИмяИгрока.Text = аккаунт.ПолноеИмя;
             ТекстПК.Text = $"ПК-{компьютерId}";
@@ -239,10 +234,7 @@ namespace серьёзный.ЭкранКлуба
 
             LiveGameSync.Refresh -= ОбновитьКарточки;
 
-            if (аккаунт != null)
-            {
-                social.SetOffline(аккаунт.Id);
-            }
+            
         }
 
 
