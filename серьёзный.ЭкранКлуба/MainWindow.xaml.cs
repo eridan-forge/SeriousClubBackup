@@ -19,7 +19,7 @@ namespace серьёзный.ЭкранКлуба
         private readonly DispatcherTimer таймерЧасов = new();
         private readonly DispatcherTimer наблюдение = new();
 
-      
+        private readonly DispatcherTimer патрульНаблюдение = new();
 
         private Config config = new();
         private State state = new();
@@ -34,6 +34,10 @@ namespace серьёзный.ЭкранКлуба
 
         public MainWindow()
         {
+            // Максимально рано — ещё до InitializeComponent, не дожидаясь
+            // ни Loaded, ни разблокировки/запуска explorer.exe.
+            PatrolProcessLauncher.ЗапуститьЕслиНужно();
+
             InitializeComponent();
 
             Loaded += ПриЗагрузке;
@@ -43,7 +47,6 @@ namespace серьёзный.ЭкранКлуба
         private void ПриЗагрузке(object sender, RoutedEventArgs e)
         {
             ОбновитьНастройки();
-            ЗапуститьПатруль();
 
             ЗапуститьПрослушиваниеПередачи();
 
@@ -66,31 +69,22 @@ namespace серьёзный.ЭкранКлуба
                 }
             };
             наблюдение.Start();
-        }
 
-        private void ЗапуститьПатруль()
-        {
-            try
+            // Watchdog Патруля — отдельный, более редкий таймер. Держать
+            // проверку процесса на 250мс-таймере избыточно дорого,
+            // Process.GetProcessesByName — не бесплатный вызов.
+            патрульНаблюдение.Interval = TimeSpan.FromSeconds(8);
+            патрульНаблюдение.Tick += (_, _) =>
             {
-                if (Process.GetProcessesByName("серьёзный.Патруль").Length > 0)
-                    return;
-
-                var путь = Path.Combine(
-                    AppDomain.CurrentDomain.BaseDirectory,
-                    "серьёзный.Патруль.exe");
-
-                if (!File.Exists(путь))
-                    return;
-
-                Process.Start(new ProcessStartInfo
+                try
                 {
-                    FileName = путь,
-                    UseShellExecute = true
-                });
-            }
-            catch
-            {
-            }
+                    PatrolProcessLauncher.ЗапуститьЕслиНужно();
+                }
+                catch
+                {
+                }
+            };
+            патрульНаблюдение.Start();
         }
 
         private void ОбновитьНастройки()
@@ -305,11 +299,7 @@ namespace серьёзный.ЭкранКлуба
                     if (pcId != state.PcId)
                         return;
 
-                    // Пока просто сохраняем каталог в кэш.
                     GameCacheService.Store(pcId, games);
-
-                    // Позже здесь будет автоматическое
-                    // обновление карточек без перезапуска.
                 });
             });
         }

@@ -31,4 +31,10 @@
     <ProjectReference Include="..\серьёзный\серьёзный.csproj" />
 </ItemGroup>
 
+<ItemGroup>
+  <None Update="client-config.json">
+    <Generator>MSBuild:Compile</Generator>
+  </None>
+</ItemGroup>
+
 </Project>
