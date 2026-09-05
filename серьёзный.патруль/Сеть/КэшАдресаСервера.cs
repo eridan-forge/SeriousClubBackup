@@ -15,7 +15,9 @@ namespace серьёзный.Патруль.Сеть
     {
         private static readonly string путь =
             Path.Combine(
-                AppContext.BaseDirectory,
+                Environment.GetFolderPath(
+                     Environment.SpecialFolder.LocalApplicationData),
+                "SeriousClubPatrol",
                 "server-cache.json");
 
         public static (string Ip, int Port)? Загрузить()
@@ -46,6 +48,8 @@ namespace серьёзный.Патруль.Сеть
         {
             try
             {
+                Directory.CreateDirectory(
+                     Path.GetDirectoryName(путь)!);
                 var данные =
                     new АдресСервераКэш
                     {

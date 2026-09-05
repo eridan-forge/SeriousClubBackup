@@ -20,8 +20,9 @@
         <Border CornerRadius="18"
                 Background="#172033">
 
-            <Grid>
-
+            <Grid Cursor="Hand"
+MouseLeftButtonUp="Обложка_Click">
+                
                 <Image x:Name="Обложка"
                        Stretch="UniformToFill"/>
 
@@ -29,7 +30,7 @@
                         VerticalAlignment="Bottom"
                         Padding="10">
 
-                    <TextBlock Text="Перетащи изображение"
+                    <TextBlock Text="Перетащи изображение или нажми"
                                Foreground="White"
                                HorizontalAlignment="Center"/>
 

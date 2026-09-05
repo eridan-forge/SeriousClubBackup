@@ -1,5 +1,7 @@
 ﻿using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media.Imaging;
+using Microsoft.Win32;
 using серьёзный.Core.CoreShop;
 using серьёзный.Core.CoreVideo;
 using серьёзный.Сервисы;
@@ -76,5 +78,18 @@ public partial class ОкноСозданияТовара : Window
         shop.AddItem(item);
 
         DialogResult = true;
+    }
+
+    private void Обложка_Click(object sender, MouseButtonEventArgs e)
+    {
+        var диалог = new OpenFileDialog
+        {
+            Filter = "Изображения|*.png;*.jpg;*.jpeg;*.webp"
+        };
+
+        if (диалог.ShowDialog() != true)
+            return;
+
+        CoverDropped(диалог.FileName);
     }
 }

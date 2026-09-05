@@ -1,6 +1,8 @@
 ﻿using System.IO;
+using System.Windows.Input;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using Microsoft.Win32;
 using серьёзный.Core.CoreShop;
 using серьёзный.Core.CoreVideo;
 using серьёзный.Сервисы;
@@ -74,6 +76,19 @@ public partial class КарточкаТовара : UserControl
             new BitmapImage(new Uri(Item.Image));
 
         shop.UpdateItem(Item);
+    }
+
+    private void Обложка_Click(object sender, MouseButtonEventArgs e)
+    {
+        var диалог = new OpenFileDialog
+        {
+            Filter = "Изображения|*.png;*.jpg;*.jpeg;*.webp"
+        };
+
+        if (диалог.ShowDialog() != true)
+            return;
+
+        CoverDropped(диалог.FileName);
     }
 
     private void Save()
