@@ -530,17 +530,20 @@ namespace серьёзный.ЭкранКлуба
                     return; // сервер не ответил — оставляем то, что уже показано
 
                 игры = каталог.Games
-                    .Select(x => new Игра
-                    {
-                        Id = x.Id,
-                        Название = x.Название,
-                        Категория = x.Категория,
-                        Описание = x.Описание,
-                        Путь = x.Путь,
-                        Обложка = x.Обложка,
-                        Порядок = x.Порядок
-                    })
-                    .ToList();
+    .Select(x => new Игра
+    {
+        Id = x.Id,
+        Название = x.Название,
+        Категория = x.Категория,
+        Описание = x.Описание,
+        Путь = x.Путь,
+        Обложка =
+            серьёзный.Core.CoreServices.ImageCacheService.SaveIfNeeded(
+                $"game-{x.Id}", x.ОбложкаData, x.ОбложкаExtension)
+            ?? x.Обложка,
+        Порядок = x.Порядок
+    })
+    .ToList();
 
                 ОбновитьСетку();
             }
@@ -907,6 +910,11 @@ TextChangedEventArgs e)
 
             foreach (var itemDto in каталог.Items)
             {
+                var локальноеФото =
+                    серьёзный.Core.CoreServices.ImageCacheService.SaveIfNeeded(
+                        $"shop-{itemDto.Id}", itemDto.ImageData, itemDto.ImageExtension)
+                    ?? itemDto.Image;
+
                 var item = new ShopItem
                 {
                     Id = itemDto.Id,
@@ -914,7 +922,7 @@ TextChangedEventArgs e)
                     Name = itemDto.Name,
                     Description = itemDto.Description,
                     Price = itemDto.Price,
-                    Image = itemDto.Image,
+                    Image = локальноеФото,
                     Featured = itemDto.Featured,
                     IsNew = itemDto.IsNew,
                     Stock = itemDto.Stock

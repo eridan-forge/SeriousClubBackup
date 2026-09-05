@@ -21,7 +21,14 @@ public class ShopItemDto
 
     public decimal Price { get; set; }
 
+    // Путь на диске АДМИНСКОГО ПК — оставлен для отладки. Клиент для
+    // отображения обязан использовать ImageData (см. ImageCacheService),
+    // этот путь на клиентской машине не существует.
     public string Image { get; set; } = "";
+
+    public string? ImageData { get; set; }
+
+    public string? ImageExtension { get; set; }
 
     public bool Featured { get; set; }
 

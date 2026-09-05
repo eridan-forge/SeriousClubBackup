@@ -29,13 +29,20 @@ namespace серьёзный
 
 
         private readonly PurchaseRewardService награды =
-            new();
+     new();
 
         private readonly СервисСгоранияВремени сгорание =
              new();
 
         private readonly ShopRequestService сервисЗаказов =
     new();
+
+        private readonly серьёзный.Core.CoreBackup.DatabaseBackupService бэкапРучной =
+            new();
+
+        private readonly СервисРезервногоКопирования резервноеКопирование =
+            new();
+
         private readonly CancellationTokenSource токенСервера =
             new();
 
@@ -790,6 +797,8 @@ new SessionStartedEvent(
 
                 сервисСеансов.Запустить();
 
+                резервноеКопирование.Запустить();
+
                 var автозапуск =
                     new СервисАвтозапуска010();
 
@@ -1167,6 +1176,10 @@ new SessionStartedEvent(
                 фон.Остановить();
 
                 сервисСеансов.Остановить();
+
+                резервноеКопирование.Остановить();
+
+                резервноеКопирование.Dispose();
 
                 фон.Dispose();
             }
@@ -2487,9 +2500,9 @@ new SessionStartedEvent(
 
 
         private async Task ОбработатьЗапросВходаAsync(
-    ПодключениеПатруля подключение,
-    СетевоеСообщение исходное,
-    серьёзный.Сеть.КомандаПатрулю данные)
+ПодключениеПатруля подключение,
+СетевоеСообщение исходное,
+серьёзный.Сеть.КомандаПатрулю данные)
         {
             var сервисАккаунтов = new СервисАккаунтов();
 
@@ -2517,16 +2530,53 @@ new SessionStartedEvent(
                 ответ.Успешно = false;
                 ответ.Ошибка = $"Этот аккаунт уже играет на ПК-{занятыйПК}. Выйдите оттуда сначала.";
             }
+            else if (!исходное.КомпьютерId.HasValue)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Не удалось определить ПК запроса.";
+            }
             else
             {
-                ответ.Успешно = true;
-
-                ответ.УстановитьДанные(new серьёзный.Core.CoreModels.РезультатВходаDto
+                // КРИТИЧНО: самостоятельный вход обязан создать реальный
+                // биллинговый сеанс. Accounts.RemainingSeconds уменьшается
+                // ТОЛЬКО у сеансов в режиме ТолькоБаланс/БалансПлюсПокупное
+                // (см. СервисСеансов.ПроверитьИстёкшиеСеансы) — без вызова
+                // НачатьСеанс + ИспользоватьОстаток такого сеанса просто
+                // не существовало, и время не списывалось никогда.
+                try
                 {
-                    AccountId = аккаунт.Id,
-                    FullName = аккаунт.ПолноеИмя,
-                    RemainingSeconds = (long)аккаунт.ОсталосьВремени.TotalSeconds
-                });
+                    var pcId = исходное.КомпьютерId.Value;
+
+                    сервисСеансов.НачатьСеанс(
+                        pcId,
+                        null,
+                        аккаунт.ПолноеИмя,
+                        аккаунт.ОсталосьВремени,
+                        0m,
+                        аккаунт.Id);
+
+                    сервисСеансов.ИспользоватьОстаток(
+                        pcId,
+                        аккаунт.Id,
+                        аккаунт.ОсталосьВремени,
+                        добавитьКПокупке: false);
+
+                    ответ.Успешно = true;
+
+                    ответ.УстановитьДанные(new серьёзный.Core.CoreModels.РезультатВходаDto
+                    {
+                        AccountId = аккаунт.Id,
+                        FullName = аккаунт.ПолноеИмя,
+                        RemainingSeconds = (long)аккаунт.ОсталосьВремени.TotalSeconds
+                    });
+                }
+                catch (InvalidOperationException ex)
+                {
+                    // Гонка с администратором: на этот ПК или на этот
+                    // аккаунт уже назначен сеанс в тот же момент.
+                    ответ.Успешно = false;
+                    ответ.Ошибка = ex.Message;
+                }
             }
 
             await подключение.ОтправитьAsync(ответ);
@@ -3506,20 +3556,28 @@ new SessionStartedEvent(
                 .ToList();
 
             var items = магазин.GetItems()
-                .Where(x => !x.Hidden)
-                .Select(x => new серьёзный.Core.CoreModels.ShopItemDto
-                {
-                    Id = x.Id,
-                    CategoryId = x.CategoryId,
-                    Name = x.Name,
-                    Description = x.Description,
-                    Price = x.Price,
-                    Image = x.Image,
-                    Featured = x.Featured,
-                    IsNew = x.IsNew,
-                    Stock = x.Stock
-                })
-                .ToList();
+    .Where(x => !x.Hidden)
+    .Select(x =>
+    {
+        var (imgData, imgExt) =
+            серьёзный.Core.CoreServices.ImageEmbedHelper.TryEmbed(x.Image);
+
+        return new серьёзный.Core.CoreModels.ShopItemDto
+        {
+            Id = x.Id,
+            CategoryId = x.CategoryId,
+            Name = x.Name,
+            Description = x.Description,
+            Price = x.Price,
+            Image = x.Image,
+            ImageData = imgData,
+            ImageExtension = imgExt,
+            Featured = x.Featured,
+            IsNew = x.IsNew,
+            Stock = x.Stock
+        };
+    })
+    .ToList();
 
             ответ.Успешно = true;
 
@@ -3555,20 +3613,28 @@ new SessionStartedEvent(
             var сервисИгрАдмина = new СервисИгр();
 
             var игры = сервисИгрАдмина
-                .ПолучитьИгры(исходное.КомпьютерId.Value)
-                .Where(x => !x.Скрыта)
-                .OrderBy(x => x.Порядок)
-                .Select(x => new серьёзный.Core.CoreModels.GameCatalogItemDto
-                {
-                    Id = x.Id,
-                    Название = x.Название,
-                    Категория = x.Категория,
-                    Описание = x.Описание,
-                    Путь = x.Путь,
-                    Обложка = x.Обложка,
-                    Порядок = x.Порядок
-                })
-                .ToList();
+    .ПолучитьИгры(исходное.КомпьютерId.Value)
+    .Where(x => !x.Скрыта)
+    .OrderBy(x => x.Порядок)
+    .Select(x =>
+    {
+        var (обложкаData, обложкаExt) =
+            серьёзный.Core.CoreServices.ImageEmbedHelper.TryEmbed(x.Обложка);
+
+        return new серьёзный.Core.CoreModels.GameCatalogItemDto
+        {
+            Id = x.Id,
+            Название = x.Название,
+            Категория = x.Категория,
+            Описание = x.Описание,
+            Путь = x.Путь,
+            Обложка = x.Обложка,
+            ОбложкаData = обложкаData,
+            ОбложкаExtension = обложкаExt,
+            Порядок = x.Порядок
+        };
+    })
+    .ToList();
 
             ответ.Успешно = true;
 
@@ -4929,7 +4995,29 @@ new SessionStartedEvent(
         private void КнопкаРазвлечения_Click(object sender, RoutedEventArgs e)
         {
             new ОкноРазвлеченияАдмин(имяАдминистратора) { Owner = this }.ShowDialog();
-        }  
+        }
+
+        private void РезервнаяКопия_Click(object sender, RoutedEventArgs e)
+        {
+            var файл = бэкапРучной.СоздатьРезервнуюКопию();
+
+            if (файл == null)
+            {
+                MessageBox.Show(
+                    "Не удалось создать резервную копию. Подробности — в логе сервера.",
+                    "Резервное копирование",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+
+                return;
+            }
+
+            MessageBox.Show(
+                $"Резервная копия создана:\n{файл}",
+                "Резервное копирование",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
 
     }
 

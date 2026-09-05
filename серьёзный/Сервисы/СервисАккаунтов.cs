@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using серьёзный.Модели;
+using серьёзный.Core.CoreSecurity;
 
 namespace серьёзный.Сервисы
 {
@@ -660,8 +661,8 @@ WHERE Id=@Id;";
         // =========================================================
 
         public АккаунтИгрока? Авторизовать(
-            string имя,
-            string пароль)
+    string имя,
+    string пароль)
         {
             имя =
                 (имя ?? string.Empty)
@@ -681,15 +682,46 @@ WHERE Id=@Id;";
 
             lock (синхронизация)
             {
-                return аккаунты.FirstOrDefault(
-                    x =>
-                        x.Имя.Equals(
-                            имя,
-                            StringComparison.OrdinalIgnoreCase) &&
-                        string.Equals(
-                            x.Пароль,
-                            пароль,
-                            StringComparison.Ordinal));
+                var найденный =
+                    аккаунты.FirstOrDefault(
+                        x =>
+                            x.Имя.Equals(
+                                имя,
+                                StringComparison.OrdinalIgnoreCase));
+
+                if (найденный == null)
+                {
+                    return null;
+                }
+
+                if (PasswordHasher.IsHashed(найденный.Пароль))
+                {
+                    return PasswordHasher.Verify(
+                        пароль,
+                        найденный.Пароль)
+                        ? найденный
+                        : null;
+                }
+
+                // Устаревшая запись до перехода на хеширование - пароль
+                // хранился открытым текстом. Сверяем как раньше и, если
+                // совпало, тихо переводим запись на хеш; плейнтекст
+                // больше нигде не хранится.
+                if (!string.Equals(
+                        найденный.Пароль,
+                        пароль,
+                        StringComparison.Ordinal))
+                {
+                    return null;
+                }
+
+                найденный.Пароль =
+                    PasswordHasher.Hash(пароль);
+
+                СохранитьАккаунтВнутри(
+                    найденный);
+
+                return найденный;
             }
         }
 
@@ -757,21 +789,21 @@ WHERE Id=@Id;";
                 }
 
                 var аккаунт =
-                    new АккаунтИгрока
-                    {
-                        Id =
-                            Guid.NewGuid(),
+    new АккаунтИгрока
+    {
+        Id =
+            Guid.NewGuid(),
 
-                        Имя =
-                            имя,
+        Имя =
+            имя,
 
-                        Пароль =
-                            пароль,
+        Пароль =
+            PasswordHasher.Hash(пароль),
 
-                        ОсталосьВремени =
-                            TimeSpan.Zero,
+        ОсталосьВремени =
+            TimeSpan.Zero,
 
-                        ВсегоСыграно =
+        ВсегоСыграно =
                             TimeSpan.Zero,
 
                         ВсегоСеансов =
@@ -810,8 +842,8 @@ WHERE Id=@Id;";
         // =========================================================
 
         public bool ИзменитьПароль(
-            Guid id,
-            string новыйПароль)
+    Guid id,
+    string новыйПароль)
         {
             новыйПароль =
                 (новыйПароль ?? string.Empty)
@@ -834,7 +866,7 @@ WHERE Id=@Id;";
                 }
 
                 аккаунт.Пароль =
-                    новыйПароль;
+                    PasswordHasher.Hash(новыйПароль);
 
                 СохранитьАккаунтВнутри(
                     аккаунт);

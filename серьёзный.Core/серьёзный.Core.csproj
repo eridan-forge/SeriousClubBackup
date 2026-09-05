@@ -8,9 +8,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Folder Include="Backup\" />
 		<Folder Include="CoreDownload\" />
 		<Folder Include="CoreServer\" />
+		<Folder Include="Новая папка\" />
 	</ItemGroup>
 
 	<ItemGroup>

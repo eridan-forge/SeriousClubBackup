@@ -12,7 +12,12 @@ public class GameCatalogItemDto
 
     public string Путь { get; set; } = "";
 
+    // Путь на диске АДМИНСКОГО ПК — см. ОбложкаData для клиента.
     public string Обложка { get; set; } = "";
+
+    public string? ОбложкаData { get; set; }
+
+    public string? ОбложкаExtension { get; set; }
 
     public int Порядок { get; set; }
 }

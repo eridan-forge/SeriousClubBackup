@@ -127,7 +127,8 @@
                         <Button Content="🔥 Сжечь время всем"
         Click="СжечьВремя_Click"/>
 
-
+                        <Button Content="💾 Резервная копия"
+        Click="РезервнаяКопия_Click"/>
 
                     </UniformGrid>
 
