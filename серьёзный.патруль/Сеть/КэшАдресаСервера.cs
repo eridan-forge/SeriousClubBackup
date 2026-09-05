@@ -50,6 +50,7 @@ namespace серьёзный.Патруль.Сеть
             {
                 Directory.CreateDirectory(
                      Path.GetDirectoryName(путь)!);
+
                 var данные =
                     new АдресСервераКэш
                     {
