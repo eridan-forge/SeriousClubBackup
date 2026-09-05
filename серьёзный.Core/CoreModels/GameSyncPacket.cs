@@ -26,5 +26,9 @@ namespace серьёзный.Core.CoreModels
         public string Path { get; set; } = "";
 
         public bool Hidden { get; set; }
+
+        public string AppId { get; set; } = "";
+
+        public string Launcher { get; set; } = "";
     }
 }

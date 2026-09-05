@@ -12,7 +12,9 @@
 
             return new GamePreset(info.Name, info.Category)
             {
-                Executable = exePath
+                Executable = exePath,
+                AppId = info.AppId,
+                Launcher = info.Launcher
             };
         }
     }
@@ -22,5 +24,9 @@
         public string Executable { get; init; } = "";
 
         public string? Cover { get; init; }
+
+        public string AppId { get; init; } = "";
+
+        public string Launcher { get; init; } = "";
     }
 }
