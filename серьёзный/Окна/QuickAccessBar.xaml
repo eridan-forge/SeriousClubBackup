@@ -1,0 +1,40 @@
+﻿<Window x:Class="серьёзный.Окна.QuickAccessBar"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        Topmost="True"
+        ResizeMode="NoResize"
+        Width="240"
+        Height="64"
+        WindowStartupLocation="Manual">
+
+    <Border Background="#1A1116"
+            BorderBrush="#5C1826"
+            BorderThickness="1.4"
+            CornerRadius="32"
+            Cursor="Hand"
+            MouseLeftButtonUp="Панель_Click">
+
+        <Border.Effect>
+            <DropShadowEffect Color="#7A1730" BlurRadius="26" ShadowDepth="0" Opacity="0.55"/>
+        </Border.Effect>
+
+        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+
+            <Ellipse Width="10" Height="10" Fill="#22C55E" Margin="0,0,10,0"/>
+
+            <TextBlock Text="СЕРЬЁЗНЫЙ работает"
+                       Foreground="#E9C9D3"
+                       FontWeight="SemiBold"
+                       FontSize="14"/>
+
+        </StackPanel>
+
+    </Border>
+
+</Window>

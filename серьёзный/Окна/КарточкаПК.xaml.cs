@@ -26,13 +26,13 @@ namespace серьёзный
                 case "Активен":
                     Карточка.Background =
                         new SolidColorBrush(
-                            Color.FromRgb(22, 101, 52));
+                            Color.FromRgb(20, 60, 40));
                     break;
 
                 case "Выключен":
                     Карточка.Background =
                         new SolidColorBrush(
-                            Color.FromRgb(127, 29, 29));
+                             Color.FromRgb(58, 20, 28));
                     break;
 
                 case "Пауза":

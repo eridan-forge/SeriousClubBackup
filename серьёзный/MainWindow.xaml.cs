@@ -1,5 +1,6 @@
 ﻿using NAudio.Wave;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,17 +11,20 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using серьёзный.Core.CoreChat;
+using серьёзный.Core.CoreComputers;
+using серьёзный.Core.CoreEconomy;
 using серьёзный.Core.CoreEvents;
 using серьёзный.Core.CoreShop;
-using серьёзный.Core.CoreEconomy;
 using серьёзный.Модели;
 using серьёзный.Окна;
-using серьёзный.Core.CoreComputers;
 using серьёзный.Сервисы;
 using серьёзный.Сеть;
-using System.Collections.Concurrent;
+using System.Windows.Media.Animation;
+using серьёзный.Окна;
 
 namespace серьёзный
 {
@@ -531,6 +535,7 @@ new SessionStartedEvent(
 
             Loaded +=
                 ПриЗагрузке;
+            ЗапуститьПереливАнимация();
 
             Closed +=
                 ПриЗакрытии;
@@ -821,8 +826,80 @@ new SessionStartedEvent(
                     "Ошибка сервера",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
+
+
             }
         }
+
+        private void Шапка_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 2)
+            {
+                // двойной клик по шапке — как обычно у окон, но у нас Maximized всегда
+                return;
+            }
+
+            try
+            {
+                DragMove();
+            }
+            catch
+            {
+                // DragMove бросает исключение, если кнопка мыши уже отпущена —
+                // безопасно игнорировать.
+            }
+        }
+
+        private QuickAccessBar? панельБыстрогоДоступа;
+
+        private void Свернуть_Click(object sender, RoutedEventArgs e)
+        {
+            Hide();
+
+            if (панельБыстрогоДоступа == null || !панельБыстрогоДоступа.IsLoaded)
+            {
+                панельБыстрогоДоступа = new QuickAccessBar();
+
+                панельБыстрогоДоступа.ВосстановитьЗапрошено += () =>
+                {
+                    панельБыстрогоДоступа?.Close();
+                    панельБыстрогоДоступа = null;
+
+                    Show();
+                    WindowState = WindowState.Maximized;
+                    Activate();
+                };
+            }
+
+            панельБыстрогоДоступа.Show();
+        }
+
+        
+
+
+        private void ЗапуститьПереливАнимация()
+        {
+            var кисть = (LinearGradientBrush)FindName("ЗаголовокКисть");
+
+            if (кисть == null)
+                return;
+
+            var сдвиг = new DoubleAnimation
+            {
+                From = -1,
+                To = 1,
+                Duration = TimeSpan.FromSeconds(3.2),
+                RepeatBehavior = RepeatBehavior.Forever
+            };
+
+            var началоТрансформ = new TranslateTransform();
+
+            кисть.RelativeTransform = началоТрансформ;
+
+            началоТрансформ.BeginAnimation(TranslateTransform.XProperty, сдвиг);
+        }
+
+
 
 
         // =========================================================
@@ -1318,10 +1395,7 @@ new SessionStartedEvent(
                     ОбновитьКарточку(
                         подключение.КомпьютерId,
                         "Отключён",
-                        Color.FromRgb(
-                            127,
-                            29,
-                            29));
+                           Color.FromRgb(58, 20, 28));
                 });
         }
 
@@ -3845,22 +3919,17 @@ new SessionStartedEvent(
                         CornerRadius =
                             new CornerRadius(12),
 
-                        Background =
-                            new SolidColorBrush(
-                                Color.FromRgb(
-                                    31,
-                                    41,
-                                    55)),
+                        Background = new SolidColorBrush(Color.FromRgb(17, 12, 15)),
+                        BorderBrush = new SolidColorBrush(Color.FromRgb(58, 24, 36)),
+                        BorderThickness = new Thickness(1.4),
+                        Effect = new System.Windows.Media.Effects.DropShadowEffect
+                        {
+                            Color = Color.FromRgb(122, 23, 48),
+                            BlurRadius = 14,
+                            ShadowDepth = 0,
+                            Opacity = 0.35
+                        },
 
-                        BorderBrush =
-                            new SolidColorBrush(
-                                Color.FromRgb(
-                                    55,
-                                    65,
-                                    81)),
-
-                        BorderThickness =
-                            new Thickness(1),
 
                         Child =
                             панель
@@ -4117,20 +4186,14 @@ new SessionStartedEvent(
                     ОбновитьКарточку(
                         компьютерId,
                         "Подключён",
-                        Color.FromRgb(
-                            22,
-                            101,
-                            52));
+                          Color.FromRgb(20, 60, 40));
                 }
                 else
                 {
                     ОбновитьКарточку(
                         компьютерId,
                         "Отключён",
-                        Color.FromRgb(
-                            127,
-                            29,
-                            29));
+                         Color.FromRgb(58, 20, 28));
                 }
             }
 
@@ -4305,13 +4368,13 @@ new SessionStartedEvent(
                             : "Отключён",
                         подключен
                             ? Color.FromRgb(
-                                22,
-                                101,
-                                52)
+                                20,
+                                60,
+                                40)
                             : Color.FromRgb(
-                                127,
-                                29,
-                                29));
+                                58,
+                                20,
+                                28));
                 });
 
             if (подключения.ContainsKey(
