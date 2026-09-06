@@ -14,6 +14,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Shapes;
 using серьёзный.Core.CoreChat;
 using серьёзный.Core.CoreComputers;
 using серьёзный.Core.CoreEconomy;
@@ -23,8 +24,7 @@ using серьёзный.Модели;
 using серьёзный.Окна;
 using серьёзный.Сервисы;
 using серьёзный.Сеть;
-using System.Windows.Media.Animation;
-using серьёзный.Окна;
+
 
 namespace серьёзный
 {
@@ -419,33 +419,34 @@ namespace серьёзный
                 new СервисЧата();
 
             фон =
-                new СервисФона008(
+    new СервисФона008(
+        () =>
+        {
+            try
+            {
+                сервисСеансов
+                    .ПроверитьИстёкшиеСеансы();
+
+                if (Dispatcher.HasShutdownStarted ||
+                    Dispatcher.HasShutdownFinished)
+                {
+                    return;
+                }
+
+                Dispatcher.Invoke(
                     () =>
                     {
-                        try
+                        if (!приложениеЗакрывается)
                         {
-                            сервисСеансов
-                                .ПроверитьИстёкшиеСеансы();
-
-                            if (Dispatcher.HasShutdownStarted ||
-                                Dispatcher.HasShutdownFinished)
-                            {
-                                return;
-                            }
-
-                            Dispatcher.Invoke(
-                                () =>
-                                {
-                                    if (!приложениеЗакрывается)
-                                    {
-                                        ПроверитьМёртвыеПК();
-                                    }
-                                });
-                        }
-                        catch
-                        {
+                            ПроверитьМёртвыеПК();
+                            ОбновитьВерхнююПанель();
                         }
                     });
+            }
+            catch
+            {
+            }
+        });
 
             сервисЧата.ИсторияИзменилась +=
                 ИсторияЧатаИзменилась;
@@ -1627,7 +1628,20 @@ new SessionStartedEvent(
         private void ОбновитьКоличествоПК()
         {
             ТекстПК.Text =
-                $"Подключённых ПК: {подключения.Count}";
+                подключения.Count.ToString();
+        }
+
+
+        private void ОбновитьВерхнююПанель()
+        {
+            ТекстЧасыАдмин.Text =
+                DateTime.Now.ToString("HH:mm:ss");
+
+            ТекстАктивныеСеансы.Text =
+                сервисСеансов.АктивныхСеансов.ToString();
+
+            ТекстВыручкаСегодня.Text =
+                $"{сервисСеансов.ТекущаяВыручка:0.##} ₽";
         }
 
 
@@ -3844,124 +3858,90 @@ new SessionStartedEvent(
 
         private void СоздатьКарточкиПК()
         {
-            foreach (
-                var пк
-                in КартаКомпьютеров.Все)
+            foreach (var пк in КартаКомпьютеров.Все)
             {
-                var название =
-                    new TextBlock
-                    {
-                        Text =
-                            пк.Название,
+                var статусТочка = new Ellipse
+                {
+                    Width = 10,
+                    Height = 10,
+                    Fill = Brushes.Gray,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 10, 0)
+                };
 
-                        Foreground =
-                            Brushes.White,
+                var название = new TextBlock
+                {
+                    Text = пк.Название,
+                    Foreground = Brushes.White,
+                    FontWeight = FontWeights.Bold,
+                    FontSize = 15
+                };
 
-                        FontWeight =
-                            FontWeights.Bold,
+                var время = new TextBlock
+                {
+                    Text = "--:--:--",
+                    Foreground = Brushes.LightBlue,
+                    FontSize = 15,
+                    FontWeight = FontWeights.Bold,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                };
 
-                        FontSize =
-                            16
-                    };
+                var верхняяСтрока = new Grid();
 
-                var игрок =
-                    new TextBlock
-                    {
-                        Text =
-                            "Свободно",
+                верхняяСтрока.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                верхняяСтрока.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-                        Foreground =
-                            Brushes.LightGray,
+                Grid.SetColumn(название, 0);
+                Grid.SetColumn(время, 1);
 
-                        FontSize =
-                            12,
+                верхняяСтрока.Children.Add(название);
+                верхняяСтрока.Children.Add(время);
 
-                        Margin =
-                            new Thickness(
-                                0,
-                                4,
-                                0,
-                                4)
-                    };
+                var игрок = new TextBlock
+                {
+                    Text = "Свободно",
+                    Foreground = Brushes.LightGray,
+                    FontSize = 12,
+                    Margin = new Thickness(0, 4, 0, 0),
+                    TextTrimming = TextTrimming.CharacterEllipsis
+                };
 
-                var время =
-                    new TextBlock
-                    {
-                        Text =
-                            "--:--:--",
+                var статус = new TextBlock
+                {
+                    Text = "Свободен",
+                    Foreground = Brushes.Gray,
+                    FontSize = 11,
+                    Margin = new Thickness(0, 2, 0, 0)
+                };
 
-                        Foreground =
-                            Brushes.LightBlue,
+                var текстоваяКолонка = new StackPanel();
 
-                        FontSize =
-                            22,
+                текстоваяКолонка.Children.Add(верхняяСтрока);
+                текстоваяКолонка.Children.Add(игрок);
+                текстоваяКолонка.Children.Add(статус);
 
-                        FontWeight =
-                            FontWeights.Bold
-                    };
+                var корневаяСетка = new Grid();
 
-                var статус =
-                    new TextBlock
-                    {
-                        Text =
-                            "Свободен",
+                корневаяСетка.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                корневаяСетка.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-                        Foreground =
-                            Brushes.LightGray,
+                Grid.SetColumn(статусТочка, 0);
+                Grid.SetColumn(текстоваяКолонка, 1);
 
-                        FontSize =
-                            12
-                    };
+                корневаяСетка.Children.Add(статусТочка);
+                корневаяСетка.Children.Add(текстоваяКолонка);
 
-                var панель =
-                    new StackPanel
-                    {
-                        Margin =
-                            new Thickness(10)
-                    };
-
-                панель.Children.Add(
-                    название);
-
-                панель.Children.Add(
-                    игрок);
-
-                панель.Children.Add(
-                    время);
-
-                панель.Children.Add(
-                    статус);
-
-                var карточка =
-                    new Border
-                    {
-                        Width =
-                            180,
-
-                        Height =
-                            100,
-
-                        Margin =
-                            new Thickness(6),
-
-                        CornerRadius =
-                            new CornerRadius(12),
-
-                        Background = new SolidColorBrush(Color.FromRgb(17, 12, 15)),
-                        BorderBrush = new SolidColorBrush(Color.FromRgb(58, 24, 36)),
-                        BorderThickness = new Thickness(1.4),
-                        Effect = new System.Windows.Media.Effects.DropShadowEffect
-                        {
-                            Color = Color.FromRgb(122, 23, 48),
-                            BlurRadius = 14,
-                            ShadowDepth = 0,
-                            Opacity = 0.35
-                        },
-
-
-                        Child =
-                            панель
-                    };
+                var карточка = new Border
+                {
+                    Padding = new Thickness(14),
+                    Margin = new Thickness(0, 0, 0, 10),
+                    CornerRadius = new CornerRadius(14),
+                    Background = new SolidColorBrush(Color.FromRgb(17, 12, 15)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(58, 24, 36)),
+                    BorderThickness = new Thickness(1.2),
+                    Cursor = Cursors.Hand,
+                    Child = корневаяСетка
+                };
 
                 карточка.MouseLeftButtonUp += (_, _) =>
                 {
@@ -3978,124 +3958,60 @@ new SessionStartedEvent(
                         ВыборПК.SelectedItem = элемент;
                 };
 
-                var меню =
-                    new ContextMenu();
+                var меню = new ContextMenu();
 
-                var включить =
-                    new MenuItem
-                    {
-                        Header =
-                            "⚡ Включить"
-                    };
+                var включить = new MenuItem { Header = "⚡ Включить" };
 
-                включить.Click +=
-                    async (_, _) =>
-                    {
-                        await СервисWakeOnLan
-                            .ВключитьAsync(
-                                пк.MAC);
-                    };
+                включить.Click += async (_, _) =>
+                {
+                    await СервисWakeOnLan.ВключитьAsync(пк.MAC);
+                };
 
-                var перезагрузка =
-                    new MenuItem
-                    {
-                        Header =
-                            "🔄 Перезагрузить"
-                    };
+                var перезагрузка = new MenuItem { Header = "🔄 Перезагрузить" };
 
-                перезагрузка.Click +=
-                    async (_, _) =>
-                    {
-                        выбранныйКомпьютерId =
-                            пк.Id;
+                перезагрузка.Click += async (_, _) =>
+                {
+                    выбранныйКомпьютерId = пк.Id;
+                    ВыборПК.SelectedItem = пк;
+                    await ОтправитьКомандуAsync(КомандаПК.Перезагрузить);
+                };
 
-                        ВыборПК.SelectedItem =
-                            пк;
+                var блокировка = new MenuItem { Header = "🔒 Заблокировать" };
 
-                        await ОтправитьКомандуAsync(
-                            КомандаПК.Перезагрузить);
-                    };
+                блокировка.Click += async (_, _) =>
+                {
+                    выбранныйКомпьютерId = пк.Id;
+                    ВыборПК.SelectedItem = пк;
+                    await ОтправитьКомандуAsync(КомандаПК.Заблокировать);
+                };
 
-                var блокировка =
-                    new MenuItem
-                    {
-                        Header =
-                            "🔒 Заблокировать"
-                    };
+                var сообщение = new MenuItem { Header = "💬 Сообщение" };
 
-                блокировка.Click +=
-                    async (_, _) =>
-                    {
-                        выбранныйКомпьютерId =
-                            пк.Id;
+                сообщение.Click += (_, _) =>
+                {
+                    выбранныйКомпьютерId = пк.Id;
+                    ВыборПК.SelectedItem = пк;
+                    ПоказатьСообщение_Click(карточка, new RoutedEventArgs());
+                };
 
-                        ВыборПК.SelectedItem =
-                            пк;
+                меню.Items.Add(включить);
+                меню.Items.Add(new Separator());
+                меню.Items.Add(перезагрузка);
+                меню.Items.Add(блокировка);
+                меню.Items.Add(сообщение);
 
-                        await ОтправитьКомандуAsync(
-                            КомандаПК.Заблокировать);
-                    };
+                карточка.ContextMenu = меню;
 
-                var сообщение =
-                    new MenuItem
-                    {
-                        Header =
-                            "💬 Сообщение"
-                    };
+                карточкиПК[пк.Id] = new КарточкаПК009
+                {
+                    Контейнер = карточка,
+                    Название = название,
+                    Игрок = игрок,
+                    Таймер = время,
+                    Статус = статус
+                };
 
-                сообщение.Click +=
-                    (_, _) =>
-                    {
-                        выбранныйКомпьютерId =
-                            пк.Id;
-
-                        ВыборПК.SelectedItem =
-                            пк;
-
-                        ПоказатьСообщение_Click(
-                            карточка,
-                            new RoutedEventArgs());
-                    };
-
-                меню.Items.Add(
-                    включить);
-
-                меню.Items.Add(
-                    new Separator());
-
-                меню.Items.Add(
-                    перезагрузка);
-
-                меню.Items.Add(
-                    блокировка);
-
-                меню.Items.Add(
-                    сообщение);
-
-                карточка.ContextMenu =
-                    меню;
-
-                карточкиПК[пк.Id] =
-                    new КарточкаПК009
-                    {
-                        Контейнер =
-                            карточка,
-
-                        Название =
-                            название,
-
-                        Игрок =
-                            игрок,
-
-                        Таймер =
-                            время,
-
-                        Статус =
-                            статус
-                    };
-
-                СеткаПК.Children.Add(
-                    карточка);
+                СеткаПК.Children.Add(карточка);
             }
         }
 
@@ -4598,8 +4514,8 @@ new SessionStartedEvent(
         }
 
         private void ВыборПК_SelectionChanged(
-    object sender,
-    SelectionChangedEventArgs e)
+object sender,
+SelectionChangedEventArgs e)
         {
             if (ВыборПК.SelectedItem is not ЗаписьПК пк)
                 return;
@@ -4607,6 +4523,24 @@ new SessionStartedEvent(
             НазваниеПК.Text = пк.Название;
 
             ОбновитьОтображениеТекущегоСеанса();
+
+            ПодсветитьВыбраннуюКарточку(пк.Id);
+        }
+
+        private void ПодсветитьВыбраннуюКарточку(int компьютерId)
+        {
+            foreach (var пара in карточкиПК)
+            {
+                пара.Value.Контейнер.BorderBrush =
+                    пара.Key == компьютерId
+                        ? new SolidColorBrush(Color.FromRgb(216, 52, 104))
+                        : new SolidColorBrush(Color.FromRgb(58, 24, 36));
+
+                пара.Value.Контейнер.BorderThickness =
+                    пара.Key == компьютерId
+                        ? new Thickness(2)
+                        : new Thickness(1.2);
+            }
         }
 
 
@@ -5096,10 +5030,16 @@ new SessionStartedEvent(
                         x =>
                             x.Status == ShopRequestStatus.Pending);
 
-                КнопкаМагазин.Content =
-                    count == 0
-                        ? "🛒 Магазин"
-                        : $"🛒 Магазин 🔴 {count}";
+                if (BadgeЗаказов == null || BadgeText == null)
+                    return;
+
+                BadgeЗаказов.Visibility =
+                    count > 0
+                        ? Visibility.Visible
+                        : Visibility.Collapsed;
+
+                BadgeText.Text =
+                    count.ToString();
             });
         }
 
