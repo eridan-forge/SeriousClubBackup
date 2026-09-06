@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using серьёзный.Core.CoreEvents;
@@ -42,6 +43,36 @@ public partial class App : Application
                      if (sender is Window окно)
                          окно.Cursor = Cursors.None;
                  }));
+
+        // ContextMenu и ToolTip рендерятся в отдельном Popup-окне, а не
+
+        // внутри дерева родительского Window — предыдущий хендлер их
+
+        // не касался, курсор белой стрелкой выглядывал над контекстным
+
+        // меню карточки ПК и над подсказками.
+        EventManager.RegisterClassHandler(
+              typeof(ContextMenu),
+               ContextMenu.LoadedEvent,
+                new RoutedEventHandler((sender, _) =>
+                {
+                    if (sender is ContextMenu меню)
+                        меню.Cursor = Cursors.None;
+                }));
+
+
+        EventManager.RegisterClassHandler(
+                 typeof(ToolTip),
+                  ToolTip.LoadedEvent,
+ new RoutedEventHandler((sender, _) =>
+ {
+     if (sender is ToolTip подсказка)
+         подсказка.Cursor = Cursors.None;
+ }));
+
+
+
+
 
         Exit += (_, _) => серьёзный.CrystalUI.CustomCursor.КурсорОверлей.Остановить();
 

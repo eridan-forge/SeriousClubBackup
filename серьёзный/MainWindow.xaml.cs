@@ -913,7 +913,7 @@ new SessionStartedEvent(
         private void Свернуть_Click(object sender, RoutedEventArgs e)
         {
 
-            var сжатие = new DoubleAnimation(1, 0.02, TimeSpan.FromMilliseconds(260))
+            var сжатие = new DoubleAnimation(1, 0.02, TimeSpan.FromMilliseconds(150))
             {
                 EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
             };
@@ -931,7 +931,7 @@ new SessionStartedEvent(
 
             МасштабОкна.BeginAnimation(ScaleTransform.ScaleXProperty, сжатие);
             МасштабОкна.BeginAnimation(ScaleTransform.ScaleYProperty, сжатие);
-            РамкаОкна.BeginAnimation(OpacityProperty, new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(260)));
+            РамкаОкна.BeginAnimation(OpacityProperty, new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(150)));
         }
 
         private void ПоказатьПанельБыстрогоДоступа()
@@ -953,14 +953,14 @@ new SessionStartedEvent(
             Show();
             Activate();
 
-            var рост = new DoubleAnimation(0.02, 1, TimeSpan.FromMilliseconds(260))
+            var рост = new DoubleAnimation(0.02, 1, TimeSpan.FromMilliseconds(150))
             {
                 EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
             };
 
             МасштабОкна.BeginAnimation(ScaleTransform.ScaleXProperty, рост);
             МасштабОкна.BeginAnimation(ScaleTransform.ScaleYProperty, рост);
-            РамкаОкна.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(220)));
+            РамкаОкна.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150)));
 
         }
 
@@ -1044,7 +1044,7 @@ new SessionStartedEvent(
             РамкаОкна.RenderTransformOrigin = new Point(0, 0);
             РамкаОкна.RenderTransform = group;
 
-            var длительность = TimeSpan.FromMilliseconds(320);
+            var длительность = TimeSpan.FromMilliseconds(180);
             var сглаживание = new CubicEase { EasingMode = EasingMode.EaseOut };
 
             var анимScaleX = new DoubleAnimation(scale.ScaleX, 1, длительность) { EasingFunction = сглаживание };
@@ -1224,13 +1224,13 @@ new SessionStartedEvent(
 
                 GetMonitorInfo(monitor, ref monitorInfo);
 
-                var rcWorkArea = monitorInfo.rcWork;
+               
                 var rcMonitorArea = monitorInfo.rcMonitor;
 
-                minMaxInfo.ptMaxPosition.X = Math.Abs(rcWorkArea.Left - rcMonitorArea.Left);
-                minMaxInfo.ptMaxPosition.Y = Math.Abs(rcWorkArea.Top - rcMonitorArea.Top);
-                minMaxInfo.ptMaxSize.X = Math.Abs(rcWorkArea.Right - rcWorkArea.Left);
-                minMaxInfo.ptMaxSize.Y = Math.Abs(rcWorkArea.Bottom - rcWorkArea.Top);
+                minMaxInfo.ptMaxPosition.X = 0;
+                minMaxInfo.ptMaxPosition.Y = 0;
+                minMaxInfo.ptMaxSize.X = Math.Abs(rcMonitorArea.Right - rcMonitorArea.Left);
+                minMaxInfo.ptMaxSize.Y = Math.Abs(rcMonitorArea.Bottom - rcMonitorArea.Top);
                 minMaxInfo.ptMaxTrackSize.X = minMaxInfo.ptMaxSize.X;
                 minMaxInfo.ptMaxTrackSize.Y = minMaxInfo.ptMaxSize.Y;
             }
@@ -4294,28 +4294,12 @@ new SessionStartedEvent(
                 содержимое.Children.Add(статусТочка);
                 содержимое.Children.Add(текстоваяКолонка);
 
-                // Отдельный слой подсветки поверх содержимого. Раньше при
-                // наведении анимировался цвет самого фона карточки — но
-                // ОбновитьКарточку/ОбновитьОтображениеСеанса в любой момент
-                // ПОЛНОСТЬЮ подменяют Background новой кистью (статусы
-                // "Активен"/"Пауза"/"Отключён"), из-за чего подсветка при
-                // наведении тихо переставала работать после первого же
-                // изменения статуса. Теперь это независимый Opacity-слой —
-                // не зависит от текущего фона, и Opacity-переход всегда идёт
-                // по GPU, а не пересчётом цвета на UI-потоке (отсюда и
-                // ощущение подлагивания).
-                var подсветка = new Border
-                {
-                    CornerRadius = new CornerRadius(14),
-                    Background = new SolidColorBrush(Color.FromRgb(184, 44, 92)),
-                    Opacity = 0,
-                    IsHitTestVisible = false
-                };
+                
 
                 var корневаяСеткаКарточки = new Grid();
 
                 корневаяСеткаКарточки.Children.Add(содержимое);
-                корневаяСеткаКарточки.Children.Add(подсветка);
+               
 
                 var фонКисть = new SolidColorBrush(Color.FromRgb(10, 10, 10));
                 var рамкаКисть = new SolidColorBrush(Color.FromRgb(36, 36, 36));
@@ -4341,12 +4325,7 @@ new SessionStartedEvent(
 
                 карточка.MouseEnter += (_, _) =>
                 {
-                    подсветка.BeginAnimation(
-                        OpacityProperty,
-                        new DoubleAnimation(0.16, TimeSpan.FromMilliseconds(150))  // было 1
-                        {
-                            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
-                        });
+                    
 
                     АнимироватьЦвет(рамкаКисть, Color.FromRgb(184, 44, 92), 150);
                 };
@@ -4355,12 +4334,7 @@ new SessionStartedEvent(
                 {
                     bool выбрана = выбранныйКомпьютерId == пк.Id;
 
-                    подсветка.BeginAnimation(
-                        OpacityProperty,
-                        new DoubleAnimation(0, TimeSpan.FromMilliseconds(220))
-                        {
-                            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
-                        });
+                   
 
                     АнимироватьЦвет(рамкаКисть,
                         выбрана ? Color.FromRgb(216, 52, 104) : Color.FromRgb(36, 36, 36), 220);

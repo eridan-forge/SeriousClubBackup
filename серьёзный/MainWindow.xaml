@@ -4,6 +4,7 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:crystal="clr-namespace:серьёзный.CrystalUI.Behaviors"
         Title="Серьёзный"
+        ShowInTaskbar="False"
         WindowStyle="None"
         ResizeMode="NoResize"
         WindowState="Maximized"
@@ -280,7 +281,7 @@
                                         <Storyboard>
                                             <DoubleAnimation Storyboard.TargetName="СветящийсяФон"
                                                      Storyboard.TargetProperty="Opacity"
-                                                     To="1" Duration="0:0:0.18">
+                                                        To="1" Duration="0:0:0.08">
                                                 <DoubleAnimation.EasingFunction>
                                                     <QuadraticEase EasingMode="EaseOut"/>
                                                 </DoubleAnimation.EasingFunction>
@@ -294,7 +295,7 @@
                                         <Storyboard>
                                             <DoubleAnimation Storyboard.TargetName="СветящийсяФон"
                                                      Storyboard.TargetProperty="Opacity"
-                                                     To="0" Duration="0:0:0.24">
+                                                    To="0" Duration="0:0:0.12">
                                                 <DoubleAnimation.EasingFunction>
                                                     <QuadraticEase EasingMode="EaseOut"/>
                                                 </DoubleAnimation.EasingFunction>

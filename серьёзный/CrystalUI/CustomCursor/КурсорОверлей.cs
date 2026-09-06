@@ -10,19 +10,20 @@ using System.Windows.Shapes;
 
 namespace серьёзный.CrystalUI.CustomCursor;
 
-// Единственный курсор на весь процесс приложения. Раньше он рисовался
-// Canvas'ом внутри MainWindow — из-за этого он "замирал" при открытии
-// любого другого окна и превращался в обычную стрелку над карточками ПК
-// (там стоял явный Cursor=Hand, который всегда перебивает Window.Cursor
-// родителя). CompositionTarget.Rendering синхронизирован с реальной
-// частотой кадров композиции экрана, а не с частотой WPF-события
-// MouseMove — отсюда настоящая, а не мнимая плавность.
+// Единственный курсор на весь процесс приложения.
 public sealed class КурсорОверлей : Window
 {
     private static КурсорОверлей? экземпляр;
 
     private readonly TranslateTransform сдвигГрадиента = new();
     private readonly DropShadowEffect свечение;
+
+    // Раньше фигура курсора начиналась ровно в (0,0) окна — свечению
+    // некуда было выйти слева и сверху, там оно резко обрезалось.
+    // Геометрия ниже сдвинута на Отступ по X и Y, вокруг неё есть поле
+    // со всех четырёх сторон. Компенсируется в СледитьЗаКурсором, чтобы
+    // кончик стрелки визуально совпадал с настоящим курсором Windows.
+    private const double Отступ = 12;
 
     [DllImport("user32.dll")]
     private static extern int GetWindowLong(IntPtr hwnd, int index);
@@ -40,28 +41,11 @@ public sealed class КурсорОверлей : Window
         public int Y;
     }
 
-
-
     private const int WS_EX_TRANSPARENT = 0x00000020;
     private const int WS_EX_LAYERED = 0x00080000;
     private const int WS_EX_TOOLWINDOW = 0x00000080;
     private const int WS_EX_NOACTIVATE = 0x08000000;
     private const int GWL_EXSTYLE = -20;
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool SetWindowPos(
-    IntPtr hWnd, IntPtr hWndInsertAfter,
-    int X, int Y, int cx, int cy, uint uFlags);
-
-    private const uint SWP_NOSIZE = 0x0001;
-    private const uint SWP_NOZORDER = 0x0004;
-    private const uint SWP_NOREDRAW = 0x0008;
-    private const uint SWP_NOACTIVATE = 0x0010;
-    private const uint SWP_ASYNCWINDOWPOS = 0x4000;
-
-    private IntPtr hwnd = IntPtr.Zero;
-    private int последнийX = int.MinValue;
-    private int последнийY = int.MinValue;
 
     private КурсорОверлей()
     {
@@ -71,8 +55,8 @@ public sealed class КурсорОверлей : Window
         ShowInTaskbar = false;
         ResizeMode = ResizeMode.NoResize;
         Topmost = true;
-        Width = 40;
-        Height = 40;
+        Width = 46;
+        Height = 56;
         IsHitTestVisible = false;
         Focusable = false;
 
@@ -89,15 +73,18 @@ public sealed class КурсорОверлей : Window
         кистьГрадиент.GradientStops.Add(new GradientStop(Color.FromRgb(0x8A, 0x0F, 0x30), 0.5));
         кистьГрадиент.GradientStops.Add(new GradientStop(Color.FromRgb(0xFF, 0x2E, 0x5C), 1));
 
+        // Те же точки, что и раньше, просто сдвинутые на +12 по X и Y —
+        // вокруг фигуры равномерное поле под свечение со всех сторон.
         var данныеФигуры = Geometry.Parse(
-            "M 0,0 L 0,28 L 6,22 L 11,32 L 15,30 L 10,21 L 19,21 Z");
+            "M 12,12 L 12,40 L 18,34 L 23,44 L 27,42 L 22,33 L 31,33 Z");
 
+        // Свечение уменьшено и сделано менее заметным (было 14 / 0.7).
         свечение = new DropShadowEffect
         {
             Color = Color.FromRgb(0xFF, 0x2E, 0x5C),
-            BlurRadius = 14,
+            BlurRadius = 8,
             ShadowDepth = 0,
-            Opacity = 0.7
+            Opacity = 0.4
         };
 
         var фигура = new Path
@@ -110,8 +97,6 @@ public sealed class КурсорОверлей : Window
             Effect = свечение
         };
 
-        // Было Opacity=0.42 — на исходном курсоре карбон был почти не
-        // виден. Здесь заметно плотнее.
         var карбон = new Path
         {
             Data = данныеФигуры,
@@ -139,35 +124,36 @@ public sealed class КурсорОверлей : Window
         группа.Children.Add(new GeometryDrawing(
             new SolidColorBrush(Color.FromRgb(0x0A, 0x0A, 0x0A)),
             null,
-            new RectangleGeometry(new Rect(0, 0, 14, 14))));
+            new RectangleGeometry(new Rect(0, 0, 6, 6))));
 
         var светлые = new GeometryGroup();
-        светлые.Children.Add(new RectangleGeometry(new Rect(0, 0, 7, 7)));
-        светлые.Children.Add(new RectangleGeometry(new Rect(7, 7, 7, 7)));
+        светлые.Children.Add(new RectangleGeometry(new Rect(0, 0, 3, 3)));
+        светлые.Children.Add(new RectangleGeometry(new Rect(3, 3, 3, 3)));
 
         группа.Children.Add(new GeometryDrawing(
             new SolidColorBrush(Color.FromRgb(0x16, 0x16, 0x16)), null, светлые));
 
         var тёмные = new GeometryGroup();
-        тёмные.Children.Add(new RectangleGeometry(new Rect(7, 0, 7, 7)));
-        тёмные.Children.Add(new RectangleGeometry(new Rect(0, 7, 7, 7)));
+        тёмные.Children.Add(new RectangleGeometry(new Rect(3, 0, 3, 3)));
+        тёмные.Children.Add(new RectangleGeometry(new Rect(0, 3, 3, 3)));
 
         группа.Children.Add(new GeometryDrawing(
             new SolidColorBrush(Color.FromRgb(0x20, 0x20, 0x20)), null, тёмные));
 
+        // Тайл уменьшен с 14×14 до 6×6 — на маленькой фигуре курсора
+        // помещалось всего 1-2 квадрата (текстура выглядела крупными
+        // блоками), теперь плотность ближе к тому, как карбон выглядит
+        // на большом фоне окна.
         return new DrawingBrush(группа)
         {
             TileMode = TileMode.Tile,
-            Viewport = new Rect(0, 0, 14, 14),
+            Viewport = new Rect(0, 0, 6, 6),
             ViewportUnits = BrushMappingMode.Absolute,
             Stretch = Stretch.None,
             RelativeTransform = new RotateTransform(45, 0.5, 0.5)
         };
     }
 
-    // Тот же период (3.2с) и та же кривая (SineEase), что у градиента
-    // текста "СЕРЬЁЗНЫЙ" в MainWindow.ЗапуститьПереливДляКисти — чтобы
-    // оба переливались абсолютно синхронно и одинаково.
     private void ЗапуститьПереливГрадиента()
     {
         var сдвиг = new DoubleAnimation
@@ -185,29 +171,22 @@ public sealed class КурсорОверлей : Window
 
     private void СледитьЗаКурсором(object? sender, EventArgs e)
     {
-        if (hwnd == IntPtr.Zero)
-            return;
-
         if (!GetCursorPos(out var точка))
             return;
 
-        // Мышь физически не двигалась с прошлого кадра — не дёргаем окно зря.
-        if (точка.X == последнийX && точка.Y == последнийY)
+        var источник = PresentationSource.FromVisual(this);
+
+        if (источник?.CompositionTarget == null)
             return;
 
-        последнийX = точка.X;
-        последнийY = точка.Y;
+        var точкаDip =
+            источник.CompositionTarget.TransformFromDevice.Transform(
+                new Point(точка.X, точка.Y));
 
-        // Прямой SetWindowPos вместо Left/Top: без DIP-конвертации, без
-        // полного конвейера DP-свойства (LocationChanged, layout-инвалидация
-        // и т.д.). SWP_NOREDRAW корректен — содержимое не меняется, меняется
-        // только позиция; DWM у layered-окна не должен "проявлять" фон под
-        // ним, как у обычного окна. Именно этот вызов на 60+ раз в секунду
-        // и был узким местом всего приложения.
-        SetWindowPos(
-            hwnd, IntPtr.Zero,
-            точка.X, точка.Y, 0, 0,
-            SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW | SWP_ASYNCWINDOWPOS);
+        // Компенсируем Отступ, заложенный в геометрию фигуры, чтобы
+        // кончик стрелки остался ровно там, где настоящий курсор Windows.
+        Left = точкаDip.X - Отступ;
+        Top = точкаDip.Y - Отступ;
     }
 
     private void ОтключитьВзаимодействие()
@@ -215,37 +194,30 @@ public sealed class КурсорОверлей : Window
         if (PresentationSource.FromVisual(this) is not HwndSource источник)
             return;
 
-        hwnd = источник.Handle;
-
-        var стиль = GetWindowLong(hwnd, GWL_EXSTYLE);
+        var хендл = источник.Handle;
+        var стиль = GetWindowLong(хендл, GWL_EXSTYLE);
 
         SetWindowLong(
-            hwnd,
+            хендл,
             GWL_EXSTYLE,
             стиль | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE);
     }
 
-
-    // Короткая цветная вспышка — раньше жила только внутри MainWindow
-    // и переставала работать в любом другом окне.
-    public static void Вспышка(Color цвет, double радиус = 24)
+    // Раньше вместе с цветом анимировался ещё и BlurRadius. Изменение
+    // радиуса размытия у Effect на слоистом (WS_EX_LAYERED) Topmost-окне
+    // каждый раз заставляет пересчитывать область отрисовки — поэтому
+    // мигал не только курсор, а весь экран. Теперь радиус фиксирован,
+    // анимируется только цвет.
+    public static void Вспышка(Color цвет)
     {
-        экземпляр?.ВспышкаВнутри(цвет, радиус);
+        экземпляр?.ВспышкаВнутри(цвет);
     }
 
-    private void ВспышкаВнутри(Color цвет, double радиус)
+    private void ВспышкаВнутри(Color цвет)
     {
         свечение.BeginAnimation(DropShadowEffect.ColorProperty, new ColorAnimation
         {
             To = цвет,
-            Duration = TimeSpan.FromMilliseconds(90),
-            AutoReverse = true,
-            RepeatBehavior = new RepeatBehavior(1)
-        });
-
-        свечение.BeginAnimation(DropShadowEffect.BlurRadiusProperty, new DoubleAnimation
-        {
-            To = радиус,
             Duration = TimeSpan.FromMilliseconds(90),
             AutoReverse = true,
             RepeatBehavior = new RepeatBehavior(1)
