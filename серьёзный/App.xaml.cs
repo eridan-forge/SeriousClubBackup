@@ -140,5 +140,11 @@ public partial class App : Application
                     Скрыта = game.Hidden
                 });
         };
+
+
     }
+
+
+
+
 }

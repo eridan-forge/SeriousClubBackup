@@ -1020,20 +1020,51 @@ new SessionStartedEvent(
             }
         }
 
-        private void АнимироватьГраницы(double left, double top, double width, double height, Action? завершено = null)
+        private void АнимироватьГраницы(
+    double left, double top, double width, double height,
+    Action? завершено = null)
         {
+            var стартLeft = Left;
+            var стартTop = Top;
+            var стартWidth = Width;
+            var стартHeight = Height;
+
+            Left = left;
+            Top = top;
+            Width = width;
+            Height = height;
+
+            var scale = new ScaleTransform(стартWidth / width, стартHeight / height);
+            var translate = new TranslateTransform(стартLeft - left, стартTop - top);
+
+            var group = new TransformGroup();
+            group.Children.Add(scale);
+            group.Children.Add(translate);
+
+            РамкаОкна.RenderTransformOrigin = new Point(0, 0);
+            РамкаОкна.RenderTransform = group;
+
             var длительность = TimeSpan.FromMilliseconds(320);
             var сглаживание = new CubicEase { EasingMode = EasingMode.EaseOut };
 
-            var анимWidth = new DoubleAnimation(Width, width, длительность) { EasingFunction = сглаживание };
+            var анимScaleX = new DoubleAnimation(scale.ScaleX, 1, длительность) { EasingFunction = сглаживание };
+            var анимScaleY = new DoubleAnimation(scale.ScaleY, 1, длительность) { EasingFunction = сглаживание };
+            var анимX = new DoubleAnimation(translate.X, 0, длительность) { EasingFunction = сглаживание };
+            var анимY = new DoubleAnimation(translate.Y, 0, длительность) { EasingFunction = сглаживание };
 
-            if (завершено != null)
-                анимWidth.Completed += (_, _) => завершено();
+            анимScaleX.Completed += (_, _) =>
+            {
+                // Возвращаем то состояние, которое ожидает Свернуть_Click.
+                РамкаОкна.RenderTransform = МасштабОкна;
+                РамкаОкна.RenderTransformOrigin = new Point(1, 1);
 
-            BeginAnimation(LeftProperty, new DoubleAnimation(Left, left, длительность) { EasingFunction = сглаживание });
-            BeginAnimation(TopProperty, new DoubleAnimation(Top, top, длительность) { EasingFunction = сглаживание });
-            BeginAnimation(WidthProperty, анимWidth);
-            BeginAnimation(HeightProperty, new DoubleAnimation(Height, height, длительность) { EasingFunction = сглаживание });
+                завершено?.Invoke();
+            };
+
+            scale.BeginAnimation(ScaleTransform.ScaleXProperty, анимScaleX);
+            scale.BeginAnimation(ScaleTransform.ScaleYProperty, анимScaleY);
+            translate.BeginAnimation(TranslateTransform.XProperty, анимX);
+            translate.BeginAnimation(TranslateTransform.YProperty, анимY);
         }
 
 
@@ -1050,13 +1081,13 @@ new SessionStartedEvent(
                 "ФонЛевойКолонки",
                 Color.FromRgb(0x0A, 0x0A, 0x0A),
                 Color.FromRgb(0x17, 0x0B, 0x10),
-                7);
+                3.2);
 
             ЗапуститьМедленноеСвечение(
                 "ФонПравойКолонки",
                 Color.FromRgb(0x0A, 0x0A, 0x0A),
                 Color.FromRgb(0x17, 0x0B, 0x10),
-                8);
+                3.2);
         }
 
         private void ЗапуститьПереливДляКисти(
@@ -4312,7 +4343,7 @@ new SessionStartedEvent(
                 {
                     подсветка.BeginAnimation(
                         OpacityProperty,
-                        new DoubleAnimation(1, TimeSpan.FromMilliseconds(150))
+                        new DoubleAnimation(0.16, TimeSpan.FromMilliseconds(150))  // было 1
                         {
                             EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
                         });

@@ -40,11 +40,28 @@ public sealed class КурсорОверлей : Window
         public int Y;
     }
 
+
+
     private const int WS_EX_TRANSPARENT = 0x00000020;
     private const int WS_EX_LAYERED = 0x00080000;
     private const int WS_EX_TOOLWINDOW = 0x00000080;
     private const int WS_EX_NOACTIVATE = 0x08000000;
     private const int GWL_EXSTYLE = -20;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(
+    IntPtr hWnd, IntPtr hWndInsertAfter,
+    int X, int Y, int cx, int cy, uint uFlags);
+
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_NOREDRAW = 0x0008;
+    private const uint SWP_NOACTIVATE = 0x0010;
+    private const uint SWP_ASYNCWINDOWPOS = 0x4000;
+
+    private IntPtr hwnd = IntPtr.Zero;
+    private int последнийX = int.MinValue;
+    private int последнийY = int.MinValue;
 
     private КурсорОверлей()
     {
@@ -168,20 +185,29 @@ public sealed class КурсорОверлей : Window
 
     private void СледитьЗаКурсором(object? sender, EventArgs e)
     {
+        if (hwnd == IntPtr.Zero)
+            return;
+
         if (!GetCursorPos(out var точка))
             return;
 
-        var источник = PresentationSource.FromVisual(this);
-
-        if (источник?.CompositionTarget == null)
+        // Мышь физически не двигалась с прошлого кадра — не дёргаем окно зря.
+        if (точка.X == последнийX && точка.Y == последнийY)
             return;
 
-        var точкаDip =
-            источник.CompositionTarget.TransformFromDevice.Transform(
-                new Point(точка.X, точка.Y));
+        последнийX = точка.X;
+        последнийY = точка.Y;
 
-        Left = точкаDip.X;
-        Top = точкаDip.Y;
+        // Прямой SetWindowPos вместо Left/Top: без DIP-конвертации, без
+        // полного конвейера DP-свойства (LocationChanged, layout-инвалидация
+        // и т.д.). SWP_NOREDRAW корректен — содержимое не меняется, меняется
+        // только позиция; DWM у layered-окна не должен "проявлять" фон под
+        // ним, как у обычного окна. Именно этот вызов на 60+ раз в секунду
+        // и был узким местом всего приложения.
+        SetWindowPos(
+            hwnd, IntPtr.Zero,
+            точка.X, точка.Y, 0, 0,
+            SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW | SWP_ASYNCWINDOWPOS);
     }
 
     private void ОтключитьВзаимодействие()
@@ -189,14 +215,16 @@ public sealed class КурсорОверлей : Window
         if (PresentationSource.FromVisual(this) is not HwndSource источник)
             return;
 
-        var хендл = источник.Handle;
-        var стиль = GetWindowLong(хендл, GWL_EXSTYLE);
+        hwnd = источник.Handle;
+
+        var стиль = GetWindowLong(hwnd, GWL_EXSTYLE);
 
         SetWindowLong(
-            хендл,
+            hwnd,
             GWL_EXSTYLE,
             стиль | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE);
     }
+
 
     // Короткая цветная вспышка — раньше жила только внутри MainWindow
     // и переставала работать в любом другом окне.
