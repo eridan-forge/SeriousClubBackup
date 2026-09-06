@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -14,6 +15,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 using System.Windows.Shapes;
 using серьёзный.Core.CoreChat;
 using серьёзный.Core.CoreComputers;
@@ -24,6 +26,7 @@ using серьёзный.Модели;
 using серьёзный.Окна;
 using серьёзный.Сервисы;
 using серьёзный.Сеть;
+
 
 
 namespace серьёзный
@@ -535,8 +538,17 @@ new SessionStartedEvent(
                 ПолученоСообщение;
 
             Loaded +=
-                ПриЗагрузке;
+    ПриЗагрузке;
             ЗапуститьПереливАнимация();
+
+            PreviewMouseMove +=
+                Курсор_MouseMove;
+
+            PreviewMouseLeftButtonDown +=
+                Курсор_ЛевыйКлик;
+
+            PreviewMouseRightButtonDown +=
+                Курсор_ПравыйКлик;
 
             Closed +=
                 ПриЗакрытии;
@@ -835,90 +847,234 @@ new SessionStartedEvent(
         private void Шапка_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ClickCount == 2)
-            {
-                // двойной клик по шапке — как обычно у окон, но у нас Maximized всегда
+
                 return;
-            }
+           
 
             try
             {
+                СоздатьШлейф();
+                CompositionTarget.Rendering += ОбновитьШлейф;
+
                 DragMove();
             }
             catch
             {
-                // DragMove бросает исключение, если кнопка мыши уже отпущена —
-                // безопасно игнорировать.
+
+            }
+            finally
+            {
+                CompositionTarget.Rendering -= ОбновитьШлейф;
+                следШлейф?.Close();
+                следШлейф = null;
             }
         }
+
+        private Window? следШлейф;
+        private double следLeft, следTop;
+        private void СоздатьШлейф()
+        {
+            следLeft = Left;
+            следTop = Top;
+
+            следШлейф = new Window
+            {
+                WindowStyle = WindowStyle.None,
+                AllowsTransparency = true,
+                Background = new SolidColorBrush(Color.FromArgb(22, 180, 34, 74)),
+                ShowInTaskbar = false,
+                ResizeMode = ResizeMode.NoResize,
+                IsHitTestVisible = false,
+                Left = Left,
+                Top = Top,
+                Width = ActualWidth,
+                Height = ActualHeight
+            };
+
+            следШлейф.Show();
+        }
+
+        private void ОбновитьШлейф(object? sender, EventArgs e)
+        {
+            if (следШлейф == null)
+                return;
+
+            следLeft += (Left - следLeft) * 0.3;
+            следTop += (Top - следTop) * 0.3;
+
+            следШлейф.Left = следLeft;
+            следШлейф.Top = следTop;
+        }
+
 
         private QuickAccessBar? панельБыстрогоДоступа;
 
         private void Свернуть_Click(object sender, RoutedEventArgs e)
         {
-            Hide();
 
+            var сжатие = new DoubleAnimation(1, 0.02, TimeSpan.FromMilliseconds(260))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+            };
+
+            сжатие.Completed += (_, _) =>
+            {
+                Hide();
+
+                МасштабОкна.ScaleX = 1;
+                МасштабОкна.ScaleY = 1;
+                РамкаОкна.Opacity = 1;
+
+                ПоказатьПанельБыстрогоДоступа();
+            };
+
+            МасштабОкна.BeginAnimation(ScaleTransform.ScaleXProperty, сжатие);
+            МасштабОкна.BeginAnimation(ScaleTransform.ScaleYProperty, сжатие);
+            РамкаОкна.BeginAnimation(OpacityProperty, new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(260)));
+        }
+
+        private void ПоказатьПанельБыстрогоДоступа()
+        {
             if (панельБыстрогоДоступа == null || !панельБыстрогоДоступа.IsLoaded)
             {
                 панельБыстрогоДоступа = new QuickAccessBar();
-
-                панельБыстрогоДоступа.ВосстановитьЗапрошено += () =>
-                {
-                    панельБыстрогоДоступа?.Close();
-                    панельБыстрогоДоступа = null;
-
-                    Show();
-                    WindowState = WindowState.Maximized;
-                    Activate();
-                };
+                панельБыстрогоДоступа.ВосстановитьЗапрошено += ВосстановитьИзПанели;
             }
 
             панельБыстрогоДоступа.Show();
         }
 
+        private void ВосстановитьИзПанели()
+        {
+            панельБыстрогоДоступа?.Close();
+            панельБыстрогоДоступа = null;
+
+            Show();
+            Activate();
+
+            var рост = new DoubleAnimation(0.02, 1, TimeSpan.FromMilliseconds(260))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+
+            МасштабОкна.BeginAnimation(ScaleTransform.ScaleXProperty, рост);
+            МасштабОкна.BeginAnimation(ScaleTransform.ScaleYProperty, рост);
+            РамкаОкна.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(220)));
+
+        }
+
 
         private bool окноВРежимеОкна;
+
+        private Rect границыПолногоЭкрана;
 
         private void РазвернутьОкно_Click(object sender, RoutedEventArgs e)
         {
             if (!окноВРежимеОкна)
             {
-                ResizeMode = ResizeMode.CanResize;
+
+                границыПолногоЭкрана =
+                      WindowState == WindowState.Maximized
+                        ? new Rect(SystemParameters.WorkArea.Left, SystemParameters.WorkArea.Top,
+                         SystemParameters.WorkArea.Width, SystemParameters.WorkArea.Height)
+                        : new Rect(Left, Top, ActualWidth, ActualHeight);
+
                 WindowState = WindowState.Normal;
+                ResizeMode = ResizeMode.CanResize;
+
+                // Без анимации ставим границы туда, где окно и так уже было —
+                // иначе снятие Maximized даст видимый скачок перед анимацией.
+                Left = границыПолногоЭкрана.Left;
+                Top = границыПолногоЭкрана.Top;
+                Width = границыПолногоЭкрана.Width;
+                Height = границыПолногоЭкрана.Height;
 
                 var область = SystemParameters.WorkArea;
+                double целеваяШирина = область.Width / 2;
+                double целеваяВысота = область.Height / 2;
 
-                Width = область.Width / 2;
-                Height = область.Height / 2;
+                АнимироватьГраницы(
+                      область.Left + (область.Width - целеваяШирина) / 2,
+                      область.Top + (область.Height - целеваяВысота) / 2,
+   целеваяШирина, целеваяВысота);
 
-                Left = область.Left + (область.Width - Width) / 2;
-                Top = область.Top + (область.Height - Height) / 2;
+                РамкаОкна.BorderThickness = new Thickness(2);
 
                 окноВРежимеОкна = true;
             }
             else
             {
                 ResizeMode = ResizeMode.NoResize;
-                WindowState = WindowState.Maximized;
+
+                АнимироватьГраницы(
+                     границыПолногоЭкрана.Left, границыПолногоЭкрана.Top,
+                       границыПолногоЭкрана.Width, границыПолногоЭкрана.Height,
+                         () => РамкаОкна.BorderThickness = new Thickness(0));
+
 
                 окноВРежимеОкна = false;
             }
         }
 
+        private void АнимироватьГраницы(double left, double top, double width, double height, Action? завершено = null)
+        {
+            var длительность = TimeSpan.FromMilliseconds(280);
+            var сглаживание = new CubicEase { EasingMode = EasingMode.EaseOut };
+
+            var анимWidth = new DoubleAnimation(Width, width, длительность) { EasingFunction = сглаживание };
+
+            if (завершено != null)
+                анимWidth.Completed += (_, _) => завершено();
+
+            BeginAnimation(LeftProperty, new DoubleAnimation(Left, left, длительность) { EasingFunction = сглаживание });
+            BeginAnimation(TopProperty, new DoubleAnimation(Top, top, длительность) { EasingFunction = сглаживание });
+            BeginAnimation(WidthProperty, анимWidth);
+            BeginAnimation(HeightProperty, new DoubleAnimation(Height, height, длительность) { EasingFunction = сглаживание });
+        }
+
+
+
+
+
+
+
+
 
 
         private void ЗапуститьПереливАнимация()
         {
-            var кисть = (LinearGradientBrush)FindName("ЗаголовокКисть");
+            ЗапуститьПереливДляКисти("ЗаголовокКисть", 3.2);
+            ЗапуститьПереливДляКисти("ТаймерКисть", 3.2);
+            ЗапуститьПереливДляКисти("КурсорКисть", 2.0);
 
-            if (кисть == null)
+            ЗапуститьМедленноеСвечение(
+                "ФонЛевойКолонки",
+                Color.FromRgb(0x0A, 0x0A, 0x0A),
+                Color.FromRgb(0x17, 0x0B, 0x10),
+                7);
+
+            ЗапуститьМедленноеСвечение(
+                "ФонПравойКолонки",
+                Color.FromRgb(0x0A, 0x0A, 0x0A),
+                Color.FromRgb(0x17, 0x0B, 0x10),
+                8);
+        }
+
+        private void ЗапуститьПереливДляКисти(
+            string имяКисти,
+            double секунды)
+        {
+            if (FindName(имяКисти) is not LinearGradientBrush кисть)
                 return;
 
             var сдвиг = new DoubleAnimation
             {
                 From = -1,
                 To = 1,
-                Duration = TimeSpan.FromSeconds(3.2),
-                RepeatBehavior = RepeatBehavior.Forever
+                Duration = TimeSpan.FromSeconds(1.8),
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever,
+                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
             };
 
             var началоТрансформ = new TranslateTransform();
@@ -926,6 +1082,100 @@ new SessionStartedEvent(
             кисть.RelativeTransform = началоТрансформ;
 
             началоТрансформ.BeginAnimation(TranslateTransform.XProperty, сдвиг);
+        }
+
+        private void ЗапуститьМедленноеСвечение(
+            string имяКисти,
+            Color обычныйЦвет,
+            Color акцентныйЦвет,
+            double секунды)
+        {
+            if (FindName(имяКисти) is not SolidColorBrush кисть)
+                return;
+
+            var анимация =
+                new ColorAnimation
+                {
+                    From = обычныйЦвет,
+                    To = акцентныйЦвет,
+                    Duration = TimeSpan.FromSeconds(секунды),
+                    AutoReverse = true,
+                    RepeatBehavior = RepeatBehavior.Forever
+                };
+
+            кисть.BeginAnimation(
+                SolidColorBrush.ColorProperty,
+                анимация);
+        }
+
+        // =========================================================
+        // КАСТОМНЫЙ КУРСОР
+        // =========================================================
+
+        private void Курсор_MouseMove(
+            object sender,
+            MouseEventArgs e)
+        {
+            if (КорневаяСетка == null || КурсорКонтейнер == null)
+                return;
+
+            var позиция =
+                e.GetPosition(КорневаяСетка);
+
+            Canvas.SetLeft(КурсорКонтейнер, позиция.X);
+            Canvas.SetTop(КурсорКонтейнер, позиция.Y);
+        }
+
+        private void Курсор_ЛевыйКлик(
+            object sender,
+            MouseButtonEventArgs e)
+        {
+            ЗапуститьВспышкуКурсора(
+                Color.FromRgb(0xFF, 0x2E, 0x5C),
+                24);
+        }
+
+        private void Курсор_ПравыйКлик(
+            object sender,
+            MouseButtonEventArgs e)
+        {
+            ЗапуститьВспышкуКурсора(
+                Color.FromRgb(0x38, 0xBD, 0xF8),
+                24);
+        }
+
+        private void ЗапуститьВспышкуКурсора(
+            Color цвет,
+            double радиусСвечения)
+        {
+            if (КурсорСвечение == null)
+                return;
+
+            var анимацияЦвета =
+                new ColorAnimation
+                {
+                    To = цвет,
+                    Duration = TimeSpan.FromMilliseconds(90),
+                    AutoReverse = true,
+                    RepeatBehavior = new RepeatBehavior(1)
+                };
+
+            var анимацияРадиуса =
+                new DoubleAnimation
+                {
+                    To = радиусСвечения,
+                    Duration = TimeSpan.FromMilliseconds(90),
+                    AutoReverse = true,
+                    RepeatBehavior = new RepeatBehavior(1)
+                };
+
+            КурсорСвечение.BeginAnimation(
+                DropShadowEffect.ColorProperty,
+                анимацияЦвета);
+
+            КурсорСвечение.BeginAnimation(
+                DropShadowEffect.BlurRadiusProperty,
+                анимацияРадиуса);
         }
 
 
@@ -1632,10 +1882,44 @@ new SessionStartedEvent(
         }
 
 
+        private static readonly TimeZoneInfo МосковскийПояс =
+    ПолучитьМосковскийПояс();
+
+        private static TimeZoneInfo ПолучитьМосковскийПояс()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById(
+                    "Russian Standard Time");
+            }
+            catch
+            {
+                try
+                {
+                    return TimeZoneInfo.FindSystemTimeZoneById(
+                        "Europe/Moscow");
+                }
+                catch
+                {
+                    return TimeZoneInfo.Local;
+                }
+            }
+        }
+
         private void ОбновитьВерхнююПанель()
         {
+            var московскоеВремя =
+                TimeZoneInfo.ConvertTime(
+                    DateTime.Now,
+                    МосковскийПояс);
+
             ТекстЧасыАдмин.Text =
-                DateTime.Now.ToString("HH:mm:ss");
+                московскоеВремя.ToString("HH:mm:ss");
+
+            ТекстДатаАдмин.Text =
+                московскоеВремя.ToString(
+                    "d MMMM yyyy, dddd",
+                    new CultureInfo("ru-RU"));
 
             ТекстАктивныеСеансы.Text =
                 сервисСеансов.АктивныхСеансов.ToString();
@@ -1969,9 +2253,25 @@ new SessionStartedEvent(
         // ГОЛОС
         // =========================================================
 
+
+        private void УстановитьТекстГолосовойКнопки(
+    string эмодзи,
+    string текст)
+        {
+            if (ИконкаГолос != null)
+            {
+                ИконкаГолос.Text = эмодзи;
+            }
+
+            if (ТекстГолос != null)
+            {
+                ТекстГолос.Text = текст;
+            }
+        }
+
         private async void Голосовое_Click(
-            object sender,
-            RoutedEventArgs e)
+    object sender,
+    RoutedEventArgs e)
         {
             if (приложениеЗакрывается)
             {
@@ -2038,11 +2338,7 @@ new SessionStartedEvent(
                 записьГолосаИдёт =
                     true;
 
-                if (КнопкаГолосовое != null)
-                {
-                    КнопкаГолосовое.Content =
-                        "⏹ Остановить запись";
-                }
+                УстановитьТекстГолосовойКнопки("⏹", "Остановить запись");
 
                 ТекстСостояния.Text =
                     $"🎤 Идёт запись для ПК-{компьютерГолосаId}... Нажми ещё раз для отправки.";
@@ -2059,11 +2355,7 @@ new SessionStartedEvent(
 
                 ОсвободитьОбъектыЗаписи();
 
-                if (КнопкаГолосовое != null)
-                {
-                    КнопкаГолосовое.Content =
-                        "🎤 Записать голос";
-                }
+                УстановитьТекстГолосовойКнопки("🎤", "Записать голос");
 
                 ПоказатьОшибкаГолоса(
                     ошибка);
@@ -2100,8 +2392,8 @@ new SessionStartedEvent(
 
 
         private async void ЗаписьГолоса_RecordingStopped(
-            object? sender,
-            StoppedEventArgs args)
+    object? sender,
+    StoppedEventArgs args)
         {
             if (завершениеЗаписиГолосаВыполняется)
             {
@@ -2114,14 +2406,12 @@ new SessionStartedEvent(
             записьГолосаИдёт =
                 false;
 
-            if (КнопкаГолосовое != null &&
-                !приложениеЗакрывается)
+            if (!приложениеЗакрывается)
             {
                 Dispatcher.Invoke(
                     () =>
                     {
-                        КнопкаГолосовое.Content =
-                            "🎤 Обработка...";
+                        УстановитьТекстГолосовойКнопки("🎤", "Обработка...");
                     });
             }
 
@@ -2216,14 +2506,12 @@ new SessionStartedEvent(
                 завершениеЗаписиГолосаВыполняется =
                     false;
 
-                if (!приложениеЗакрывается &&
-                    КнопкаГолосовое != null)
+                if (!приложениеЗакрывается)
                 {
                     Dispatcher.Invoke(
                         () =>
                         {
-                            КнопкаГолосовое.Content =
-                                "🎤 Записать голос";
+                            УстановитьТекстГолосовойКнопки("🎤", "Записать голос");
                         });
                 }
             }
@@ -2242,11 +2530,7 @@ new SessionStartedEvent(
                 записьГолосаИдёт =
                     false;
 
-                if (КнопкаГолосовое != null)
-                {
-                    КнопкаГолосовое.Content =
-                        "🎤 Обработка...";
-                }
+                УстановитьТекстГолосовойКнопки("🎤", "Обработка...");
 
                 записьГолоса?.StopRecording();
             }
@@ -2260,11 +2544,7 @@ new SessionStartedEvent(
                 завершениеЗаписиГолосаВыполняется =
                     false;
 
-                if (КнопкаГолосовое != null)
-                {
-                    КнопкаГолосовое.Content =
-                        "🎤 Записать голос";
-                }
+                УстановитьТекстГолосовойКнопки("🎤", "Записать голос");
 
                 ПоказатьОшибкаГолоса(
                     ошибка);
@@ -3931,17 +4211,36 @@ new SessionStartedEvent(
                 корневаяСетка.Children.Add(статусТочка);
                 корневаяСетка.Children.Add(текстоваяКолонка);
 
+                var фонКисть = new SolidColorBrush(Color.FromRgb(10, 10, 10));
+                var рамкаКисть = new SolidColorBrush(Color.FromRgb(36, 36, 36));
+
                 var карточка = new Border
                 {
                     Padding = new Thickness(14),
                     Margin = new Thickness(0, 0, 0, 10),
                     CornerRadius = new CornerRadius(14),
-                    Background = new SolidColorBrush(Color.FromRgb(10, 10, 10)),
-                    BorderBrush = new SolidColorBrush(Color.FromRgb(36, 36, 36)),
-                   
+
+                    Background = фонКисть,
+                    BorderBrush = рамкаКисть,
                     BorderThickness = new Thickness(1.2),
                     Cursor = Cursors.Hand,
                     Child = корневаяСетка
+                };
+
+                карточка.MouseEnter += (_, _) =>
+                {
+                    АнимироватьЦвет(рамкаКисть, Color.FromRgb(184, 44, 92), 150);
+                    АнимироватьЦвет(фонКисть, Color.FromRgb(20, 15, 18), 150);
+                };
+
+                карточка.MouseLeave += (_, _) =>
+                {
+                    bool выбрана = выбранныйКомпьютерId == пк.Id;
+
+                    АнимироватьЦвет(рамкаКисть,
+                          выбрана ? Color.FromRgb(216, 52, 104) : Color.FromRgb(36, 36, 36), 220);
+
+                    АнимироватьЦвет(фонКисть, Color.FromRgb(10, 10, 10), 220);
                 };
 
                 карточка.MouseLeftButtonUp += (_, _) =>
@@ -4532,10 +4831,14 @@ SelectionChangedEventArgs e)
         {
             foreach (var пара in карточкиПК)
             {
-                пара.Value.Контейнер.BorderBrush =
-                    пара.Key == компьютерId
-                        ? new SolidColorBrush(Color.FromRgb(216, 52, 104))
-                        : new SolidColorBrush(Color.FromRgb(36, 36, 36));
+                if (пара.Value.Контейнер.BorderBrush is SolidColorBrush рамка)
+                {
+                    АнимироватьЦвет(рамка,
+                          пара.Key == компьютерId
+  ? Color.FromRgb(216, 52, 104)
+  : Color.FromRgb(36, 36, 36), 180);
+
+                }
 
                 пара.Value.Контейнер.BorderThickness =
                     пара.Key == компьютерId
@@ -4544,6 +4847,15 @@ SelectionChangedEventArgs e)
             }
         }
 
+        private static void АнимироватьЦвет(SolidColorBrush кисть, Color цель, int миллисекунд)
+        {
+            var анимация = new ColorAnimation(цель, TimeSpan.FromMilliseconds(миллисекунд))
+            {
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+            };
+
+            кисть.BeginAnimation(SolidColorBrush.ColorProperty, анимация);
+        }
 
         private async void ВключитьПК_Click(
             object sender,
