@@ -885,11 +885,8 @@
                 </DockPanel>
 
             </Border>
-
+                </Grid>
+            </Grid>
         </Grid>
-
-        
-
     </Border>
-
 </Window>
