@@ -10,6 +10,233 @@
 
     <Window.Resources>
 
+        <!-- ============================================ -->
+        <!-- КАРБОН: диагональная плетёнка через DrawingBrush -->
+        <!-- ============================================ -->
+
+        <DrawingBrush x:Key="CarbonFiberBrush"
+              TileMode="Tile"
+              Viewport="0,0,14,14"
+              ViewportUnits="Absolute"
+              Stretch="None">
+
+            <DrawingBrush.RelativeTransform>
+                <RotateTransform Angle="45" CenterX="0.5" CenterY="0.5"/>
+            </DrawingBrush.RelativeTransform>
+
+            <DrawingBrush.Drawing>
+                <DrawingGroup>
+
+                    <GeometryDrawing Brush="#0B0708">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="0,0,14,14"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <GeometryDrawing Brush="#1A1315">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <RectangleGeometry Rect="0,0,7,7"/>
+                                <RectangleGeometry Rect="7,7,7,7"/>
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <GeometryDrawing Brush="#241A1D">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <RectangleGeometry Rect="7,0,7,7"/>
+                                <RectangleGeometry Rect="0,7,7,7"/>
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                </DrawingGroup>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
+
+
+        <!-- ============================================ -->
+        <!-- КРЕСТИК v2: круг чёрный, обводка бордо, линии крестика
+     выходят ЗА пределы круга. При наведении — крутится
+     всё вместе (линии внутри и снаружи) в одну сторону -->
+        <!-- ============================================ -->
+
+        <Style x:Key="CloseGlyphButton" TargetType="Button">
+            <Setter Property="Width" Value="64"/>
+            <Setter Property="Height" Value="64"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="Root" RenderTransformOrigin="0.5,0.5">
+
+                            <Grid.RenderTransform>
+                                <RotateTransform x:Name="Rot" Angle="0"/>
+                            </Grid.RenderTransform>
+
+                            <Ellipse x:Name="Glow"
+                             Width="30" Height="30"
+                             Fill="#A9223F"
+                             Opacity="0"/>
+
+                            <!-- Крестик: линии длиннее круга, торчат наружу -->
+                            <Path x:Name="XPath"
+                          Stroke="#E4A6B4"
+                          StrokeThickness="2.4"
+                          StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round">
+                                <Path.Data>
+                                    <PathGeometry>
+                                        <PathFigure StartPoint="-28,-28" IsClosed="False">
+                                            <LineSegment Point="28,28"/>
+                                        </PathFigure>
+                                        <PathFigure StartPoint="28,-28" IsClosed="False">
+                                            <LineSegment Point="-28,28"/>
+                                        </PathFigure>
+                                    </PathGeometry>
+                                </Path.Data>
+                            </Path>
+
+                            <!-- Круг ложится поверх линий, центр крестика уходит "под" него -->
+                            <Ellipse x:Name="Circle"
+                             Width="42" Height="42"
+                             Fill="#0A0708"
+                             Stroke="#5C1826"
+                             StrokeThickness="1.6"/>
+
+                            <!-- Короткий видимый крестик поверх круга -->
+                            <Path Stroke="#E4A6B4"
+                          StrokeThickness="2.4"
+                          StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round"
+                          Data="M -9,-9 L 9,9 M 9,-9 L -9,9"/>
+
+                        </Grid>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard x:Name="SpinIn">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="Rot"
+                                                     Storyboard.TargetProperty="Angle"
+                                                     From="0" To="360"
+                                                     Duration="0:0:1.3"
+                                                     RepeatBehavior="Forever"/>
+
+                                            <DoubleAnimation Storyboard.TargetName="Glow"
+                                                     Storyboard.TargetProperty="Opacity"
+                                                     To="0.75" Duration="0:0:0.25"/>
+
+                                            <DoubleAnimation Storyboard.TargetName="Glow"
+                                                     Storyboard.TargetProperty="Width"
+                                                     To="70" Duration="0:0:0.4"/>
+
+                                            <DoubleAnimation Storyboard.TargetName="Glow"
+                                                     Storyboard.TargetProperty="Height"
+                                                     To="70" Duration="0:0:0.4"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+
+                                <Trigger.ExitActions>
+                                    <RemoveStoryboard BeginStoryboardName="SpinIn"/>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="Glow"
+                                                     Storyboard.TargetProperty="Opacity"
+                                                     To="0" Duration="0:0:0.3"/>
+                                            <DoubleAnimation Storyboard.TargetName="Glow"
+                                                     Storyboard.TargetProperty="Width"
+                                                     To="30" Duration="0:0:0.3"/>
+                                            <DoubleAnimation Storyboard.TargetName="Glow"
+                                                     Storyboard.TargetProperty="Height"
+                                                     To="30" Duration="0:0:0.3"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+
+                                <Setter TargetName="Circle" Property="Stroke" Value="#FF3D66"/>
+                                <Setter TargetName="XPath" Property="Stroke" Value="#FFD9E0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+
+        <!-- ============================================ -->
+        <!-- КВАДРАТ "В ОКНО" — слева от крестика -->
+        <!-- ============================================ -->
+
+        <Style x:Key="RestoreGlyphButton" TargetType="Button">
+            <Setter Property="Width" Value="52"/>
+            <Setter Property="Height" Value="52"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Ellipse x:Name="RestoreGlow"
+                             Width="30" Height="30"
+                             Fill="#7A1730"
+                             Opacity="0"/>
+
+                            <Rectangle x:Name="RestoreSquare"
+                               Width="20" Height="20"
+                               RadiusX="4" RadiusY="4"
+                               Fill="#1A1116"
+                               Stroke="#5C1826"
+                               StrokeThickness="1.6"/>
+                        </Grid>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="RestoreGlow"
+                                                     Storyboard.TargetProperty="Opacity"
+                                                     To="0.55" Duration="0:0:0.25"/>
+                                            <DoubleAnimation Storyboard.TargetName="RestoreGlow"
+                                                     Storyboard.TargetProperty="Width"
+                                                     To="46" Duration="0:0:0.3"/>
+                                            <DoubleAnimation Storyboard.TargetName="RestoreGlow"
+                                                     Storyboard.TargetProperty="Height"
+                                                     To="46" Duration="0:0:0.3"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="RestoreGlow"
+                                                     Storyboard.TargetProperty="Opacity"
+                                                     To="0" Duration="0:0:0.25"/>
+                                            <DoubleAnimation Storyboard.TargetName="RestoreGlow"
+                                                     Storyboard.TargetProperty="Width"
+                                                     To="30" Duration="0:0:0.25"/>
+                                            <DoubleAnimation Storyboard.TargetName="RestoreGlow"
+                                                     Storyboard.TargetProperty="Height"
+                                                     To="30" Duration="0:0:0.25"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                                <Setter TargetName="RestoreSquare" Property="Stroke" Value="#E4A6B4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style TargetType="Button" BasedOn="{StaticResource CrystalButton}"/>
         <Style TargetType="TextBox" BasedOn="{StaticResource CrystalTextBox}"/>
 
@@ -26,84 +253,6 @@
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
-        <!-- ============================================ -->
-        <!-- КРЕСТИК: восьмиугольная форма + бордовая пульсация при наведении -->
-        <!-- ============================================ -->
-
-        <Style x:Key="CloseGlyphButton" TargetType="Button">
-            <Setter Property="Width" Value="52"/>
-            <Setter Property="Height" Value="52"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Grid x:Name="Root" RenderTransformOrigin="0.5,0.5">
-
-                            <Grid.RenderTransform>
-                                <RotateTransform x:Name="Rot" Angle="0"/>
-                            </Grid.RenderTransform>
-
-                            <Ellipse x:Name="Glow"
-                                     Fill="#7A1730"
-                                     Opacity="0"/>
-
-                            <Ellipse Width="40" Height="40"
-                                     Stroke="#5C1826"
-                                     StrokeThickness="1.4"
-                                     Fill="#1A1116"/>
-
-                            <Path Data="M -8,-8 L 8,8 M 8,-8 L -8,8"
-                                  Stroke="#E4A6B4"
-                                  StrokeThickness="2.4"
-                                  StrokeStartLineCap="Round"
-                                  StrokeEndLineCap="Round"/>
-                        </Grid>
-
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Trigger.EnterActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetName="Rot"
-                                                             Storyboard.TargetProperty="Angle"
-                                                             To="180" Duration="0:0:0.45">
-                                                <DoubleAnimation.EasingFunction>
-                                                    <CubicEase EasingMode="EaseOut"/>
-                                                </DoubleAnimation.EasingFunction>
-                                            </DoubleAnimation>
-                                            <DoubleAnimation Storyboard.TargetName="Glow"
-                                                             Storyboard.TargetProperty="Opacity"
-                                                             To="0.55" Duration="0:0:0.25"/>
-                                            <DoubleAnimation Storyboard.TargetName="Glow"
-                                                             Storyboard.TargetProperty="Width"
-                                                             From="30" To="60" Duration="0:0:0.45"/>
-                                            <DoubleAnimation Storyboard.TargetName="Glow"
-                                                             Storyboard.TargetProperty="Height"
-                                                             From="30" To="60" Duration="0:0:0.45"/>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </Trigger.EnterActions>
-                                <Trigger.ExitActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetName="Rot"
-                                                             Storyboard.TargetProperty="Angle"
-                                                             To="0" Duration="0:0:0.3"/>
-                                            <DoubleAnimation Storyboard.TargetName="Glow"
-                                                             Storyboard.TargetProperty="Opacity"
-                                                             To="0" Duration="0:0:0.3"/>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </Trigger.ExitActions>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
     </Window.Resources>
 
     <Grid>
@@ -118,40 +267,48 @@
         <!-- ============================================ -->
 
         <Border Grid.Row="0"
-                Background="#120C10"
-                BorderBrush="#2A151D"
-                BorderThickness="0,0,0,1"
-                MouseLeftButtonDown="Шапка_MouseDown">
+        Background="{StaticResource CarbonFiberBrush}"
+        BorderBrush="#2A151D"
+        BorderThickness="0,0,0,1"
+        MouseLeftButtonDown="Шапка_MouseDown">
 
             <Grid Margin="24,0,18,0">
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 
                     <TextBlock Text="СЕРЬЁЗНЫЙ"
-                               FontSize="24"
-                               FontWeight="Bold"
-                               FontFamily="Consolas">
+                       FontSize="24"
+                       FontWeight="Bold"
+                       FontFamily="Consolas">
                         <TextBlock.Foreground>
                             <LinearGradientBrush x:Name="ЗаголовокКисть" StartPoint="0,0" EndPoint="1,0">
-                                <GradientStop Color="#E9C9D3" Offset="0"/>
-                                <GradientStop Color="#A9223F" Offset="0.5"/>
-                                <GradientStop Color="#E9C9D3" Offset="1"/>
+                                <GradientStop Color="#4A1020" Offset="0"/>
+                                <GradientStop Color="#120005" Offset="0.5"/>
+                                <GradientStop Color="#4A1020" Offset="1"/>
                             </LinearGradientBrush>
                         </TextBlock.Foreground>
                     </TextBlock>
 
                     <TextBlock Text="Пульт управления клубом"
-                               Foreground="#7A6A70"
-                               FontSize="12"
-                               Margin="16,4,0,0"
-                               VerticalAlignment="Bottom"/>
+                       Foreground="#7A2B3D"
+                       FontSize="12"
+                       Margin="16,4,0,0"
+                       VerticalAlignment="Bottom"/>
 
                 </StackPanel>
 
-                <Button Style="{StaticResource CloseGlyphButton}"
-                        HorizontalAlignment="Right"
-                        Margin="0,0,-6,0"
-                        Click="Свернуть_Click"/>
+                <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Right">
+
+                    <Button Style="{StaticResource RestoreGlyphButton}"
+                    Margin="0,0,-4,0"
+                    Click="РазвернутьОкно_Click"/>
+
+                    <Button Style="{StaticResource CloseGlyphButton}"
+                    Margin="0,0,-6,0"
+                    Click="Свернуть_Click"/>
+
+                </StackPanel>
 
             </Grid>
 

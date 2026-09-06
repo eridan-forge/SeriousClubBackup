@@ -874,7 +874,35 @@ new SessionStartedEvent(
             панельБыстрогоДоступа.Show();
         }
 
-        
+
+        private bool окноВРежимеОкна;
+
+        private void РазвернутьОкно_Click(object sender, RoutedEventArgs e)
+        {
+            if (!окноВРежимеОкна)
+            {
+                ResizeMode = ResizeMode.CanResize;
+                WindowState = WindowState.Normal;
+
+                var область = SystemParameters.WorkArea;
+
+                Width = область.Width / 2;
+                Height = область.Height / 2;
+
+                Left = область.Left + (область.Width - Width) / 2;
+                Top = область.Top + (область.Height - Height) / 2;
+
+                окноВРежимеОкна = true;
+            }
+            else
+            {
+                ResizeMode = ResizeMode.NoResize;
+                WindowState = WindowState.Maximized;
+
+                окноВРежимеОкна = false;
+            }
+        }
+
 
 
         private void ЗапуститьПереливАнимация()
