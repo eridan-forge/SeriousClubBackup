@@ -3936,8 +3936,9 @@ new SessionStartedEvent(
                     Padding = new Thickness(14),
                     Margin = new Thickness(0, 0, 0, 10),
                     CornerRadius = new CornerRadius(14),
-                    Background = new SolidColorBrush(Color.FromRgb(17, 12, 15)),
-                    BorderBrush = new SolidColorBrush(Color.FromRgb(58, 24, 36)),
+                    Background = new SolidColorBrush(Color.FromRgb(10, 10, 10)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(36, 36, 36)),
+                   
                     BorderThickness = new Thickness(1.2),
                     Cursor = Cursors.Hand,
                     Child = корневаяСетка
@@ -4534,7 +4535,7 @@ SelectionChangedEventArgs e)
                 пара.Value.Контейнер.BorderBrush =
                     пара.Key == компьютерId
                         ? new SolidColorBrush(Color.FromRgb(216, 52, 104))
-                        : new SolidColorBrush(Color.FromRgb(58, 24, 36));
+                        : new SolidColorBrush(Color.FromRgb(36, 36, 36));
 
                 пара.Value.Контейнер.BorderThickness =
                     пара.Key == компьютерId

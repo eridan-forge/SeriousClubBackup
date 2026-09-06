@@ -6,12 +6,21 @@
         ResizeMode="NoResize"
         WindowState="Maximized"
         AllowsTransparency="False"
-        Background="{DynamicResource CrystalMainBackgroundBrush}">
+        Background="{StaticResource ЧёрныйФонОкна}">
 
     <Window.Resources>
 
         <!-- ============================================ -->
-        <!-- КАРБОН: диагональная плетёнка через DrawingBrush -->
+        <!-- ФОН ОКНА: полностью чёрный -->
+        <!-- ============================================ -->
+
+        <LinearGradientBrush x:Key="ЧёрныйФонОкна" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#020202" Offset="0"/>
+            <GradientStop Color="#0C0C0D" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- ============================================ -->
+        <!-- КАРБОН: диагональная плетёнка, чёрно-серая -->
         <!-- ============================================ -->
 
         <DrawingBrush x:Key="CarbonFiberBrush"
@@ -27,13 +36,13 @@
             <DrawingBrush.Drawing>
                 <DrawingGroup>
 
-                    <GeometryDrawing Brush="#0B0708">
+                    <GeometryDrawing Brush="#0A0A0A">
                         <GeometryDrawing.Geometry>
                             <RectangleGeometry Rect="0,0,14,14"/>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
 
-                    <GeometryDrawing Brush="#1A1315">
+                    <GeometryDrawing Brush="#161616">
                         <GeometryDrawing.Geometry>
                             <GeometryGroup>
                                 <RectangleGeometry Rect="0,0,7,7"/>
@@ -42,7 +51,7 @@
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
 
-                    <GeometryDrawing Brush="#241A1D">
+                    <GeometryDrawing Brush="#202020">
                         <GeometryDrawing.Geometry>
                             <GeometryGroup>
                                 <RectangleGeometry Rect="7,0,7,7"/>
@@ -232,7 +241,50 @@
             </Setter>
         </Style>
 
-        <Style TargetType="Button" BasedOn="{StaticResource CrystalButton}"/>
+        <!-- ============================================ -->
+        <!-- ОБЫЧНЫЕ КНОПКИ ОКНА: без MinWidth=140 -->
+        <!-- (это и ломало левую колонку и WrapPanel'ы)   -->
+        <!-- ============================================ -->
+
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#121013"/>
+            <Setter Property="BorderBrush" Value="#242424"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="#E9C9D3"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="14"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"/>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#1C1620"/>
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="#B4224A"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#050405"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style TargetType="TextBox" BasedOn="{StaticResource CrystalTextBox}"/>
 
         <Style x:Key="CrystalSectionTitle" TargetType="TextBlock">
@@ -283,9 +335,9 @@
                            VerticalAlignment="Center">
                     <TextBlock.Foreground>
                         <LinearGradientBrush x:Name="ЗаголовокКисть" StartPoint="0,0" EndPoint="1,0">
-                            <GradientStop Color="#4A1020" Offset="0"/>
-                            <GradientStop Color="#120005" Offset="0.5"/>
-                            <GradientStop Color="#4A1020" Offset="1"/>
+                            <GradientStop Color="#FF2E5C" Offset="0"/>
+                            <GradientStop Color="#8A0F30" Offset="0.5"/>
+                            <GradientStop Color="#FF2E5C" Offset="1"/>
                         </LinearGradientBrush>
                     </TextBlock.Foreground>
                 </TextBlock>
@@ -297,7 +349,7 @@
 
                     <StackPanel Margin="18,0" HorizontalAlignment="Center">
                         <TextBlock Text="ВРЕМЯ" FontSize="10" Foreground="#7A2B3D" HorizontalAlignment="Center"/>
-                        <TextBlock x:Name="ТекстЧасыАдмин" Text="--:--:--" FontSize="18" FontWeight="Bold" Foreground="#E9C9D3" HorizontalAlignment="Center"/>
+                        <TextBlock x:Name="ТекстЧасыАдмин" Text="00:00:00" FontSize="18" FontWeight="Bold" Foreground="#E9C9D3" HorizontalAlignment="Center"/>
                     </StackPanel>
 
                     <Border Width="1" Height="34" Background="#3A222B" VerticalAlignment="Center"/>
@@ -318,7 +370,7 @@
 
                     <StackPanel Margin="18,0" HorizontalAlignment="Center">
                         <TextBlock Text="ЗАРАБОТАНО СЕГОДНЯ" FontSize="10" Foreground="#7A2B3D" HorizontalAlignment="Center"/>
-                        <TextBlock x:Name="ТекстВыручкаСегодня" Text="0 ₽" FontSize="18" FontWeight="Bold" Foreground="#4CCB91" HorizontalAlignment="Center"/>
+                        <TextBlock x:Name="ТекстВыручкаСегодня" Text="0 ₽" FontSize="18" FontWeight="Bold" Foreground="#FF3D66" HorizontalAlignment="Center"/>
                     </StackPanel>
 
                 </StackPanel>
@@ -338,7 +390,7 @@
         <Grid Grid.Row="1">
 
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="88"/>
+                <ColumnDefinition Width="100"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="320"/>
             </Grid.ColumnDefinitions>
@@ -347,7 +399,7 @@
             <!-- ЛЕВАЯ ИКОНОЧНАЯ ПАНЕЛЬ -->
             <!-- ============================================ -->
             <Border Grid.Column="0"
-                    Background="#100A0D"
+                    Background="#0A0A0A"
                     BorderBrush="#2A151D"
                     BorderThickness="0,0,1,0">
 
@@ -642,7 +694,17 @@
                                         Width="96" Height="72" Margin="0,0,10,10"
                                         Click="Голосовое_Click"
                                         Content="🎤 Записать голос"
-                                        FontSize="10"/>
+                                        FontSize="10">
+                                    <Button.ContentTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}"
+                                                       TextWrapping="Wrap"
+                                                       TextAlignment="Center"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </Button.ContentTemplate>
+                                </Button>
 
                                 <Button Width="96" Height="72" Margin="0,0,10,10" Click="СменитьПароль_Click">
                                     <StackPanel HorizontalAlignment="Center">
@@ -693,7 +755,7 @@
             <!-- ПРАВАЯ КОЛОНКА: СПИСОК ПК -->
             <!-- ============================================ -->
             <Border Grid.Column="2"
-                    Background="#100A0D"
+                    Background="#0A0A0A"
                     BorderBrush="#2A151D"
                     BorderThickness="1,0,0,0">
 
