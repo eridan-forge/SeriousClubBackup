@@ -8,11 +8,13 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
@@ -541,8 +543,7 @@ new SessionStartedEvent(
     ПриЗагрузке;
             ЗапуститьПереливАнимация();
 
-            PreviewMouseMove +=
-                Курсор_MouseMove;
+           
 
             PreviewMouseLeftButtonDown +=
                 Курсор_ЛевыйКлик;
@@ -999,6 +1000,7 @@ new SessionStartedEvent(
    целеваяШирина, целеваяВысота);
 
                 РамкаОкна.BorderThickness = new Thickness(2);
+                РамкаОкна.Margin = new Thickness(-1);
 
                 окноВРежимеОкна = true;
             }
@@ -1009,16 +1011,18 @@ new SessionStartedEvent(
                 АнимироватьГраницы(
                      границыПолногоЭкрана.Left, границыПолногоЭкрана.Top,
                        границыПолногоЭкрана.Width, границыПолногоЭкрана.Height,
-                         () => РамкаОкна.BorderThickness = new Thickness(0));
-
-
+                          () =>
+                          {
+                              РамкаОкна.BorderThickness = new Thickness(0);
+                              РамкаОкна.Margin = new Thickness(0);
+                          });
                 окноВРежимеОкна = false;
             }
         }
 
         private void АнимироватьГраницы(double left, double top, double width, double height, Action? завершено = null)
         {
-            var длительность = TimeSpan.FromMilliseconds(280);
+            var длительность = TimeSpan.FromMilliseconds(320);
             var сглаживание = new CubicEase { EasingMode = EasingMode.EaseOut };
 
             var анимWidth = new DoubleAnimation(Width, width, длительность) { EasingFunction = сглаживание };
@@ -1034,18 +1038,13 @@ new SessionStartedEvent(
 
 
 
-
-
-
-
-
-
-
         private void ЗапуститьПереливАнимация()
         {
+            // Курсор больше не переливается здесь — теперь это делает
+            // КурсорОверлей.cs с той же длительностью 3.2с, поэтому оба
+            // переливания идут в такт.
             ЗапуститьПереливДляКисти("ЗаголовокКисть", 3.2);
             ЗапуститьПереливДляКисти("ТаймерКисть", 3.2);
-            ЗапуститьПереливДляКисти("КурсорКисть", 2.0);
 
             ЗапуститьМедленноеСвечение(
                 "ФонЛевойКолонки",
@@ -1067,11 +1066,14 @@ new SessionStartedEvent(
             if (FindName(имяКисти) is not LinearGradientBrush кисть)
                 return;
 
+            // Раньше "секунды" не использовался вообще — Duration был
+            // жёстко зашит на 1.8 независимо от аргумента. Именно поэтому
+            // переливание выглядело обрывисто, а не гладко как задумано.
             var сдвиг = new DoubleAnimation
             {
                 From = -1,
                 To = 1,
-                Duration = TimeSpan.FromSeconds(1.8),
+                Duration = TimeSpan.FromSeconds(секунды),
                 AutoReverse = true,
                 RepeatBehavior = RepeatBehavior.Forever,
                 EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
@@ -1108,76 +1110,126 @@ new SessionStartedEvent(
                 анимация);
         }
 
+
+        // =========================================================
+        // ФИКС ОКНА ПОД ПАНЕЛЬЮ ЗАДАЧ ПРИ MAXIMIZED
+        // =========================================================
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+
+            if (PresentationSource.FromVisual(this) is HwndSource источник)
+            {
+                источник.AddHook(ОбработатьСообщениеОкна);
+            }
+        }
+
+        private static IntPtr ОбработатьСообщениеОкна(
+            IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            const int WM_GETMINMAXINFO = 0x0024;
+
+            if (msg == WM_GETMINMAXINFO)
+            {
+                ОбработатьGetMinMaxInfo(hwnd, lParam);
+                handled = true;
+            }
+
+            return IntPtr.Zero;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ТочкаWin32
+        {
+            public int X;
+            public int Y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MinMaxInfo
+        {
+            public ТочкаWin32 ptReserved;
+            public ТочкаWin32 ptMaxSize;
+            public ТочкаWin32 ptMaxPosition;
+            public ТочкаWin32 ptMinTrackSize;
+            public ТочкаWin32 ptMaxTrackSize;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Rect32
+        {
+            public int Left, Top, Right, Bottom;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MonitorInfo
+        {
+            public int cbSize;
+            public Rect32 rcMonitor;
+            public Rect32 rcWork;
+            public int dwFlags;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr handle, int flags);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MonitorInfo lpmi);
+
+        private static void ОбработатьGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
+        {
+            var minMaxInfo =
+                (MinMaxInfo)Marshal.PtrToStructure(lParam, typeof(MinMaxInfo))!;
+
+            const int MONITOR_DEFAULTTONEAREST = 2;
+
+            var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+
+            if (monitor != IntPtr.Zero)
+            {
+                var monitorInfo = new MonitorInfo();
+                monitorInfo.cbSize = Marshal.SizeOf(typeof(MonitorInfo));
+
+                GetMonitorInfo(monitor, ref monitorInfo);
+
+                var rcWorkArea = monitorInfo.rcWork;
+                var rcMonitorArea = monitorInfo.rcMonitor;
+
+                minMaxInfo.ptMaxPosition.X = Math.Abs(rcWorkArea.Left - rcMonitorArea.Left);
+                minMaxInfo.ptMaxPosition.Y = Math.Abs(rcWorkArea.Top - rcMonitorArea.Top);
+                minMaxInfo.ptMaxSize.X = Math.Abs(rcWorkArea.Right - rcWorkArea.Left);
+                minMaxInfo.ptMaxSize.Y = Math.Abs(rcWorkArea.Bottom - rcWorkArea.Top);
+                minMaxInfo.ptMaxTrackSize.X = minMaxInfo.ptMaxSize.X;
+                minMaxInfo.ptMaxTrackSize.Y = minMaxInfo.ptMaxSize.Y;
+            }
+
+            Marshal.StructureToPtr(minMaxInfo, lParam, true);
+        }
+
         // =========================================================
         // КАСТОМНЫЙ КУРСОР
         // =========================================================
 
-        private void Курсор_MouseMove(
-            object sender,
-            MouseEventArgs e)
-        {
-            if (КорневаяСетка == null || КурсорКонтейнер == null)
-                return;
-
-            var позиция =
-                e.GetPosition(КорневаяСетка);
-
-            Canvas.SetLeft(КурсорКонтейнер, позиция.X);
-            Canvas.SetTop(КурсорКонтейнер, позиция.Y);
-        }
+        
 
         private void Курсор_ЛевыйКлик(
-            object sender,
-            MouseButtonEventArgs e)
+    object sender,
+    MouseButtonEventArgs e)
         {
-            ЗапуститьВспышкуКурсора(
-                Color.FromRgb(0xFF, 0x2E, 0x5C),
-                24);
+            серьёзный.CrystalUI.CustomCursor.КурсорОверлей.Вспышка(
+                Color.FromRgb(0xFF, 0x2E, 0x5C));
         }
 
         private void Курсор_ПравыйКлик(
             object sender,
             MouseButtonEventArgs e)
         {
-            ЗапуститьВспышкуКурсора(
-                Color.FromRgb(0x38, 0xBD, 0xF8),
-                24);
+            серьёзный.CrystalUI.CustomCursor.КурсорОверлей.Вспышка(
+                Color.FromRgb(0x38, 0xBD, 0xF8));
         }
 
-        private void ЗапуститьВспышкуКурсора(
-            Color цвет,
-            double радиусСвечения)
-        {
-            if (КурсорСвечение == null)
-                return;
-
-            var анимацияЦвета =
-                new ColorAnimation
-                {
-                    To = цвет,
-                    Duration = TimeSpan.FromMilliseconds(90),
-                    AutoReverse = true,
-                    RepeatBehavior = new RepeatBehavior(1)
-                };
-
-            var анимацияРадиуса =
-                new DoubleAnimation
-                {
-                    To = радиусСвечения,
-                    Duration = TimeSpan.FromMilliseconds(90),
-                    AutoReverse = true,
-                    RepeatBehavior = new RepeatBehavior(1)
-                };
-
-            КурсорСвечение.BeginAnimation(
-                DropShadowEffect.ColorProperty,
-                анимацияЦвета);
-
-            КурсорСвечение.BeginAnimation(
-                DropShadowEffect.BlurRadiusProperty,
-                анимацияРадиуса);
-        }
-
+        
 
 
 
@@ -4200,16 +4252,39 @@ new SessionStartedEvent(
                 текстоваяКолонка.Children.Add(игрок);
                 текстоваяКолонка.Children.Add(статус);
 
-                var корневаяСетка = new Grid();
+                var содержимое = new Grid();
 
-                корневаяСетка.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                корневаяСетка.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                содержимое.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                содержимое.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
                 Grid.SetColumn(статусТочка, 0);
                 Grid.SetColumn(текстоваяКолонка, 1);
 
-                корневаяСетка.Children.Add(статусТочка);
-                корневаяСетка.Children.Add(текстоваяКолонка);
+                содержимое.Children.Add(статусТочка);
+                содержимое.Children.Add(текстоваяКолонка);
+
+                // Отдельный слой подсветки поверх содержимого. Раньше при
+                // наведении анимировался цвет самого фона карточки — но
+                // ОбновитьКарточку/ОбновитьОтображениеСеанса в любой момент
+                // ПОЛНОСТЬЮ подменяют Background новой кистью (статусы
+                // "Активен"/"Пауза"/"Отключён"), из-за чего подсветка при
+                // наведении тихо переставала работать после первого же
+                // изменения статуса. Теперь это независимый Opacity-слой —
+                // не зависит от текущего фона, и Opacity-переход всегда идёт
+                // по GPU, а не пересчётом цвета на UI-потоке (отсюда и
+                // ощущение подлагивания).
+                var подсветка = new Border
+                {
+                    CornerRadius = new CornerRadius(14),
+                    Background = new SolidColorBrush(Color.FromRgb(184, 44, 92)),
+                    Opacity = 0,
+                    IsHitTestVisible = false
+                };
+
+                var корневаяСеткаКарточки = new Grid();
+
+                корневаяСеткаКарточки.Children.Add(содержимое);
+                корневаяСеткаКарточки.Children.Add(подсветка);
 
                 var фонКисть = new SolidColorBrush(Color.FromRgb(10, 10, 10));
                 var рамкаКисть = new SolidColorBrush(Color.FromRgb(36, 36, 36));
@@ -4223,24 +4298,41 @@ new SessionStartedEvent(
                     Background = фонКисть,
                     BorderBrush = рамкаКисть,
                     BorderThickness = new Thickness(1.2),
-                    Cursor = Cursors.Hand,
-                    Child = корневаяСетка
+
+                    // Было Cursors.Hand — явный Cursor на дочернем элементе
+                    // ВСЕГДА перебивает Window.Cursor="None" родителя, поэтому
+                    // именно над карточками показывался обычный системный
+                    // курсор вместо нашего.
+                    Cursor = Cursors.None,
+
+                    Child = корневаяСеткаКарточки
                 };
 
                 карточка.MouseEnter += (_, _) =>
                 {
+                    подсветка.BeginAnimation(
+                        OpacityProperty,
+                        new DoubleAnimation(1, TimeSpan.FromMilliseconds(150))
+                        {
+                            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                        });
+
                     АнимироватьЦвет(рамкаКисть, Color.FromRgb(184, 44, 92), 150);
-                    АнимироватьЦвет(фонКисть, Color.FromRgb(20, 15, 18), 150);
                 };
 
                 карточка.MouseLeave += (_, _) =>
                 {
                     bool выбрана = выбранныйКомпьютерId == пк.Id;
 
-                    АнимироватьЦвет(рамкаКисть,
-                          выбрана ? Color.FromRgb(216, 52, 104) : Color.FromRgb(36, 36, 36), 220);
+                    подсветка.BeginAnimation(
+                        OpacityProperty,
+                        new DoubleAnimation(0, TimeSpan.FromMilliseconds(220))
+                        {
+                            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                        });
 
-                    АнимироватьЦвет(фонКисть, Color.FromRgb(10, 10, 10), 220);
+                    АнимироватьЦвет(рамкаКисть,
+                        выбрана ? Color.FromRgb(216, 52, 104) : Color.FromRgb(36, 36, 36), 220);
                 };
 
                 карточка.MouseLeftButtonUp += (_, _) =>
