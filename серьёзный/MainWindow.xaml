@@ -29,15 +29,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
-                        <Border x:Name="ПолоскаФон"
-                                Background="#C22850"
-                                CornerRadius="5"
-                                Margin="2,0"/>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ПолоскаФон" Property="Background" Value="#E0396B"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
+                        <Border Background="{StaticResource CarbonFiberBrush}" CornerRadius="5" Margin="2,0"/>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -49,11 +41,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ScrollBar">
                         <Grid>
-                            <Border Background="#0A0A0A" CornerRadius="6" IsHitTestVisible="False"/>
-                            <Border Background="{StaticResource CarbonFiberBrush}"
-                                    Opacity="0.55"
-                                    CornerRadius="6"
-                                    IsHitTestVisible="False"/>
+                            <Border Background="#5C1826" CornerRadius="6"/>
                             <Track x:Name="PART_Track" IsDirectionReversed="True">
                                 <Track.DecreaseRepeatButton>
                                     <RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0" Focusable="False"/>
@@ -152,8 +140,8 @@
                 </DrawingGroup>
             </DrawingBrush.Drawing>
         </DrawingBrush>
-
-
+        
+        
 
 
         <!-- ============================================ -->
@@ -176,13 +164,6 @@
                                      Stroke="#5C1826"
                                      StrokeThickness="1.6"/>
 
-                            <Ellipse x:Name="CircleHover"
-                                     Width="40" Height="40"
-                                     Fill="#2A1A1F"
-                                     Stroke="#FF3D66"
-                                     StrokeThickness="1.6"
-                                     Opacity="0"/>
-
                             <Path Stroke="#E4A6B4"
                                   StrokeThickness="2.2"
                                   StrokeStartLineCap="Round"
@@ -196,24 +177,8 @@
 
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Trigger.EnterActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetName="CircleHover"
-                                                             Storyboard.TargetProperty="Opacity"
-                                                             To="1" Duration="0:0:0.15"/>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </Trigger.EnterActions>
-                                <Trigger.ExitActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetName="CircleHover"
-                                                             Storyboard.TargetProperty="Opacity"
-                                                             To="0" Duration="0:0:0.2"/>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </Trigger.ExitActions>
+                                <Setter TargetName="Circle" Property="Stroke" Value="#FF3D66"/>
+                                <Setter TargetName="Circle" Property="Fill" Value="#2A1A1F"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -242,13 +207,6 @@
                                      Stroke="#5C1826"
                                      StrokeThickness="1.6"/>
 
-                            <Ellipse x:Name="CircleHover"
-                                     Width="40" Height="40"
-                                     Fill="#2A1A1F"
-                                     Stroke="#FF3D66"
-                                     StrokeThickness="1.6"
-                                     Opacity="0"/>
-
                             <Rectangle Width="16" Height="16"
                                        RadiusX="2" RadiusY="2"
                                        Fill="Transparent"
@@ -259,24 +217,8 @@
 
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Trigger.EnterActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetName="CircleHover"
-                                                             Storyboard.TargetProperty="Opacity"
-                                                             To="1" Duration="0:0:0.15"/>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </Trigger.EnterActions>
-                                <Trigger.ExitActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetName="CircleHover"
-                                                             Storyboard.TargetProperty="Opacity"
-                                                             To="0" Duration="0:0:0.2"/>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </Trigger.ExitActions>
+                                <Setter TargetName="Circle" Property="Stroke" Value="#FF3D66"/>
+                                <Setter TargetName="Circle" Property="Fill" Value="#2A1A1F"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -285,10 +227,8 @@
         </Style>
 
         <!-- ============================================ -->
-        <!-- ОБЫЧНЫЕ КНОПКИ ОКНА: плавная подсветка через Opacity -->
-        <!-- (ColorAnimation по кисти на слабых ПК/при многих   -->
-        <!-- кнопках заметно подлагивает — Opacity-кроссфейд    -->
-        <!-- идёт по композитному потоку и всегда плавный)      -->
+        <!-- ОБЫЧНЫЕ КНОПКИ ОКНА: без MinWidth=140 -->
+        <!-- (это и ломало левую колонку и WrapPanel'ы)   -->
         <!-- ============================================ -->
 
         <Style TargetType="Button">
@@ -301,55 +241,41 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Grid x:Name="Bg" SnapsToDevicePixels="True">
+                        <Border x:Name="Bg"
+                        CornerRadius="14"
+                        SnapsToDevicePixels="True"
+                        BorderThickness="{TemplateBinding BorderThickness}">
 
-                            <Border x:Name="БазовыйФон"
-                                    CornerRadius="14"
-                                    Background="#121013"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"/>
+                            <Border.Background>
+                                <SolidColorBrush x:Name="ФонКисть" Color="#121013"/>
+                            </Border.Background>
 
-                            <Border x:Name="СветящийсяФон"
-                                    CornerRadius="14"
-                                    Background="#1C1620"
-                                    BorderBrush="#B4224A"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    Opacity="0"
-                                    IsHitTestVisible="False"/>
+                            <Border.BorderBrush>
+                                <SolidColorBrush x:Name="РамкаКисть" Color="#242424"/>
+                            </Border.BorderBrush>
 
                             <ContentPresenter HorizontalAlignment="Center"
                                       VerticalAlignment="Center"
-                                      Margin="{TemplateBinding Padding}"
-                                      RecognizesAccessKey="True"/>
-
-                        </Grid>
+                                      Margin="{TemplateBinding Padding}"/>
+                        </Border>
 
                         <ControlTemplate.Triggers>
 
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Trigger.EnterActions>
-                                    <BeginStoryboard>
+                                    <BeginStoryboard x:Name="СветитьсяBegin">
                                         <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetName="СветящийсяФон"
-                                                             Storyboard.TargetProperty="Opacity"
-                                                             To="1" Duration="0:0:0.18">
-                                                <DoubleAnimation.EasingFunction>
-                                                    <QuadraticEase EasingMode="EaseOut"/>
-                                                </DoubleAnimation.EasingFunction>
-                                            </DoubleAnimation>
+                                            <ColorAnimation Storyboard.TargetName="ФонКисть" Storyboard.TargetProperty="Color" To="#1C1620" Duration="0:0:0.16"/>
+                                            <ColorAnimation Storyboard.TargetName="РамкаКисть" Storyboard.TargetProperty="Color" To="#B4224A" Duration="0:0:0.16"/>
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.EnterActions>
                                 <Trigger.ExitActions>
+                                    <StopStoryboard BeginStoryboardName="СветитьсяBegin"/>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetName="СветящийсяФон"
-                                                             Storyboard.TargetProperty="Opacity"
-                                                             To="0" Duration="0:0:0.24">
-                                                <DoubleAnimation.EasingFunction>
-                                                    <QuadraticEase EasingMode="EaseOut"/>
-                                                </DoubleAnimation.EasingFunction>
-                                            </DoubleAnimation>
+                                            <ColorAnimation Storyboard.TargetName="ФонКисть" Storyboard.TargetProperty="Color" To="#121013" Duration="0:0:0.22"/>
+                                            <ColorAnimation Storyboard.TargetName="РамкаКисть" Storyboard.TargetProperty="Color" To="#242424" Duration="0:0:0.22"/>
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.ExitActions>
@@ -359,18 +285,14 @@
                                 <Trigger.EnterActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetName="БазовыйФон"
-                                                             Storyboard.TargetProperty="Opacity"
-                                                             To="0.65" Duration="0:0:0.05"/>
+                                            <ColorAnimation Storyboard.TargetName="ФонКисть" Storyboard.TargetProperty="Color" To="#050405" Duration="0:0:0.05"/>
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.EnterActions>
                                 <Trigger.ExitActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetName="БазовыйФон"
-                                                             Storyboard.TargetProperty="Opacity"
-                                                             To="1" Duration="0:0:0.12"/>
+                                            <ColorAnimation Storyboard.TargetName="ФонКисть" Storyboard.TargetProperty="Color" To="#1C1620" Duration="0:0:0.12"/>
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.ExitActions>
@@ -405,18 +327,16 @@
 
     <Border x:Name="РамкаОкна"
             BorderBrush="{StaticResource CarbonFiberBrush}"
-            BorderThickness="0">
+            BorderThickness="0"
+            RenderTransformOrigin="1,1">
 
         <Border.RenderTransform>
-            <TransformGroup>
-                <ScaleTransform x:Name="МасштабОкна" ScaleX="1" ScaleY="1"/>
-                <TranslateTransform x:Name="СдвигОкна" X="0" Y="0"/>
-            </TransformGroup>
+            <ScaleTransform x:Name="МасштабОкна" ScaleX="1" ScaleY="1"/>
         </Border.RenderTransform>
 
-        <Grid x:Name="КорневаяСетка">
+        <Grid>
 
-            <Border Background="{StaticResource CarbonFiberBrush}" Opacity="0.09" IsHitTestVisible="False"/>
+            <Border Background="{StaticResource CarbonFiberBrush}" Opacity="0.035" IsHitTestVisible="False"/>
 
             <Grid>
 
@@ -424,57 +344,314 @@
                     <RowDefinition Height="76"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-
+               
 
                 <!-- ============================================ -->
-                <!-- ШАПКА -->
-                <!-- ============================================ -->
+        <!-- ШАПКА -->
+        <!-- ============================================ -->
 
-                <Border Grid.Row="0"
+        <Border Grid.Row="0"
                 Background="{StaticResource CarbonFiberBrush}"
                 BorderBrush="#2A151D"
                 BorderThickness="0,0,0,1"
                 MouseLeftButtonDown="Шапка_MouseDown">
 
-                    <Grid>
+            <Grid>
 
-                        <Rectangle IsHitTestVisible="False">
-                            <Rectangle.Fill>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                    <GradientStop Color="#80000000" Offset="0"/>
-                                    <GradientStop Color="#00000000" Offset="0.5"/>
-                                    <GradientStop Color="#40000000" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Rectangle.Fill>
-                        </Rectangle>
-                        <Rectangle IsHitTestVisible="False">
-                            <Rectangle.Fill>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                    <GradientStop Color="#60000000" Offset="0"/>
-                                    <GradientStop Color="#00000000" Offset="0.15"/>
+                <Rectangle IsHitTestVisible="False">
+                    <Rectangle.Fill>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#80000000" Offset="0"/>
+                            <GradientStop Color="#00000000" Offset="0.5"/>
+                            <GradientStop Color="#40000000" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+                <Rectangle IsHitTestVisible="False">
+                    <Rectangle.Fill>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="#60000000" Offset="0"/>
+                            <GradientStop Color="#00000000" Offset="0.15"/>
 
-                                    <GradientStop Color="#00000000" Offset="0.85"/>
-                                    <GradientStop Color="#60000000" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Rectangle.Fill>
-                        </Rectangle>
+                            <GradientStop Color="#00000000" Offset="0.85"/>
+                            <GradientStop Color="#60000000" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+                
+                <Grid Margin="24,0,18,0">
 
-                        <Grid Margin="24,0,18,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-
-                            <TextBlock Grid.Column="0"
+                <TextBlock Grid.Column="0"
                            Text="СЕРЬЁЗНЫЙ"
                            FontSize="22"
                            FontWeight="Bold"
                            FontFamily="Consolas"
                            VerticalAlignment="Center">
+                    <TextBlock.Foreground>
+                        <LinearGradientBrush x:Name="ЗаголовокКисть" StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="#FF2E5C" Offset="0"/>
+                            <GradientStop Color="#8A0F30" Offset="0.5"/>
+                            <GradientStop Color="#FF2E5C" Offset="1"/>
+                        </LinearGradientBrush>
+                    </TextBlock.Foreground>
+                </TextBlock>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+
+                        <StackPanel Margin="18,0" HorizontalAlignment="Center">
+                            <TextBlock Text="ВРЕМЯ (МСК)" FontSize="10" Foreground="#7A2B3D" HorizontalAlignment="Center"/>
+                            <TextBlock x:Name="ТекстЧасыАдмин" Text="00:00:00" FontSize="18" FontWeight="Bold" Foreground="#E9C9D3" HorizontalAlignment="Center"/>
+                            <TextBlock x:Name="ТекстДатаАдмин" Text="" FontSize="10" Foreground="#7A2B3D" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                        </StackPanel>
+
+                        <Border Width="1" Height="34" Background="#3A222B" VerticalAlignment="Center"/>
+
+                    <StackPanel Margin="18,0" HorizontalAlignment="Center">
+                        <TextBlock Text="ПОДКЛЮЧЕНО ПК" FontSize="10" Foreground="#7A2B3D" HorizontalAlignment="Center"/>
+                        <TextBlock x:Name="ТекстПК" Text="0" FontSize="18" FontWeight="Bold" Foreground="#E9C9D3" HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <Border Width="1" Height="34" Background="#3A222B" VerticalAlignment="Center"/>
+
+                    <StackPanel Margin="18,0" HorizontalAlignment="Center">
+                        <TextBlock Text="АКТИВНЫХ СЕАНСОВ" FontSize="10" Foreground="#7A2B3D" HorizontalAlignment="Center"/>
+                        <TextBlock x:Name="ТекстАктивныеСеансы" Text="0" FontSize="18" FontWeight="Bold" Foreground="#E9C9D3" HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <Border Width="1" Height="34" Background="#3A222B" VerticalAlignment="Center"/>
+
+                    <StackPanel Margin="18,0" HorizontalAlignment="Center">
+                        <TextBlock Text="ЗАРАБОТАНО СЕГОДНЯ" FontSize="10" Foreground="#7A2B3D" HorizontalAlignment="Center"/>
+                        <TextBlock x:Name="ТекстВыручкаСегодня" Text="0 ₽" FontSize="18" FontWeight="Bold" Foreground="#FF3D66" HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Style="{StaticResource RestoreGlyphButton}" Margin="0,0,-4,0" Click="РазвернутьОкно_Click"/>
+                    <Button Style="{StaticResource CloseGlyphButton}" Margin="0,0,-6,0" Click="Свернуть_Click"/>
+                </StackPanel>
+
+            </Grid>
+
+            </Grid>
+
+        </Border>
+
+        <!-- ============================================ -->
+        <!-- ОСНОВНАЯ ОБЛАСТЬ -->
+        <!-- ============================================ -->
+        <Grid Grid.Row="1">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="320"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ============================================ -->
+            <!-- ЛЕВАЯ ИКОНОЧНАЯ ПАНЕЛЬ -->
+            <!-- ============================================ -->
+            <Border Grid.Column="0"
+                    BorderBrush="#2A151D"
+                    BorderThickness="0,0,1,0">
+
+                <Border.Background>
+                    <SolidColorBrush x:Name="ФонЛевойКолонки" Color="#0A0A0A"/>
+                </Border.Background>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                               HorizontalScrollBarVisibility="Disabled"
+                            Style="{StaticResource CrystalScrollViewer}"  
+                              crystal:SmoothScrollBehavior.Enabled="True">   
+                              
+
+                    <StackPanel Margin="0,14,0,14" HorizontalAlignment="Center">
+
+                        <Grid Width="64" Height="64" Margin="0,0,0,10">
+                            <Button x:Name="КнопкаЧата"
+                                    Width="64" Height="64"
+                                    ToolTip="Чат с игроком"
+                                    Click="Чат_Click">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="💬" FontSize="20" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Чат" FontSize="10" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Border x:Name="ChatBadge"
+                                    Width="18" Height="18"
+                                    Background="#DC2626"
+                                    CornerRadius="9"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Margin="0,-4,-4,0"
+                                    Visibility="Collapsed"
+                                    IsHitTestVisible="False">
+                                <TextBlock x:Name="ChatCount"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontSize="10"
+                                           Foreground="White"/>
+                            </Border>
+                        </Grid>
+
+                        <Button Width="64" Height="64" Margin="0,0,0,10"
+                                ToolTip="Имя администратора в чате"
+                                Click="ИмяАдминистратора_Click">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="✏" FontSize="20" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Имя" FontSize="10" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Width="64" Height="64" Margin="0,0,0,10"
+                                ToolTip="Аккаунты игроков"
+                                Click="Аккаунты_Click">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="👤" FontSize="20" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Аккаунты" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0" TextWrapping="Wrap" TextAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Width="64" Height="64" Margin="0,0,0,10"
+                                ToolTip="История сеансов"
+                                Click="История_Click">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="🕓" FontSize="20" HorizontalAlignment="Center"/>
+                                <TextBlock Text="История" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Width="64" Height="64" Margin="0,0,0,10"
+                                ToolTip="Статистика клуба"
+                                Click="Статистика_Click">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="📊" FontSize="20" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Статистика" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0" TextWrapping="Wrap" TextAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Grid Width="64" Height="64" Margin="0,0,0,10">
+                            <Button x:Name="КнопкаМагазин"
+                                    Width="64" Height="64"
+                                    ToolTip="Магазин"
+                                    Click="Магазин_Click">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="🛒" FontSize="20" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Магазин" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Border x:Name="BadgeЗаказов"
+                                    Width="18" Height="18"
+                                    Background="#DC2626"
+                                    CornerRadius="9"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Margin="0,-4,-4,0"
+                                    Visibility="Collapsed"
+                                    IsHitTestVisible="False">
+                                <TextBlock x:Name="BadgeText"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontSize="10"
+                                           Foreground="White"/>
+                            </Border>
+                        </Grid>
+
+                        <Button x:Name="КнопкаИгры"
+                                Width="64" Height="64" Margin="0,0,0,10"
+                                ToolTip="Игры на ПК"
+                                Click="КнопкаИгры_Click">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="🎮" FontSize="20" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Игры" FontSize="10" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Width="64" Height="64" Margin="0,0,0,10"
+                                ToolTip="Настройка списка ПК"
+                                Click="НастройкаПК_Click">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="⚙" FontSize="20" HorizontalAlignment="Center"/>
+                                <TextBlock Text="ПК" FontSize="10" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Border Height="1" Background="#2A151D" Margin="6,6,6,10"/>
+
+                        <Button Width="64" Height="64" Margin="0,0,0,10"
+                                ToolTip="Резервная копия базы"
+                                Click="РезервнаяКопия_Click">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="💾" FontSize="20" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Бэкап" FontSize="10" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Width="64" Height="64" Margin="0,0,0,10"
+                                ToolTip="Сжечь время всем аккаунтам"
+                                Foreground="{DynamicResource CrystalDangerBrush}"
+                                Click="СжечьВремя_Click">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="🔥" FontSize="20" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Сжечь" FontSize="10" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                    </StackPanel>
+
+                </ScrollViewer>
+
+            </Border>
+
+            <!-- ============================================ -->
+            <!-- ЦЕНТР: ВЫБРАННЫЙ ПК -->
+            <!-- ============================================ -->
+            <ScrollViewer Grid.Column="1"
+                            VerticalScrollBarVisibility="Auto"
+                             Margin="18"
+                              Style="{StaticResource CrystalScrollViewer}"
+                             crystal:SmoothScrollBehavior.Enabled="True">
+                          
+                          
+                <StackPanel>
+
+                    <ComboBox x:Name="ВыборПК" Visibility="Collapsed" SelectionChanged="ВыборПК_SelectionChanged"/>
+
+                    <Border Style="{StaticResource CrystalCard}">
+
+                        <StackPanel>
+
+                            <TextBlock x:Name="НазваниеПК"
+                                       Text="Выберите ПК справа"
+                                       Foreground="{DynamicResource CrystalTextBrush}"
+                                       FontSize="28"
+                                       FontWeight="Bold"/>
+
+                            <TextBlock x:Name="ИнформацияПК"
+                                       Foreground="{DynamicResource CrystalTextMutedBrush}"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,0"/>
+
+                            <TextBlock x:Name="ТекстТаймера"
+                                       Text="00:00:00"
+                                       FontSize="56"
+                                       FontWeight="Bold"
+                                       Margin="0,14,0,0">
                                 <TextBlock.Foreground>
-                                    <LinearGradientBrush x:Name="ЗаголовокКисть" StartPoint="0,0" EndPoint="1,0">
+                                    <LinearGradientBrush x:Name="ТаймерКисть" StartPoint="0,0" EndPoint="1,0">
                                         <GradientStop Color="#FF2E5C" Offset="0"/>
                                         <GradientStop Color="#8A0F30" Offset="0.5"/>
                                         <GradientStop Color="#FF2E5C" Offset="1"/>
@@ -482,506 +659,243 @@
                                 </TextBlock.Foreground>
                             </TextBlock>
 
-                            <StackPanel Grid.Column="1"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center">
-
-                                <StackPanel Margin="18,0" HorizontalAlignment="Center">
-                                    <TextBlock Text="ВРЕМЯ (МСК)" FontSize="10" Foreground="#7A2B3D" HorizontalAlignment="Center"/>
-                                    <TextBlock x:Name="ТекстЧасыАдмин" Text="00:00:00" FontSize="18" FontWeight="Bold" Foreground="#E9C9D3" HorizontalAlignment="Center"/>
-                                    <TextBlock x:Name="ТекстДатаАдмин" Text="" FontSize="10" Foreground="#7A2B3D" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                </StackPanel>
-
-                                <Border Width="1" Height="34" Background="#3A222B" VerticalAlignment="Center"/>
-
-                                <StackPanel Margin="18,0" HorizontalAlignment="Center">
-                                    <TextBlock Text="ПОДКЛЮЧЕНО ПК" FontSize="10" Foreground="#7A2B3D" HorizontalAlignment="Center"/>
-                                    <TextBlock x:Name="ТекстПК" Text="0" FontSize="18" FontWeight="Bold" Foreground="#E9C9D3" HorizontalAlignment="Center"/>
-                                </StackPanel>
-
-                                <Border Width="1" Height="34" Background="#3A222B" VerticalAlignment="Center"/>
-
-                                <StackPanel Margin="18,0" HorizontalAlignment="Center">
-                                    <TextBlock Text="АКТИВНЫХ СЕАНСОВ" FontSize="10" Foreground="#7A2B3D" HorizontalAlignment="Center"/>
-                                    <TextBlock x:Name="ТекстАктивныеСеансы" Text="0" FontSize="18" FontWeight="Bold" Foreground="#E9C9D3" HorizontalAlignment="Center"/>
-                                </StackPanel>
-
-                                <Border Width="1" Height="34" Background="#3A222B" VerticalAlignment="Center"/>
-
-                                <StackPanel Margin="18,0" HorizontalAlignment="Center">
-                                    <TextBlock Text="ЗАРАБОТАНО СЕГОДНЯ" FontSize="10" Foreground="#7A2B3D" HorizontalAlignment="Center"/>
-                                    <TextBlock x:Name="ТекстВыручкаСегодня" Text="0 ₽" FontSize="18" FontWeight="Bold" Foreground="#FF3D66" HorizontalAlignment="Center"/>
-                                </StackPanel>
-
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="2" Orientation="Horizontal">
-                                <Button Style="{StaticResource RestoreGlyphButton}" Margin="0,0,-4,0" Click="РазвернутьОкно_Click"/>
-                                <Button Style="{StaticResource CloseGlyphButton}" Margin="0,0,-6,0" Click="Свернуть_Click"/>
-                            </StackPanel>
-
-                        </Grid>
-
-                    </Grid>
-
-                </Border>
-
-                <!-- ============================================ -->
-                <!-- ОСНОВНАЯ ОБЛАСТЬ -->
-                <!-- ============================================ -->
-                <Grid Grid.Row="1">
-
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="320"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- ============================================ -->
-                    <!-- ЛЕВАЯ ИКОНОЧНАЯ ПАНЕЛЬ -->
-                    <!-- ============================================ -->
-                    <Border Grid.Column="0"
-                    BorderBrush="#2A151D"
-                    BorderThickness="0,0,1,0">
-
-                        <Border.Background>
-                            <SolidColorBrush x:Name="ФонЛевойКолонки" Color="#0A0A0A"/>
-                        </Border.Background>
-
-                        <ScrollViewer VerticalScrollBarVisibility="Auto"
-                               HorizontalScrollBarVisibility="Disabled"
-                            Style="{StaticResource CrystalScrollViewer}"  
-                              crystal:SmoothScrollBehavior.Enabled="True">
-
-
-                            <StackPanel Margin="0,14,0,14" HorizontalAlignment="Center">
-
-                                <Grid Width="64" Height="64" Margin="0,0,0,10">
-                                    <Button x:Name="КнопкаЧата"
-                                    Width="64" Height="64"
-                                    ToolTip="Чат с игроком"
-                                    Click="Чат_Click">
-                                        <StackPanel HorizontalAlignment="Center">
-                                            <TextBlock Text="💬" FontSize="20" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="Чат" FontSize="10" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Button>
-
-                                    <Border x:Name="ChatBadge"
-                                    Width="18" Height="18"
-                                    Background="#DC2626"
-                                    CornerRadius="9"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Top"
-                                    Margin="0,-4,-4,0"
-                                    Visibility="Collapsed"
-                                    IsHitTestVisible="False">
-                                        <TextBlock x:Name="ChatCount"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"
-                                           FontSize="10"
-                                           Foreground="White"/>
-                                    </Border>
-                                </Grid>
-
-                                <Button Width="64" Height="64" Margin="0,0,0,10"
-                                ToolTip="Имя администратора в чате"
-                                Click="ИмяАдминистратора_Click">
-                                    <StackPanel HorizontalAlignment="Center">
-                                        <TextBlock Text="✏" FontSize="20" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="Имя" FontSize="10" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                    </StackPanel>
-                                </Button>
-
-                                <Button Width="64" Height="64" Margin="0,0,0,10"
-                                ToolTip="Аккаунты игроков"
-                                Click="Аккаунты_Click">
-                                    <StackPanel HorizontalAlignment="Center">
-                                        <TextBlock Text="👤" FontSize="20" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="Аккаунты" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0" TextWrapping="Wrap" TextAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-
-                                <Button Width="64" Height="64" Margin="0,0,0,10"
-                                ToolTip="История сеансов"
-                                Click="История_Click">
-                                    <StackPanel HorizontalAlignment="Center">
-                                        <TextBlock Text="🕓" FontSize="20" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="История" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                    </StackPanel>
-                                </Button>
-
-                                <Button Width="64" Height="64" Margin="0,0,0,10"
-                                ToolTip="Статистика клуба"
-                                Click="Статистика_Click">
-                                    <StackPanel HorizontalAlignment="Center">
-                                        <TextBlock Text="📊" FontSize="20" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="Статистика" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0" TextWrapping="Wrap" TextAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-
-                                <Grid Width="64" Height="64" Margin="0,0,0,10">
-                                    <Button x:Name="КнопкаМагазин"
-                                    Width="64" Height="64"
-                                    ToolTip="Магазин"
-                                    Click="Магазин_Click">
-                                        <StackPanel HorizontalAlignment="Center">
-                                            <TextBlock Text="🛒" FontSize="20" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="Магазин" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Button>
-
-                                    <Border x:Name="BadgeЗаказов"
-                                    Width="18" Height="18"
-                                    Background="#DC2626"
-                                    CornerRadius="9"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Top"
-                                    Margin="0,-4,-4,0"
-                                    Visibility="Collapsed"
-                                    IsHitTestVisible="False">
-                                        <TextBlock x:Name="BadgeText"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"
-                                           FontSize="10"
-                                           Foreground="White"/>
-                                    </Border>
-                                </Grid>
-
-                                <Button x:Name="КнопкаИгры"
-                                Width="64" Height="64" Margin="0,0,0,10"
-                                ToolTip="Игры на ПК"
-                                Click="КнопкаИгры_Click">
-                                    <StackPanel HorizontalAlignment="Center">
-                                        <TextBlock Text="🎮" FontSize="20" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="Игры" FontSize="10" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                    </StackPanel>
-                                </Button>
-
-                                <Button Width="64" Height="64" Margin="0,0,0,10"
-                                ToolTip="Настройка списка ПК"
-                                Click="НастройкаПК_Click">
-                                    <StackPanel HorizontalAlignment="Center">
-                                        <TextBlock Text="⚙" FontSize="20" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="ПК" FontSize="10" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                    </StackPanel>
-                                </Button>
-
-                                <Border Height="1" Background="#2A151D" Margin="6,6,6,10"/>
-
-                                <Button Width="64" Height="64" Margin="0,0,0,10"
-                                ToolTip="Резервная копия базы"
-                                Click="РезервнаяКопия_Click">
-                                    <StackPanel HorizontalAlignment="Center">
-                                        <TextBlock Text="💾" FontSize="20" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="Бэкап" FontSize="10" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                    </StackPanel>
-                                </Button>
-
-                                <Button Width="64" Height="64" Margin="0,0,0,10"
-                                ToolTip="Сжечь время всем аккаунтам"
-                                Foreground="{DynamicResource CrystalDangerBrush}"
-                                Click="СжечьВремя_Click">
-                                    <StackPanel HorizontalAlignment="Center">
-                                        <TextBlock Text="🔥" FontSize="20" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="Сжечь" FontSize="10" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                    </StackPanel>
-                                </Button>
-
-                            </StackPanel>
-
-                        </ScrollViewer>
-
-                    </Border>
-
-                    <!-- ============================================ -->
-                    <!-- ЦЕНТР: ВЫБРАННЫЙ ПК -->
-                    <!-- ============================================ -->
-                    <ScrollViewer Grid.Column="1"
-                            VerticalScrollBarVisibility="Auto"
-                             Margin="18"
-                              Style="{StaticResource CrystalScrollViewer}"
-                             crystal:SmoothScrollBehavior.Enabled="True">
-
-
-                        <StackPanel>
-
-                            <ComboBox x:Name="ВыборПК" Visibility="Collapsed" SelectionChanged="ВыборПК_SelectionChanged"/>
-
-                            <Border Style="{StaticResource CrystalCard}">
-
-                                <StackPanel>
-
-                                    <TextBlock x:Name="НазваниеПК"
-                                       Text="Выберите ПК справа"
-                                       Foreground="{DynamicResource CrystalTextBrush}"
-                                       FontSize="28"
-                                       FontWeight="Bold"/>
-
-                                    <TextBlock x:Name="ИнформацияПК"
-                                       Foreground="{DynamicResource CrystalTextMutedBrush}"
-                                       FontSize="12"
-                                       TextWrapping="Wrap"
-                                       Margin="0,4,0,0"/>
-
-                                    <TextBlock x:Name="ТекстТаймера"
-                                       Text="00:00:00"
-                                       FontSize="56"
-                                       FontWeight="Bold"
-                                       Margin="0,14,0,0">
-                                        <TextBlock.Foreground>
-                                            <LinearGradientBrush x:Name="ТаймерКисть" StartPoint="0,0" EndPoint="1,0">
-                                                <GradientStop Color="#FF2E5C" Offset="0"/>
-                                                <GradientStop Color="#8A0F30" Offset="0.5"/>
-                                                <GradientStop Color="#FF2E5C" Offset="1"/>
-                                            </LinearGradientBrush>
-                                        </TextBlock.Foreground>
-                                    </TextBlock>
-
-                                    <TextBlock x:Name="ТекстСостояния"
+                            <TextBlock x:Name="ТекстСостояния"
                                        Text="Сервер готов"
                                        Foreground="{DynamicResource CrystalTextMutedBrush}"
                                        Margin="0,4,0,0"/>
 
-                                </StackPanel>
+                        </StackPanel>
 
-                            </Border>
+                    </Border>
 
-                            <Border Style="{StaticResource CrystalCard}" Margin="0,16,0,0">
+                    <Border Style="{StaticResource CrystalCard}" Margin="0,16,0,0">
 
-                                <Grid>
+                        <Grid>
 
-                                    <Border Background="{StaticResource CarbonFiberBrush}" Opacity="0.11" IsHitTestVisible="False"/>
+                            <Border Background="{StaticResource CarbonFiberBrush}" Opacity="0.05" IsHitTestVisible="False"/>
 
-                                    <StackPanel>
+                            <StackPanel>
 
-                                        <TextBlock Text="Быстрые действия" Style="{StaticResource CrystalSectionTitle}"/>
+                                <TextBlock Text="Быстрые действия" Style="{StaticResource CrystalSectionTitle}"/>
 
-                                        <WrapPanel Margin="0,10,0,0">
+                            <WrapPanel Margin="0,10,0,0">
 
-                                            <Button Width="118" Height="80" Margin="0,0,10,10" Click="НачатьСеанс_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="▶" FontSize="22" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Начать сеанс" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
+                                <Button Width="118" Height="80" Margin="0,0,10,10" Click="НачатьСеанс_Click">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="▶" FontSize="22" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Начать сеанс" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
 
-                                            <Button Width="118" Height="80" Margin="0,0,10,10" Click="Пауза_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="⏸" FontSize="22" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Пауза сеанса" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
+                                <Button Width="118" Height="80" Margin="0,0,10,10" Click="Пауза_Click">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="⏸" FontSize="22" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Пауза сеанса" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
 
-                                            <Button Width="118" Height="80" Margin="0,0,10,10" Click="Продолжить_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="▶" FontSize="22" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Продолжить сеанс" FontSize="10" Margin="0,4,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
+                                <Button Width="118" Height="80" Margin="0,0,10,10" Click="Продолжить_Click">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="▶" FontSize="22" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Продолжить сеанс" FontSize="10" Margin="0,4,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
 
-                                            <Button Width="118" Height="80" Margin="0,0,10,10"
+                                <Button Width="118" Height="80" Margin="0,0,10,10"
                                         Foreground="{DynamicResource CrystalDangerBrush}"
                                         Click="ЗавершитьСеанс_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="⏹" FontSize="22" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Завершить сеанс" FontSize="10" Margin="0,4,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
-
-                                            <Button Width="118" Height="80" Margin="0,0,10,10" Click="ПоказатьСообщение_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="📩" FontSize="22" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Сообщение" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
-
-                                            <Button Width="118" Height="80" Margin="0,0,10,10" Click="Перезагрузить_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="🔄" FontSize="22" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Перезагрузить ПК" FontSize="10" Margin="0,4,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
-
-                                        </WrapPanel>
-
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="⏹" FontSize="22" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Завершить сеанс" FontSize="10" Margin="0,4,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
                                     </StackPanel>
-                                </Grid>
-                            </Border>
+                                </Button>
 
-                            <Border Style="{StaticResource CrystalCard}" Margin="0,16,0,0">
+                                <Button Width="118" Height="80" Margin="0,0,10,10" Click="ПоказатьСообщение_Click">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="📩" FontSize="22" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Сообщение" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
 
-                                <Grid>
+                                <Button Width="118" Height="80" Margin="0,0,10,10" Click="Перезагрузить_Click">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="🔄" FontSize="22" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Перезагрузить ПК" FontSize="10" Margin="0,4,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
 
-                                    <Border Background="{StaticResource CarbonFiberBrush}" Opacity="0.11" IsHitTestVisible="False"/>
+                            </WrapPanel>
 
-                                    <StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
 
-                                        <TextBlock Text="Дополнительно" Style="{StaticResource CrystalSectionTitle}"/>
+                    <Border Style="{StaticResource CrystalCard}" Margin="0,16,0,0">
 
-                                        <WrapPanel Margin="0,10,0,0">
+                        <StackPanel>
 
-                                            <Button Width="96" Height="72" Margin="0,0,10,10" Click="ВключитьПК_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="⚡" FontSize="18" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Включить ПК" FontSize="9" Margin="0,3,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
+                            <TextBlock Text="Дополнительно" Style="{StaticResource CrystalSectionTitle}"/>
 
-                                            <Button Width="96" Height="72" Margin="0,0,10,10"
+                            <WrapPanel Margin="0,10,0,0">
+
+                                <Button Width="96" Height="72" Margin="0,0,10,10" Click="ВключитьПК_Click">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="⚡" FontSize="18" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Включить ПК" FontSize="9" Margin="0,3,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Width="96" Height="72" Margin="0,0,10,10"
                                         Foreground="{DynamicResource CrystalDangerBrush}"
                                         Click="Выключить_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="⏻" FontSize="18" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Выключить ПК" FontSize="9" Margin="0,3,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="⏻" FontSize="18" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Выключить ПК" FontSize="9" Margin="0,3,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
 
-                                            <Button Width="96" Height="72" Margin="0,0,10,10" Click="ПолучитьСостояние_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="📡" FontSize="18" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Состояние" FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
+                                <Button Width="96" Height="72" Margin="0,0,10,10" Click="ПолучитьСостояние_Click">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="📡" FontSize="18" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Состояние" FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
 
-                                            <Button Width="96" Height="72" Margin="0,0,10,10" Click="Заблокировать_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="🔒" FontSize="18" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Блокировка" FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
+                                <Button Width="96" Height="72" Margin="0,0,10,10" Click="Заблокировать_Click">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="🔒" FontSize="18" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Блокировка" FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
 
-                                            <Button Width="96" Height="72" Margin="0,0,10,10" Click="Разблокировать_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="🔓" FontSize="18" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Разблок." FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
+                                <Button Width="96" Height="72" Margin="0,0,10,10" Click="Разблокировать_Click">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="🔓" FontSize="18" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Разблок." FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
 
-                                            <Button x:Name="КнопкаГолосовое"
+                                <Button x:Name="КнопкаГолосовое"
                                         Width="96" Height="72" Margin="0,0,10,10"
                                         Click="Голосовое_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock x:Name="ИконкаГолос" Text="🎤" FontSize="18" HorizontalAlignment="Center"/>
-                                                    <TextBlock x:Name="ТекстГолос" Text="Записать голос" FontSize="9" Margin="0,3,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
-
-                                            <Button Width="96" Height="72" Margin="0,0,10,10" Click="СменитьПароль_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="🔑" FontSize="18" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Пароль" FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
-
-                                            <Button Width="96" Height="72" Margin="0,0,10,10" Click="ИзменитьТекстЭкрана_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="📝" FontSize="18" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Текст экрана" FontSize="9" Margin="0,3,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
-
-                                            <Button Width="96" Height="72" Margin="0,0,10,10" Click="ДобавитьВремя_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="➕" FontSize="18" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Время" FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
-
-                                            <Button Width="96" Height="72" Margin="0,0,10,10" Click="УбавитьВремя_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="➖" FontSize="18" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Время" FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
-
-                                            <Button Width="96" Height="72" Margin="0,0,10,10" Click="КнопкаРазвлечения_Click">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="🎰" FontSize="18" HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Развлечения" FontSize="9" Margin="0,3,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
-
-                                        </WrapPanel>
-
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock x:Name="ИконкаГолос" Text="🎤" FontSize="18" HorizontalAlignment="Center"/>
+                                        <TextBlock x:Name="ТекстГолос" Text="Записать голос" FontSize="9" Margin="0,3,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
                                     </StackPanel>
+                                </Button>
 
-                                </Grid>
+                                <Button Width="96" Height="72" Margin="0,0,10,10" Click="СменитьПароль_Click">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="🔑" FontSize="18" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Пароль" FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
 
-                            </Border>
+                                <Button Width="96" Height="72" Margin="0,0,10,10" Click="ИзменитьТекстЭкрана_Click">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="📝" FontSize="18" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Текст экрана" FontSize="9" Margin="0,3,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Width="96" Height="72" Margin="0,0,10,10" Click="ДобавитьВремя_Click">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="➕" FontSize="18" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Время" FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Width="96" Height="72" Margin="0,0,10,10" Click="УбавитьВремя_Click">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="➖" FontSize="18" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Время" FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Width="96" Height="72" Margin="0,0,10,10" Click="КнопкаРазвлечения_Click">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="🎰" FontSize="18" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Развлечения" FontSize="9" Margin="0,3,0,0" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                            </WrapPanel>
 
                         </StackPanel>
 
-                    </ScrollViewer>
+                    </Border>
 
-                    <!-- ============================================ -->
-                    <!-- ПРАВАЯ КОЛОНКА: СПИСОК ПК -->
-                    <!-- ============================================ -->
-                    <Border Grid.Column="2"
+                </StackPanel>
+
+            </ScrollViewer>
+
+            <!-- ============================================ -->
+            <!-- ПРАВАЯ КОЛОНКА: СПИСОК ПК -->
+            <!-- ============================================ -->
+            <Border Grid.Column="2"
                     BorderBrush="#2A151D"
                     BorderThickness="1,0,0,0">
 
-                        <Border.Background>
-                            <SolidColorBrush x:Name="ФонПравойКолонки" Color="#0A0A0A"/>
-                        </Border.Background>
+                <Border.Background>
+                    <SolidColorBrush x:Name="ФонПравойКолонки" Color="#0A0A0A"/>
+                </Border.Background>
 
-                        <DockPanel Margin="14">
+                <DockPanel Margin="14">
 
-                            <TextBlock DockPanel.Dock="Top"
+                    <TextBlock DockPanel.Dock="Top"
                                Text="ВСЕ КОМПЬЮТЕРЫ"
                                Foreground="{DynamicResource CrystalTextMutedBrush}"
                                FontSize="12"
                                FontWeight="Bold"
                                Margin="4,0,0,10"/>
 
-                            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
                                     Style="{StaticResource CrystalScrollViewer}"
                                    crystal:SmoothScrollBehavior.Enabled="True">
-                                <StackPanel x:Name="СеткаПК"/>
-                            </ScrollViewer>
+                        <StackPanel x:Name="СеткаПК"/>
+                    </ScrollViewer>
 
-                        </DockPanel>
+                </DockPanel>
 
-                    </Border>
+            </Border>
 
-                </Grid>
+        </Grid>
 
-                <Canvas x:Name="КурсорСлой"
+        <Canvas x:Name="КурсорСлой"
                 Grid.RowSpan="2"
                 IsHitTestVisible="False"
                 Panel.ZIndex="1000">
 
-                    <Grid x:Name="КурсорКонтейнер">
+            <Grid x:Name="КурсорКонтейнер">
 
-                        <Path x:Name="КурсорФигура"
+                <Path x:Name="КурсорФигура"
                       Data="M 0,0 L 0,28 L 6,22 L 11,32 L 15,30 L 10,21 L 19,21 Z"
                       Stretch="None"
                       StrokeThickness="1"
                       Stroke="#3A0A18">
 
-                            <Path.Fill>
-                                <LinearGradientBrush x:Name="КурсорКисть" StartPoint="0,0" EndPoint="1,0">
-                                    <GradientStop Color="#FF2E5C" Offset="0"/>
-                                    <GradientStop Color="#8A0F30" Offset="0.5"/>
-                                    <GradientStop Color="#FF2E5C" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Path.Fill>
+                    <Path.Fill>
+                        <LinearGradientBrush x:Name="КурсорКисть" StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#FF2E5C" Offset="0"/>
+                            <GradientStop Color="#8A0F30" Offset="0.5"/>
+                            <GradientStop Color="#FF2E5C" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Path.Fill>
 
-                            <Path.Effect>
-                                <DropShadowEffect x:Name="КурсорСвечение"
+                    <Path.Effect>
+                        <DropShadowEffect x:Name="КурсорСвечение"
                                            Color="#FF2E5C"
                                            BlurRadius="14"
                                            ShadowDepth="0"
                                            Opacity="0.7"/>
-                            </Path.Effect>
+                    </Path.Effect>
 
-                        </Path>
+                </Path>
 
-                        <Path Data="M 0,0 L 0,28 L 6,22 L 11,32 L 15,30 L 10,21 L 19,21 Z"
+                <Path Data="M 0,0 L 0,28 L 6,22 L 11,32 L 15,30 L 10,21 L 19,21 Z"
                       Stretch="None"
                       Fill="{StaticResource CarbonFiberBrush}"
-                      Opacity="0.42"/>
+                      Opacity="0.16"/>
 
 
 

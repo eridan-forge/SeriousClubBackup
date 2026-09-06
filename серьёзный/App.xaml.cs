@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Threading;
 using серьёзный.Core.CoreEvents;
 using серьёзный.Core.CoreModels;
@@ -25,6 +26,25 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        серьёзный.CrystalUI.CustomCursor.КурсорОверлей.Запустить();
+
+        // Класс-обработчик срабатывает для КАЖДОГО окна в приложении —
+        // MainWindow и всех диалогов — без единой правки в их XAML.
+        // Раньше системный курсор прятался только внутри MainWindow;
+        // стоило открыть любое другое окно — там сразу показывалась
+        // обычная стрелка Windows поверх нашего затемнённого фона.
+        EventManager.RegisterClassHandler(
+               typeof(Window),
+                Window.LoadedEvent,
+                 new RoutedEventHandler((sender, _) =>
+                 {
+                     if (sender is Window окно)
+                         окно.Cursor = Cursors.None;
+                 }));
+
+        Exit += (_, _) => серьёзный.CrystalUI.CustomCursor.КурсорОверлей.Остановить();
+
 
         DispatcherUnhandledException +=
             (_, ошибка) =>
