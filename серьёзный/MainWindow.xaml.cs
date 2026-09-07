@@ -847,65 +847,10 @@ new SessionStartedEvent(
 
         private void Шапка_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ClickCount == 2)
-
-                return;
-           
-
-            try
-            {
-                СоздатьШлейф();
-                CompositionTarget.Rendering += ОбновитьШлейф;
-
-                DragMove();
-            }
-            catch
-            {
-
-            }
-            finally
-            {
-                CompositionTarget.Rendering -= ОбновитьШлейф;
-                следШлейф?.Close();
-                следШлейф = null;
-            }
+            
         }
 
-        private Window? следШлейф;
-        private double следLeft, следTop;
-        private void СоздатьШлейф()
-        {
-            следLeft = Left;
-            следTop = Top;
-
-            следШлейф = new Window
-            {
-                WindowStyle = WindowStyle.None,
-                AllowsTransparency = true,
-                Background = new SolidColorBrush(Color.FromArgb(22, 180, 34, 74)),
-                ShowInTaskbar = false,
-                ResizeMode = ResizeMode.NoResize,
-                IsHitTestVisible = false,
-                Left = Left,
-                Top = Top,
-                Width = ActualWidth,
-                Height = ActualHeight
-            };
-
-            следШлейф.Show();
-        }
-
-        private void ОбновитьШлейф(object? sender, EventArgs e)
-        {
-            if (следШлейф == null)
-                return;
-
-            следLeft += (Left - следLeft) * 0.3;
-            следTop += (Top - следTop) * 0.3;
-
-            следШлейф.Left = следLeft;
-            следШлейф.Top = следTop;
-        }
+       
 
 
         private QuickAccessBar? панельБыстрогоДоступа;
@@ -1044,7 +989,7 @@ new SessionStartedEvent(
             РамкаОкна.RenderTransformOrigin = new Point(0, 0);
             РамкаОкна.RenderTransform = group;
 
-            var длительность = TimeSpan.FromMilliseconds(180);
+            var длительность = TimeSpan.FromMilliseconds(100);
             var сглаживание = new CubicEase { EasingMode = EasingMode.EaseOut };
 
             var анимScaleX = new DoubleAnimation(scale.ScaleX, 1, длительность) { EasingFunction = сглаживание };
@@ -1076,6 +1021,7 @@ new SessionStartedEvent(
             // переливания идут в такт.
             ЗапуститьПереливДляКисти("ЗаголовокКисть", 3.2);
             ЗапуститьПереливДляКисти("ТаймерКисть", 3.2);
+            ЗапуститьПереливДляРесурса("ScrollThumbShimmerBrush", 3.2);
 
             ЗапуститьМедленноеСвечение(
                 "ФонЛевойКолонки",
@@ -1115,6 +1061,30 @@ new SessionStartedEvent(
             кисть.RelativeTransform = началоТрансформ;
 
             началоТрансформ.BeginAnimation(TranslateTransform.XProperty, сдвиг);
+        }
+
+        private void ЗапуститьПереливДляРесурса(
+    string ключРесурса,
+    double секунды)
+        {
+            if (Resources[ключРесурса] is not LinearGradientBrush кисть)
+                return;
+
+            var сдвиг = new DoubleAnimation
+            {
+                From = -1,
+                To = 1,
+                Duration = TimeSpan.FromSeconds(секунды),
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever,
+                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+            };
+
+            var трансформ = new TranslateTransform();
+
+            кисть.RelativeTransform = трансформ;
+
+            трансформ.BeginAnimation(TranslateTransform.XProperty, сдвиг);
         }
 
         private void ЗапуститьМедленноеСвечение(
@@ -4327,7 +4297,7 @@ new SessionStartedEvent(
                 {
                     
 
-                    АнимироватьЦвет(рамкаКисть, Color.FromRgb(184, 44, 92), 150);
+                    АнимироватьЦвет(рамкаКисть, Color.FromRgb(184, 44, 92), 0);
                 };
 
                 карточка.MouseLeave += (_, _) =>

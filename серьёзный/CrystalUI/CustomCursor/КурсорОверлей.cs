@@ -76,15 +76,15 @@ public sealed class КурсорОверлей : Window
         // Те же точки, что и раньше, просто сдвинутые на +12 по X и Y —
         // вокруг фигуры равномерное поле под свечение со всех сторон.
         var данныеФигуры = Geometry.Parse(
-            "M 12,12 L 12,40 L 18,34 L 23,44 L 27,42 L 22,33 L 31,33 Z");
+             "M 12,12 L 12,35.8 L 17.1,30.7 L 21.4,39.2 L 24.8,37.5 L 20.5,29.9 L 28.2,29.9 Z");
 
         // Свечение уменьшено и сделано менее заметным (было 14 / 0.7).
         свечение = new DropShadowEffect
         {
             Color = Color.FromRgb(0xFF, 0x2E, 0x5C),
-            BlurRadius = 8,
+            BlurRadius = 2,
             ShadowDepth = 0,
-            Opacity = 0.4
+            Opacity = 0.1
         };
 
         var фигура = new Path
