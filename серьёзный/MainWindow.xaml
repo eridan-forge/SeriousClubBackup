@@ -24,6 +24,56 @@
 
     <Window.Resources>
 
+        <!-- ============================================ -->
+        <!-- КАРБОН: диагональная плетёнка, чёрно-серая -->
+        <!-- Объявлена первой намеренно: CrystalScrollBar -->
+        <!-- ниже ссылается на неё через StaticResource   -->
+        <!-- внутри отложенного ControlTemplate — для     -->
+        <!-- StaticResource порядок в одном словаре важен, -->
+        <!-- ресурс обязан идти раньше первой ссылки.      -->
+        <!-- ============================================ -->
+
+        <DrawingBrush x:Key="CarbonFiberBrush"
+              TileMode="Tile"
+              Viewport="0,0,14,14"
+              ViewportUnits="Absolute"
+              Stretch="None">
+
+            <DrawingBrush.RelativeTransform>
+                <RotateTransform Angle="45" CenterX="0.5" CenterY="0.5"/>
+            </DrawingBrush.RelativeTransform>
+
+            <DrawingBrush.Drawing>
+                <DrawingGroup>
+
+                    <GeometryDrawing Brush="#0A0A0A">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="0,0,14,14"/>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <GeometryDrawing Brush="#161616">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <RectangleGeometry Rect="0,0,7,7"/>
+                                <RectangleGeometry Rect="7,7,7,7"/>
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <GeometryDrawing Brush="#202020">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <RectangleGeometry Rect="7,0,7,7"/>
+                                <RectangleGeometry Rect="0,7,7,7"/>
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                </DrawingGroup>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
+
 
 
         <Style x:Key="CrystalScrollBarThumb" TargetType="Thumb">
@@ -105,50 +155,7 @@
             <GradientStop Color="#0C0C0D" Offset="1"/>
         </LinearGradientBrush>
 
-        <!-- ============================================ -->
-        <!-- КАРБОН: диагональная плетёнка, чёрно-серая -->
-        <!-- ============================================ -->
-
-        <DrawingBrush x:Key="CarbonFiberBrush"
-              TileMode="Tile"
-              Viewport="0,0,14,14"
-              ViewportUnits="Absolute"
-              Stretch="None">
-
-            <DrawingBrush.RelativeTransform>
-                <RotateTransform Angle="45" CenterX="0.5" CenterY="0.5"/>
-            </DrawingBrush.RelativeTransform>
-
-            <DrawingBrush.Drawing>
-                <DrawingGroup>
-
-                    <GeometryDrawing Brush="#0A0A0A">
-                        <GeometryDrawing.Geometry>
-                            <RectangleGeometry Rect="0,0,14,14"/>
-                        </GeometryDrawing.Geometry>
-                    </GeometryDrawing>
-
-                    <GeometryDrawing Brush="#161616">
-                        <GeometryDrawing.Geometry>
-                            <GeometryGroup>
-                                <RectangleGeometry Rect="0,0,7,7"/>
-                                <RectangleGeometry Rect="7,7,7,7"/>
-                            </GeometryGroup>
-                        </GeometryDrawing.Geometry>
-                    </GeometryDrawing>
-
-                    <GeometryDrawing Brush="#202020">
-                        <GeometryDrawing.Geometry>
-                            <GeometryGroup>
-                                <RectangleGeometry Rect="7,0,7,7"/>
-                                <RectangleGeometry Rect="0,7,7,7"/>
-                            </GeometryGroup>
-                        </GeometryDrawing.Geometry>
-                    </GeometryDrawing>
-
-                </DrawingGroup>
-            </DrawingBrush.Drawing>
-        </DrawingBrush>
+       
         
         
 
