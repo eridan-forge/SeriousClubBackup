@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace серьёзный.CrystalUI.CustomCursor;
 
@@ -82,8 +83,7 @@ public sealed class КурсорОверлей : Window
         свечение = new DropShadowEffect
         {
             Color = Color.FromRgb(0xFF, 0x2E, 0x5C),
-            BlurRadius = 2,
-            ShadowDepth = 0,
+            BlurRadius = 1,
             Opacity = 0.1
         };
 
@@ -94,7 +94,7 @@ public sealed class КурсорОверлей : Window
             StrokeThickness = 1,
             Stroke = new SolidColorBrush(Color.FromRgb(0x3A, 0x0A, 0x18)),
             Fill = кистьГрадиент,
-            Effect = свечение
+            CacheMode = new BitmapCache()
         };
 
         var карбон = new Path
@@ -112,10 +112,37 @@ public sealed class КурсорОверлей : Window
 
         ЗапуститьПереливГрадиента();
 
-        Loaded += (_, _) => ОтключитьВзаимодействие();
+        таймерСлежения.Tick += СледитьЗаКурсором;
 
-        CompositionTarget.Rendering += СледитьЗаКурсором;
+        Loaded += (_, _) =>
+        {
+            ОтключитьВзаимодействие();
+            таймерСлежения.Start();
+        };
+
     }
+
+    private void СледитьЗаКурсором(object? sender, EventArgs e)
+    {
+        if (!GetCursorPos(out var точка))
+            return;
+
+        var источник = PresentationSource.FromVisual(this);
+
+        if (источник?.CompositionTarget == null)
+            return;
+
+        var точкаDip =
+            источник.CompositionTarget.TransformFromDevice.Transform(
+                new Point(точка.X, точка.Y));
+
+        Left = точкаDip.X - Отступ;
+        Top = точкаDip.Y - Отступ;
+    }
+
+
+
+
 
     private static DrawingBrush СоздатьКарбон()
     {
@@ -154,6 +181,9 @@ public sealed class КурсорОверлей : Window
         };
     }
 
+
+
+
     private void ЗапуститьПереливГрадиента()
     {
         var сдвиг = new DoubleAnimation
@@ -169,25 +199,14 @@ public sealed class КурсорОверлей : Window
         сдвигГрадиента.BeginAnimation(TranslateTransform.XProperty, сдвиг);
     }
 
-    private void СледитьЗаКурсором(object? sender, EventArgs e)
+    // Было: CompositionTarget.Rendering += СледитьЗаКурсором;
+    // Стало: throttled DispatcherTimer вместо per-frame рендер-колбэка.
+
+    private readonly DispatcherTimer таймерСлежения = new(DispatcherPriority.Input)
     {
-        if (!GetCursorPos(out var точка))
-            return;
-
-        var источник = PresentationSource.FromVisual(this);
-
-        if (источник?.CompositionTarget == null)
-            return;
-
-        var точкаDip =
-            источник.CompositionTarget.TransformFromDevice.Transform(
-                new Point(точка.X, точка.Y));
-
-        // Компенсируем Отступ, заложенный в геометрию фигуры, чтобы
-        // кончик стрелки остался ровно там, где настоящий курсор Windows.
-        Left = точкаDip.X - Отступ;
-        Top = точкаDip.Y - Отступ;
-    }
+        Interval = TimeSpan.FromMilliseconds(16) // ~60 fps глазу достаточно,
+                                                 // но БЕЗ привязки к рендер-циклу
+    };
 
     private void ОтключитьВзаимодействие()
     {
@@ -238,7 +257,7 @@ public sealed class КурсорОверлей : Window
         if (экземпляр == null)
             return;
 
-        CompositionTarget.Rendering -= экземпляр.СледитьЗаКурсором;
+        экземпляр.таймерСлежения.Stop();
         экземпляр.Close();
         экземпляр = null;
     }
