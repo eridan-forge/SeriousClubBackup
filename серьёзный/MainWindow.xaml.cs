@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -855,8 +856,26 @@ new SessionStartedEvent(
 
         private QuickAccessBar? панельБыстрогоДоступа;
 
+        private readonly TranslateTransform переливОбщий = new();
+
+        private bool анимацияОкнаИдёт;
+
         private void Свернуть_Click(object sender, RoutedEventArgs e)
         {
+
+            if (анимацияОкнаИдёт)
+                return;
+
+            анимацияОкнаИдёт = true;
+            РамкаОкна.IsHitTestVisible = false;
+
+            // Защита от гонки с РазвернутьОкно_Click: если та анимация
+            // подменяла RenderTransform на временный TransformGroup и не
+            // успела вернуть обратно МасштабОкна — эта строка гарантирует,
+            // что мы анимируем именно то преобразование, которое реально
+            // сейчас привязано к рамке окна.
+            РамкаОкна.RenderTransform = МасштабОкна;
+
 
             var сжатие = new DoubleAnimation(1, 0.02, TimeSpan.FromMilliseconds(150))
             {
@@ -870,6 +889,10 @@ new SessionStartedEvent(
                 МасштабОкна.ScaleX = 1;
                 МасштабОкна.ScaleY = 1;
                 РамкаОкна.Opacity = 1;
+                РамкаОкна.IsHitTestVisible = true;
+                анимацияОкнаИдёт = false;
+
+                ОстановитьФоновыеАнимации();
 
                 ПоказатьПанельБыстрогоДоступа();
             };
@@ -898,6 +921,8 @@ new SessionStartedEvent(
             Show();
             Activate();
 
+            ЗапуститьПереливАнимация();
+
             var рост = new DoubleAnimation(0.02, 1, TimeSpan.FromMilliseconds(150))
             {
                 EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
@@ -916,6 +941,10 @@ new SessionStartedEvent(
 
         private void РазвернутьОкно_Click(object sender, RoutedEventArgs e)
         {
+
+            if (анимацияОкнаИдёт)
+                return;
+
             if (!окноВРежимеОкна)
             {
 
@@ -969,6 +998,9 @@ new SessionStartedEvent(
     double left, double top, double width, double height,
     Action? завершено = null)
         {
+            анимацияОкнаИдёт = true;
+            РамкаОкна.IsHitTestVisible = false;
+
             var стартLeft = Left;
             var стартTop = Top;
             var стартWidth = Width;
@@ -989,7 +1021,10 @@ new SessionStartedEvent(
             РамкаОкна.RenderTransformOrigin = new Point(0, 0);
             РамкаОкна.RenderTransform = group;
 
-            var длительность = TimeSpan.FromMilliseconds(100);
+            // Было 100 мс — на перепаде "весь экран / половина" это
+            // читалось как рывок. 190 мс с тем же EaseOut уже видно
+            // именно как плавное изменение размера.
+            var длительность = TimeSpan.FromMilliseconds(190);
             var сглаживание = new CubicEase { EasingMode = EasingMode.EaseOut };
 
             var анимScaleX = new DoubleAnimation(scale.ScaleX, 1, длительность) { EasingFunction = сглаживание };
@@ -1002,6 +1037,9 @@ new SessionStartedEvent(
                 // Возвращаем то состояние, которое ожидает Свернуть_Click.
                 РамкаОкна.RenderTransform = МасштабОкна;
                 РамкаОкна.RenderTransformOrigin = new Point(1, 1);
+
+                РамкаОкна.IsHitTestVisible = true;
+                анимацияОкнаИдёт = false;
 
                 завершено?.Invoke();
             };
@@ -1016,107 +1054,93 @@ new SessionStartedEvent(
 
         private void ЗапуститьПереливАнимация()
         {
-            // Курсор больше не переливается здесь — теперь это делает
-            // КурсорОверлей.cs с той же длительностью 3.2с, поэтому оба
-            // переливания идут в такт.
-            ЗапуститьПереливДляКисти("ЗаголовокКисть", 3.2);
-            ЗапуститьПереливДляКисти("ТаймерКисть", 3.2);
-            ЗапуститьПереливДляРесурса("ScrollThumbShimmerBrush", 3.2);
+            // РАНЬШЕ: 3 независимых TranslateTransform + 3 отдельные
+            // DoubleAnimation для трёх кистей (ЗаголовокКисть, ТаймерКисть,
+            // ScrollThumbShimmerBrush), хотя все три двигаются АБСОЛЮТНО
+            // одинаково (тот же From/To/Duration/Easing) — то есть WPF
+            // держал 3 работающих клока анимации вместо одного.
+            // ТЕПЕРЬ: один общий TranslateTransform, одна анимация, все
+            // три кисти просто ссылаются на него через RelativeTransform.
+            // Визуально — то же самое (даже точнее синхронно, чем раньше).
 
-            ЗапуститьМедленноеСвечение(
-                "ФонЛевойКолонки",
-                Color.FromRgb(0x0A, 0x0A, 0x0A),
-                Color.FromRgb(0x17, 0x0B, 0x10),
-                3.2);
-
-            ЗапуститьМедленноеСвечение(
-                "ФонПравойКолонки",
-                Color.FromRgb(0x0A, 0x0A, 0x0A),
-                Color.FromRgb(0x17, 0x0B, 0x10),
-                3.2);
-        }
-
-        private void ЗапуститьПереливДляКисти(
-            string имяКисти,
-            double секунды)
-        {
-            if (FindName(имяКисти) is not LinearGradientBrush кисть)
-                return;
-
-            // Раньше "секунды" не использовался вообще — Duration был
-            // жёстко зашит на 1.8 независимо от аргумента. Именно поэтому
-            // переливание выглядело обрывисто, а не гладко как задумано.
-            var сдвиг = new DoubleAnimation
             {
-                From = -1,
-                To = 1,
-                Duration = TimeSpan.FromSeconds(секунды),
-                AutoReverse = true,
-                RepeatBehavior = RepeatBehavior.Forever,
-                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
-            };
-
-            var началоТрансформ = new TranslateTransform();
-
-            кисть.RelativeTransform = началоТрансформ;
-
-            началоТрансформ.BeginAnimation(TranslateTransform.XProperty, сдвиг);
+                From = -1;
+                To = 1;
+                Duration = TimeSpan.FromSeconds(3.2);
+                AutoReverse = true;
+                RepeatBehavior = RepeatBehavior.Forever;
+                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut };
+           }
+            
+            переливОбщий.BeginAnimation(TranslateTransform.XProperty, сдвиг);
+            
+            ПривязатьПереливККисти("ЗаголовокКисть");
+            ПривязатьПереливККисти("ТаймерКисть");
+            ПривязатьПереливКРесурсу("ScrollThumbShimmerBrush");
+            
+                       // Аналогично: обе колонки теперь светятся ОДНОЙ общей кистью
+                       // (см. правку в MainWindow.xaml — Background колонок ссылается
+                       // на общий ресурс "ФонКолонкиБраш" вместо двух x:Name-кистей),
+                       // вместо двух независимых SolidColorBrush с двумя ColorAnimation.
+            ЗапуститьМедленноеСвечениеРесурс(
+            "ФонКолонкиБраш",
+            Color.FromRgb(0x0A, 0x0A, 0x0A),
+            Color.FromRgb(0x17, 0x0B, 0x10),
+            3.2);
         }
 
-        private void ЗапуститьПереливДляРесурса(
-    string ключРесурса,
-    double секунды)
-        {
-            if (Resources[ключРесурса] is not LinearGradientBrush кисть)
-                return;
+        private void ПривязатьПереливККисти(string имяКисти)
+       {
+          if (FindName(имяКисти) is LinearGradientBrush кисть)
+               кисть.RelativeTransform = переливОбщий;
+       }
 
-            var сдвиг = new DoubleAnimation
-            {
-                From = -1,
-                To = 1,
-                Duration = TimeSpan.FromSeconds(секунды),
-                AutoReverse = true,
-                RepeatBehavior = RepeatBehavior.Forever,
-                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
-            };
+       private void ПривязатьПереливКРесурсу(string ключРесурса)
+       {
+           if (Resources[ключРесурса] is LinearGradientBrush кисть)
+               кисть.RelativeTransform = переливОбщий;
+       }
 
-            var трансформ = new TranslateTransform();
+       private void ЗапуститьМедленноеСвечениеРесурс(
+           string ключРесурса,
+           Color обычныйЦвет,
+           Color акцентныйЦвет,
+           double секунды)
+       {
+               if (Resources[ключРесурса] is not SolidColorBrush кисть)
+                       return;
+    
+    var анимация = new ColorAnimation
+               {
+        From = обычныйЦвет,
+To = акцентныйЦвет,
+Duration = TimeSpan.FromSeconds(секунды),
+AutoReverse = true,
+RepeatBehavior = RepeatBehavior.Forever
+           }
+    ;
+    
+    кисть.BeginAnimation(SolidColorBrush.ColorProperty, анимация);
+           }
 
-            кисть.RelativeTransform = трансформ;
-
-            трансформ.BeginAnimation(TranslateTransform.XProperty, сдвиг);
-        }
-
-        private void ЗапуститьМедленноеСвечение(
-            string имяКисти,
-            Color обычныйЦвет,
-            Color акцентныйЦвет,
-            double секунды)
-        {
-            if (FindName(имяКисти) is not SolidColorBrush кисть)
-                return;
-
-            var анимация =
-                new ColorAnimation
-                {
-                    From = обычныйЦвет,
-                    To = акцентныйЦвет,
-                    Duration = TimeSpan.FromSeconds(секунды),
-                    AutoReverse = true,
-                    RepeatBehavior = RepeatBehavior.Forever
-                };
-
-            кисть.BeginAnimation(
-                SolidColorBrush.ColorProperty,
-                анимация);
-        }
+       // Полностью останавливает декоративный перелив/свечение — вызывается
+       // при сворачивании в QuickAccessBar. Бизнес-логика (фон/сервисСеансов
+       // и т.д.) НЕ трогается — здесь только чисто визуальные клоки, которые
+       // никому не нужны, пока окно скрыто.
+       private void ОстановитьФоновыеАнимации()
+       {
+    переливОбщий.BeginAnimation(TranslateTransform.XProperty, null);
+    
+               if (Resources["ФонКолонкиБраш"] is SolidColorBrush фонКисть)
+        фонКисть.BeginAnimation(SolidColorBrush.ColorProperty, null);
+           }
 
 
-        // =========================================================
-        // ФИКС ОКНА ПОД ПАНЕЛЬЮ ЗАДАЧ ПРИ MAXIMIZED
-        // =========================================================
+// =========================================================
+// ФИКС ОКНА ПОД ПАНЕЛЬЮ ЗАДАЧ ПРИ MAXIMIZED
+// =========================================================
 
-        protected override void OnSourceInitialized(EventArgs e)
+protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
 

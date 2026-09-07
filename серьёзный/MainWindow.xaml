@@ -80,6 +80,8 @@
             <GradientStop Color="#FF2E5C" Offset="1"/>
         </LinearGradientBrush>
 
+        <SolidColorBrush x:Key="ФонКолонкиБраш" Color="#0A0A0A"/>
+
 
 
         <Style x:Key="CrystalScrollBarThumb" TargetType="Thumb">
@@ -505,12 +507,11 @@
             <!-- ЛЕВАЯ ИКОНОЧНАЯ ПАНЕЛЬ -->
             <!-- ============================================ -->
             <Border Grid.Column="0"
+                     Background="{StaticResource ФонКолонкиБраш}"
                     BorderBrush="#2A151D"
                     BorderThickness="0,0,1,0">
 
-                <Border.Background>
-                    <SolidColorBrush x:Name="ФонЛевойКолонки" Color="#0A0A0A"/>
-                </Border.Background>
+               
 
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                                HorizontalScrollBarVisibility="Disabled"
@@ -876,12 +877,11 @@
             <!-- ПРАВАЯ КОЛОНКА: СПИСОК ПК -->
             <!-- ============================================ -->
             <Border Grid.Column="2"
+                       Background="{StaticResource ФонКолонкиБраш}"
                     BorderBrush="#2A151D"
                     BorderThickness="1,0,0,0">
 
-                <Border.Background>
-                    <SolidColorBrush x:Name="ФонПравойКолонки" Color="#0A0A0A"/>
-                </Border.Background>
+              
 
                 <DockPanel Margin="14">
 
