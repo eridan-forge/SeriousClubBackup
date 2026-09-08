@@ -13,7 +13,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -1063,30 +1062,31 @@ new SessionStartedEvent(
             // три кисти просто ссылаются на него через RelativeTransform.
             // Визуально — то же самое (даже точнее синхронно, чем раньше).
 
+            var сдвиг = new DoubleAnimation
             {
-                From = -1;
-                To = 1;
-                Duration = TimeSpan.FromSeconds(3.2);
-                AutoReverse = true;
-                RepeatBehavior = RepeatBehavior.Forever;
-                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut };
-           }
-            
+                From = -1,
+                To = 1,
+                Duration = TimeSpan.FromSeconds(3.2),
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever,
+                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+            };
+
             переливОбщий.BeginAnimation(TranslateTransform.XProperty, сдвиг);
-            
+
             ПривязатьПереливККисти("ЗаголовокКисть");
             ПривязатьПереливККисти("ТаймерКисть");
             ПривязатьПереливКРесурсу("ScrollThumbShimmerBrush");
-            
-                       // Аналогично: обе колонки теперь светятся ОДНОЙ общей кистью
-                       // (см. правку в MainWindow.xaml — Background колонок ссылается
-                       // на общий ресурс "ФонКолонкиБраш" вместо двух x:Name-кистей),
-                       // вместо двух независимых SolidColorBrush с двумя ColorAnimation.
+
+            // Аналогично: обе колонки теперь светятся ОДНОЙ общей кистью
+            // (см. правку в MainWindow.xaml — Background колонок ссылается
+            // на общий ресурс "ФонКолонкиБраш" вместо двух x:Name-кистей),
+            // вместо двух независимых SolidColorBrush с двумя ColorAnimation.
             ЗапуститьМедленноеСвечениеРесурс(
-            "ФонКолонкиБраш",
-            Color.FromRgb(0x0A, 0x0A, 0x0A),
-            Color.FromRgb(0x17, 0x0B, 0x10),
-            3.2);
+                "ФонКолонкиБраш",
+                Color.FromRgb(0x0A, 0x0A, 0x0A),
+                Color.FromRgb(0x17, 0x0B, 0x10),
+                3.2);
         }
 
         private void ПривязатьПереливККисти(string имяКисти)
