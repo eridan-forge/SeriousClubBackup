@@ -83,6 +83,8 @@ public sealed class КурсорОверлей : Window
     private const uint SWP_NOSIZE = 0x0001;
     private const uint SWP_NOZORDER = 0x0004;
     private const uint SWP_NOACTIVATE = 0x0010;
+    private const uint SWP_NOREDRAW = 0x0008;
+    private const uint SWP_ASYNCWINDOWPOS = 0x4000;
 
     private КурсорОверлей()
     {
@@ -176,6 +178,9 @@ public sealed class КурсорОверлей : Window
         };
     }
 
+    private int последнийX = int.MinValue;
+    private int последнийY = int.MinValue;
+
     private void СледитьЗаКурсором(object? sender, EventArgs e)
     {
         if (хендл == IntPtr.Zero)
@@ -197,13 +202,26 @@ public sealed class КурсорОверлей : Window
 
         var отступPx = (int)Math.Round(Отступ * масштаб);
 
+        var целX = точка.X - отступPx;
+        var целY = точка.Y - отступPx;
+
+        // Мышь не двигалась с прошлого кадра — незачем гонять DWM.
+        if (целX == последнийX && целY == последнийY)
+            return;
+
+        последнийX = целX;
+        последнийY = целY;
+
+
+
+
         SetWindowPos(
             хендл,
             IntPtr.Zero,
-            точка.X - отступPx,
-            точка.Y - отступPx,
+             целX,
+               целY,
             0, 0,
-            SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
+            SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOREDRAW | SWP_ASYNCWINDOWPOS);
     }
 
     private static DrawingBrush СоздатьКарбон()
