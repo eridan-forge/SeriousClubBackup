@@ -4263,16 +4263,16 @@ protected override void OnSourceInitialized(EventArgs e)
                     BorderBrush = рамкаКисть,
                     BorderThickness = new Thickness(1.2),
 
-                    Cursor = Cursors.Hand,
+                   
 
                     Child = корневаяСеткаКарточки
                 };
 
                 карточка.MouseEnter += (_, _) =>
                 {
-                    
 
-                    АнимироватьЦвет(рамкаКисть, Color.FromRgb(184, 44, 92), 0);
+
+                    АнимироватьЦвет(рамкаКисть, Color.FromRgb(169, 30, 77), 0);
                 };
 
                 карточка.MouseLeave += (_, _) =>
