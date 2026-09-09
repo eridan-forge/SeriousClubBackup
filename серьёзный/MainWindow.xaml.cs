@@ -861,44 +861,14 @@ new SessionStartedEvent(
 
         private void Свернуть_Click(object sender, RoutedEventArgs e)
         {
-
             if (анимацияОкнаИдёт)
                 return;
 
-            анимацияОкнаИдёт = true;
-            РамкаОкна.IsHitTestVisible = false;
+            Hide();
 
-            // Защита от гонки с РазвернутьОкно_Click: если та анимация
-            // подменяла RenderTransform на временный TransformGroup и не
-            // успела вернуть обратно МасштабОкна — эта строка гарантирует,
-            // что мы анимируем именно то преобразование, которое реально
-            // сейчас привязано к рамке окна.
-            РамкаОкна.RenderTransform = МасштабОкна;
+            ОстановитьФоновыеАнимации();
 
-
-            var сжатие = new DoubleAnimation(1, 0.02, TimeSpan.FromMilliseconds(150))
-            {
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
-            };
-
-            сжатие.Completed += (_, _) =>
-            {
-                Hide();
-
-                МасштабОкна.ScaleX = 1;
-                МасштабОкна.ScaleY = 1;
-                РамкаОкна.Opacity = 1;
-                РамкаОкна.IsHitTestVisible = true;
-                анимацияОкнаИдёт = false;
-
-                ОстановитьФоновыеАнимации();
-
-                ПоказатьПанельБыстрогоДоступа();
-            };
-
-            МасштабОкна.BeginAnimation(ScaleTransform.ScaleXProperty, сжатие);
-            МасштабОкна.BeginAnimation(ScaleTransform.ScaleYProperty, сжатие);
-            РамкаОкна.BeginAnimation(OpacityProperty, new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(150)));
+            ПоказатьПанельБыстрогоДоступа();
         }
 
         private void ПоказатьПанельБыстрогоДоступа()
@@ -912,12 +882,21 @@ new SessionStartedEvent(
             панельБыстрогоДоступа.Show();
         }
 
+
+
         private void ВосстановитьИзПанели()
         {
             панельБыстрогоДоступа?.Close();
             панельБыстрогоДоступа = null;
 
             Show();
+
+            // Windows часто не даёт обычному Activate() забрать фокус у активного
+            // сейчас процесса. Короткое переключение Topmost выводит окно наверх
+            // в обход этой защиты, а сразу возвращаем false — иначе оно бы висело
+            // поверх всего постоянно и не пряталось бы за другими приложениями.
+            Topmost = true;
+            Topmost = false;
             Activate();
 
             ЗапуститьПереливАнимация();
@@ -930,7 +909,6 @@ new SessionStartedEvent(
             МасштабОкна.BeginAnimation(ScaleTransform.ScaleXProperty, рост);
             МасштабОкна.BeginAnimation(ScaleTransform.ScaleYProperty, рост);
             РамкаОкна.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150)));
-
         }
 
 
@@ -992,6 +970,8 @@ new SessionStartedEvent(
                 окноВРежимеОкна = false;
             }
         }
+
+       
 
         private void АнимироватьГраницы(
     double left, double top, double width, double height,
