@@ -9,7 +9,7 @@
         ResizeMode="NoResize"
         WindowState="Maximized"
         AllowsTransparency="False"
-        Cursor="None"
+         Topmost="True"
         Background="{DynamicResource ЧёрныйФонОкна}">
 
     <shell:WindowChrome.WindowChrome>

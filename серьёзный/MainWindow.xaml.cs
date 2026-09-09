@@ -545,11 +545,7 @@ new SessionStartedEvent(
 
            
 
-            PreviewMouseLeftButtonDown +=
-                Курсор_ЛевыйКлик;
-
-            PreviewMouseRightButtonDown +=
-                Курсор_ПравыйКлик;
+           
 
             Closed +=
                 ПриЗакрытии;
@@ -1215,27 +1211,6 @@ protected override void OnSourceInitialized(EventArgs e)
         // =========================================================
         // КАСТОМНЫЙ КУРСОР
         // =========================================================
-
-        
-
-        private void Курсор_ЛевыйКлик(
-    object sender,
-    MouseButtonEventArgs e)
-        {
-            серьёзный.CrystalUI.CustomCursor.КурсорОверлей.Вспышка(
-                Color.FromRgb(0xFF, 0x2E, 0x5C));
-        }
-
-        private void Курсор_ПравыйКлик(
-            object sender,
-            MouseButtonEventArgs e)
-        {
-            серьёзный.CrystalUI.CustomCursor.КурсорОверлей.Вспышка(
-                Color.FromRgb(0x38, 0xBD, 0xF8));
-        }
-
-        
-
 
 
         // =========================================================
@@ -4288,11 +4263,7 @@ protected override void OnSourceInitialized(EventArgs e)
                     BorderBrush = рамкаКисть,
                     BorderThickness = new Thickness(1.2),
 
-                    // Было Cursors.Hand — явный Cursor на дочернем элементе
-                    // ВСЕГДА перебивает Window.Cursor="None" родителя, поэтому
-                    // именно над карточками показывался обычный системный
-                    // курсор вместо нашего.
-                    Cursor = Cursors.None,
+                    Cursor = Cursors.Hand,
 
                     Child = корневаяСеткаКарточки
                 };

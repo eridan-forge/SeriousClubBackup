@@ -28,55 +28,6 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        серьёзный.CrystalUI.CustomCursor.КурсорОверлей.Запустить();
-
-        // Класс-обработчик срабатывает для КАЖДОГО окна в приложении —
-        // MainWindow и всех диалогов — без единой правки в их XAML.
-        // Раньше системный курсор прятался только внутри MainWindow;
-        // стоило открыть любое другое окно — там сразу показывалась
-        // обычная стрелка Windows поверх нашего затемнённого фона.
-        EventManager.RegisterClassHandler(
-               typeof(Window),
-                Window.LoadedEvent,
-                 new RoutedEventHandler((sender, _) =>
-                 {
-                     if (sender is Window окно)
-                         окно.Cursor = Cursors.None;
-                 }));
-
-        // ContextMenu и ToolTip рендерятся в отдельном Popup-окне, а не
-
-        // внутри дерева родительского Window — предыдущий хендлер их
-
-        // не касался, курсор белой стрелкой выглядывал над контекстным
-
-        // меню карточки ПК и над подсказками.
-        EventManager.RegisterClassHandler(
-              typeof(ContextMenu),
-               ContextMenu.LoadedEvent,
-                new RoutedEventHandler((sender, _) =>
-                {
-                    if (sender is ContextMenu меню)
-                        меню.Cursor = Cursors.None;
-                }));
-
-
-        EventManager.RegisterClassHandler(
-                 typeof(ToolTip),
-                  ToolTip.LoadedEvent,
- new RoutedEventHandler((sender, _) =>
- {
-     if (sender is ToolTip подсказка)
-         подсказка.Cursor = Cursors.None;
- }));
-
-
-
-
-
-        Exit += (_, _) => серьёзный.CrystalUI.CustomCursor.КурсорОверлей.Остановить();
-
-
         DispatcherUnhandledException +=
             (_, ошибка) =>
             {
