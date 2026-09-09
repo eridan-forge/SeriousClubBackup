@@ -944,7 +944,7 @@ new SessionStartedEvent(
                 АнимироватьГраницы(
                       область.Left + (область.Width - целеваяШирина) / 2,
                       область.Top + (область.Height - целеваяВысота) / 2,
-   целеваяШирина, целеваяВысота);
+        целеваяШирина, целеваяВысота);
 
                 РамкаОкна.BorderThickness = new Thickness(2);
                 РамкаОкна.Margin = new Thickness(-1);
@@ -962,12 +962,25 @@ new SessionStartedEvent(
                           {
                               РамкаОкна.BorderThickness = new Thickness(0);
                               РамкаОкна.Margin = new Thickness(0);
+
+                              // КРИТИЧНО: раньше WindowState тут не возвращался
+                              // в Maximized — окно оставалось Normal, просто
+                              // подогнанное под WorkArea (без учёта панели
+                              // задач). При обычном запуске Maximized + перехват
+                              // WM_GETMINMAXINFO разворачивает окно на весь
+                              // монитор и реально скрывает панель задач — этот
+                              // "ненастоящий полный" Normal её не перекрывал.
+                              // И именно он тянулся дальше через
+                              // Свернуть_Click/ВосстановитьИзПанели, потому что
+                              // Hide()/Show() не меняют WindowState — отсюда тот
+                              // же баг после крестика.
+                              WindowState = WindowState.Maximized;
                           });
                 окноВРежимеОкна = false;
             }
         }
 
-       
+
 
         private void АнимироватьГраницы(
     double left, double top, double width, double height,

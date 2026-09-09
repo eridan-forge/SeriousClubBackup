@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:Интерфейс="clr-namespace:серьёзный.Интерфейс"
+    xmlns:Курсор="clr-namespace:серьёзный.CrystalUI.Cursors"
     StartupUri="MainWindow.xaml">
 
     <Application.Resources>
@@ -30,6 +31,14 @@
                     Source="/серьёзный;component/CrystalUI/Styles/CrystalTextBox.xaml"/>
 
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- Курсор мыши тонируется в фирменный цвет темы сразу для
+                 ВСЕХ окон админки (главное + диалоги) — Cursor это
+                 наследуемое свойство, поэтому одного Style на Window
+                 достаточно, без правки каждого окна отдельно. -->
+            <Style TargetType="{x:Type Window}">
+                <Setter Property="Cursor" Value="{x:Static Курсор:ThemedCursor.Arrow}"/>
+            </Style>
 
             <Интерфейс:TrayIcon
                 x:Key="Tray"/>
