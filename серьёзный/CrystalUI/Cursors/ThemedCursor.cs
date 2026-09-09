@@ -50,15 +50,15 @@ public static class ThemedCursor
             фигура.Freeze();
 
             var заливка = new LinearGradientBrush(
-                Color.FromRgb(0xFF, 0x2E, 0x5C),
-                Color.FromRgb(0x8A, 0x0F, 0x30),
+                Color.FromRgb(0xA9, 0x1E, 0x4D),
+               Color.FromRgb(0x72, 0x15, 0x36),
                 new Point(0, 0),
                 new Point(1, 1));
 
             заливка.Freeze();
 
             var обводка = new Pen(
-                new SolidColorBrush(Color.FromRgb(0x1A, 0x06, 0x10)),
+                 new SolidColorBrush(Color.FromRgb(0x2A, 0x08, 0x16)),
                 1.6);
 
             обводка.Freeze();
