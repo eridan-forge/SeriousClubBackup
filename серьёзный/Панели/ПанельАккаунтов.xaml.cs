@@ -41,22 +41,8 @@ public partial class ПанельАккаунтов : UserControl
         object sender,
         TextChangedEventArgs e)
     {
-        var текст =
-            (ПолеПоиска.Text ?? string.Empty)
-                .Trim();
-
-        var список =
-            сервис.Все
-                .Where(x =>
-                    string.IsNullOrWhiteSpace(текст) ||
-                    x.Имя.Contains(
-                        текст,
-                        StringComparison.OrdinalIgnoreCase))
-                .OrderBy(x => x.Имя)
-                .ToList();
-
         Таблица.ItemsSource =
-            список;
+            сервис.Искать(ПолеПоиска.Text ?? string.Empty);
     }
 
     private void ОткрытьАккаунт(
@@ -105,64 +91,59 @@ public partial class ПанельАккаунтов : UserControl
         object sender,
         RoutedEventArgs e)
     {
-        var окноИмя =
-            new ОкноВвода("Имя игрока")
+        var окно =
+            new ОкноСозданияАккаунта
             {
                 Owner = Window.GetWindow(this)
             };
 
-        if (окноИмя.ShowDialog() != true)
+        if (окно.ShowDialog() != true)
             return;
-
-        var имя = окноИмя.Текст.Trim();
-
-        if (string.IsNullOrWhiteSpace(имя))
-        {
-            MessageBox.Show(
-                "Введите имя.",
-                "Создание аккаунта",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-
-            return;
-        }
-
-        var окноПароль =
-            new ОкноВвода("Пароль аккаунта")
-            {
-                Owner = Window.GetWindow(this)
-            };
-
-        if (окноПароль.ShowDialog() != true)
-            return;
-
-        var пароль = окноПароль.Текст.Trim();
-
-        if (string.IsNullOrWhiteSpace(пароль))
-        {
-            MessageBox.Show(
-                "Введите пароль.",
-                "Создание аккаунта",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-
-            return;
-        }
-
-        if (!сервис.Создать(имя, пароль, out var ошибка))
-        {
-            MessageBox.Show(
-                ошибка,
-                "Создание аккаунта",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-
-            return;
-        }
 
         ПолеПоиска.Clear();
 
         Обновить();
+    }
+
+    private void СброситьПароль_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (sender is not Button кнопка)
+            return;
+
+        if (кнопка.Tag is not АккаунтИгрока аккаунт)
+            return;
+
+        var окно =
+            new ОкноВвода($"Новый пароль для {аккаунт.ПолноеИмя}")
+            {
+                Owner = Window.GetWindow(this)
+            };
+
+        if (окно.ShowDialog() != true)
+            return;
+
+        var новыйПароль = окно.Текст.Trim();
+
+        if (string.IsNullOrWhiteSpace(новыйПароль))
+        {
+            MessageBox.Show(
+                "Пароль не может быть пустым.",
+                "Сброс пароля",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+
+            return;
+        }
+
+        сервис.ИзменитьПароль(аккаунт.Id, новыйПароль);
+
+        MessageBox.Show(
+            "Пароль обновлён.",
+            "Готово",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
     }
 
     private void ОткрытьЧат_Click(

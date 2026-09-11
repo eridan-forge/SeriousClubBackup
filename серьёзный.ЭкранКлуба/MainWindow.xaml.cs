@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Threading;
 using серьёзный.Модели;
 using серьёзный.Сервисы;
@@ -29,13 +32,18 @@ namespace серьёзный.ЭкранКлуба
 
         private bool окноИгрокаАктивно;
 
+        private bool идётФорматированиеТелефона;
+
         private bool ЭтоПервыйЗапускShell =>
             (Application.Current as App)?.ЭтоПервыйЗапускShell == true;
 
         public MainWindow()
         {
             // Максимально рано — ещё до InitializeComponent, не дожидаясь
-            // ни Loaded, ни разблокировки/запуска explorer.exe.
+            // ни Loaded, ни разблокировки/запуска explorer.exe. Патруль —
+            // самостоятельный процесс, не зависящий от explorer.exe: он
+            // подключается к серверу по TCP независимо от того, показан
+            // сейчас экран входа или уже открыт рабочий стол.
             PatrolProcessLauncher.ЗапуститьЕслиНужно();
 
             InitializeComponent();
@@ -70,9 +78,6 @@ namespace серьёзный.ЭкранКлуба
             };
             наблюдение.Start();
 
-            // Watchdog Патруля — отдельный, более редкий таймер. Держать
-            // проверку процесса на 250мс-таймере избыточно дорого,
-            // Process.GetProcessesByName — не бесплатный вызов.
             патрульНаблюдение.Interval = TimeSpan.FromSeconds(8);
             патрульНаблюдение.Tick += (_, _) =>
             {
@@ -204,16 +209,97 @@ namespace серьёзный.ЭкранКлуба
             explorerЗапущен = true;
         }
 
+        // =====================================================
+        // ФОРМАТИРОВАНИЕ ТЕЛЕФОНА
+        // =====================================================
+
+        private void ПолеТелефон_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (идётФорматированиеТелефона)
+                return;
+
+            идётФорматированиеТелефона = true;
+
+            try
+            {
+                var курсорВКонце =
+                    ПолеТелефон.CaretIndex == ПолеТелефон.Text.Length;
+
+                var цифры = ИзвлечьЦифрыСПрефиксом(ПолеТелефон.Text);
+
+                var отформатировано = ФорматТелефона(цифры);
+
+                ПолеТелефон.Text = отформатировано;
+
+                ПолеТелефон.CaretIndex = курсорВКонце
+                    ? отформатировано.Length
+                    : Math.Min(ПолеТелефон.CaretIndex, отформатировано.Length);
+            }
+            finally
+            {
+                идётФорматированиеТелефона = false;
+            }
+        }
+
+        // Приводит к "7ХХХХХХХХХХ" независимо от того, начал человек
+        // с 8, с 9 (без кода страны) или с +7.
+        private static string ИзвлечьЦифрыСПрефиксом(string текст)
+        {
+            var цифры =
+                new string((текст ?? string.Empty).Where(char.IsDigit).ToArray());
+
+            if (цифры.Length == 0)
+                return string.Empty;
+
+            if (цифры[0] == '8')
+                цифры = "7" + цифры.Substring(1);
+            else if (цифры[0] != '7')
+                цифры = "7" + цифры;
+
+            if (цифры.Length > 11)
+                цифры = цифры.Substring(0, 11);
+
+            return цифры;
+        }
+
+        private static string ФорматТелефона(string цифры)
+        {
+            if (цифры.Length == 0)
+                return string.Empty;
+
+            var sb = new StringBuilder("+");
+
+            sb.Append(цифры[0]);
+
+            if (цифры.Length > 1)
+                sb.Append(" (").Append(цифры.Substring(1, Math.Min(3, цифры.Length - 1)));
+
+            if (цифры.Length > 4)
+                sb.Append(") ").Append(цифры.Substring(4, Math.Min(3, цифры.Length - 4)));
+
+            if (цифры.Length > 7)
+                sb.Append("-").Append(цифры.Substring(7, Math.Min(2, цифры.Length - 7)));
+
+            if (цифры.Length > 9)
+                sb.Append("-").Append(цифры.Substring(9, Math.Min(2, цифры.Length - 9)));
+
+            return sb.ToString();
+        }
+
+        // =====================================================
+        // ВХОД
+        // =====================================================
+
         private async void Войти_Click(object sender, RoutedEventArgs e)
         {
             ТекстОшибка.Visibility = Visibility.Collapsed;
 
-            var имя = ПолеИмя.Text.Trim();
+            var телефон = ИзвлечьЦифрыСПрефиксом(ПолеТелефон.Text);
             var пароль = ПолеПароль.Password.Trim();
 
-            if (string.IsNullOrWhiteSpace(имя))
+            if (телефон.Length != 11)
             {
-                ПоказатьОшибку("Введите имя.");
+                ПоказатьОшибку("Введите корректный номер телефона.");
                 return;
             }
 
@@ -228,11 +314,14 @@ namespace серьёзный.ЭкранКлуба
             ТекстОшибка.Foreground = System.Windows.Media.Brushes.LightGray;
 
             var requestId =
-                 AccountLoginBridgeService.CreateRequest(имя, пароль);
+                 AccountLoginBridgeService.CreateRequest(телефон, пароль);
 
             LoginRequestRecord? результат = null;
 
-            for (int i = 0; i < 100; i++) // до ~10 секунд ожидания сервера
+            // ~15 секунд — с запасом на случай, если Патруль на этом ПК
+            // только что стартовал вместе с экраном входа и ещё
+            // договаривается о подключении с сервером.
+            for (int i = 0; i < 150; i++)
             {
                 await Task.Delay(100);
 
@@ -259,7 +348,7 @@ namespace серьёзный.ЭкранКлуба
             if (результат.Status == LoginRequestStatus.Failed ||
                  !результат.AccountId.HasValue)
             {
-                ПоказатьОшибку(результат.Error ?? "Неверное имя или пароль.");
+                ПоказатьОшибку(результат.Error ?? "Неверный номер телефона или пароль.");
                 ПолеПароль.Clear();
                 return;
             }

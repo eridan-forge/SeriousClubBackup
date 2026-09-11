@@ -92,6 +92,16 @@
 
                 <StackPanel x:Name="ПанельПароля">
 
+                    <TextBlock Text="Телефон нового аккаунта"
+                               Foreground="White"/>
+
+                    <TextBox x:Name="ПолеТелефонНовогоАккаунта"
+                             Height="36"
+                             Margin="0,6,0,14"
+                             Background="#1E293B"
+                             Foreground="White"
+                             BorderBrush="#334155"/>
+
                     <TextBlock Text="Пароль нового аккаунта"
                                Foreground="White"/>
 

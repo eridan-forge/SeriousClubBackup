@@ -1,0 +1,77 @@
+﻿<Window x:Class="серьёзный.Окна.ОкноСозданияАккаунта"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Новый аккаунт"
+        Width="420"
+        Height="420"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#0F172A">
+
+    <Grid Margin="24">
+
+        <StackPanel>
+
+            <TextBlock Text="Новый аккаунт"
+                       FontSize="24"
+                       FontWeight="Bold"
+                       Foreground="White"
+                       Margin="0,0,0,20"/>
+
+            <TextBlock Text="Номер телефона (логин)"
+                       Foreground="#CBD5E1"/>
+
+            <TextBox x:Name="ПолеТелефон"
+                     Height="40"
+                     Margin="0,6,0,16"
+                     MaxLength="18"
+                     Background="#1E293B"
+                     Foreground="White"
+                     BorderBrush="#334155"
+                     VerticalContentAlignment="Center"
+                     Padding="10,0"
+                     TextChanged="ПолеТелефон_TextChanged"/>
+
+            <TextBlock Text="ФИО (для идентификации)"
+                       Foreground="#CBD5E1"/>
+
+            <TextBox x:Name="ПолеФИО"
+                     Height="40"
+                     Margin="0,6,0,16"
+                     Background="#1E293B"
+                     Foreground="White"
+                     BorderBrush="#334155"
+                     VerticalContentAlignment="Center"
+                     Padding="10,0"/>
+
+            <TextBlock Text="Пароль"
+                       Foreground="#CBD5E1"/>
+
+            <PasswordBox x:Name="ПолеПароль"
+                         Height="40"
+                         Margin="0,6,0,20"
+                         Background="#1E293B"
+                         Foreground="White"
+                         BorderBrush="#334155"
+                         VerticalContentAlignment="Center"
+                         Padding="10,0"/>
+
+            <TextBlock x:Name="ТекстОшибка"
+                       Foreground="#EF4444"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,14"
+                       Visibility="Collapsed"/>
+
+            <Button x:Name="КнопкаСоздать"
+                    Content="Создать аккаунт"
+                    Height="44"
+                    Background="#2563EB"
+                    Foreground="White"
+                    BorderThickness="0"
+                    Click="Создать_Click"/>
+
+        </StackPanel>
+
+    </Grid>
+
+</Window>

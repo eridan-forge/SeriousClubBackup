@@ -28,6 +28,8 @@ namespace серьёзный.Окна
             Баллы.Click += Баллы_Click;
             Удалить.Click += Удалить_Click;
             ОчиститьЧат.Click += ОчиститьЧат_Click;
+            СброситьПароль.Click += СброситьПароль_Click;
+            ИзменитьТелефон.Click += ИзменитьТелефон_Click;
 
             ОбновитьКарточку();
             ЗагрузитьИсторию();
@@ -55,6 +57,11 @@ namespace серьёзный.Окна
             Сеансов.Text =
                 аккаунт.ВсегоСеансов.ToString();
 
+            Телефон.Text =
+    string.IsNullOrWhiteSpace(аккаунт.Телефон)
+        ? "Телефон не указан"
+        : $"📱 {аккаунт.ТелефонОтображаемый}";
+
             Последний.Text =
                 аккаунт.ПоследнийСеанс == null
                     ? "Последний сеанс: нет истории"
@@ -62,7 +69,7 @@ namespace серьёзный.Окна
         }
 
 
-               private void Баллы_Click(object? sender, RoutedEventArgs e)
+        private void Баллы_Click(object? sender, RoutedEventArgs e)
        {
            var текущий = баллы.Get(аккаунт.Id);
             var isPremium = premium.IsPremium(аккаунт.Id);
@@ -87,6 +94,77 @@ $"Баланс: {текущий.Points} баллов" +
             {
                 баллы.Award(аккаунт.Id, дельта, "Ручная корректировка админом");
             }
+        }
+
+        private void СброситьПароль_Click(
+    object? sender,
+    RoutedEventArgs e)
+        {
+            var окно =
+                new ОкноВвода($"Новый пароль для {аккаунт.ПолноеИмя}")
+                {
+                    Owner = this
+                };
+
+            if (окно.ShowDialog() != true)
+                return;
+
+            var новыйПароль = окно.Текст.Trim();
+
+            if (string.IsNullOrWhiteSpace(новыйПароль))
+            {
+                MessageBox.Show(
+                    "Пароль не может быть пустым.",
+                    "Ошибка",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                return;
+            }
+
+            сервисАккаунтов.ИзменитьПароль(аккаунт.Id, новыйПароль);
+
+            MessageBox.Show(
+                "Пароль обновлён.",
+                "Готово",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+
+        private void ИзменитьТелефон_Click(
+            object? sender,
+            RoutedEventArgs e)
+        {
+            var окно =
+                new ОкноВвода(
+                    "Номер телефона",
+                    аккаунт.Телефон)
+                {
+                    Owner = this
+                };
+
+            if (окно.ShowDialog() != true)
+                return;
+
+            if (!сервисАккаунтов.УстановитьТелефон(
+                    аккаунт.Id,
+                    окно.Текст.Trim(),
+                    out var ошибка))
+            {
+                MessageBox.Show(
+                    ошибка,
+                    "Ошибка",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                return;
+            }
+
+            аккаунт.Телефон =
+                сервисАккаунтов.Получить(аккаунт.Id)?.Телефон ??
+                аккаунт.Телефон;
+
+            ОбновитьКарточку();
         }
 
         private void ОчиститьЧат_Click(

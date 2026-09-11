@@ -72,26 +72,30 @@
                     <DataGrid.Columns>
 
                         <DataGridTextColumn Header="Имя"
-                                            Width="220"
+                                            Width="200"
                                             Binding="{Binding Имя}"/>
 
+                        <DataGridTextColumn Header="Телефон"
+                                            Width="160"
+                                            Binding="{Binding ТелефонОтображаемый}"/>
+
                         <DataGridTextColumn Header="Осталось"
-                                            Width="120"
+                                            Width="110"
                                             Binding="{Binding ОсталосьСтрокой}"/>
 
                         <DataGridTextColumn Header="Сыграно"
-                                            Width="140"
+                                            Width="120"
                                             Binding="{Binding ВсегоСыграно}"/>
 
                         <DataGridTextColumn Header="Сеансов"
-                                            Width="100"
+                                            Width="90"
                                             Binding="{Binding ВсегоСеансов}"/>
 
                         <DataGridTextColumn Header="Последний сеанс"
                             Width="*"
                             Binding="{Binding ПоследнийСеанс}"/>
 
-                        <DataGridTemplateColumn Header="Чат" Width="90">
+                        <DataGridTemplateColumn Header="Чат" Width="70">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Button Content="💬"
@@ -99,6 +103,18 @@
                             Height="30"
                             Tag="{Binding}"
                             Click="ОткрытьЧат_Click"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Header="Пароль" Width="70">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="🔑"
+                            Width="40"
+                            Height="30"
+                            Tag="{Binding}"
+                            Click="СброситьПароль_Click"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>

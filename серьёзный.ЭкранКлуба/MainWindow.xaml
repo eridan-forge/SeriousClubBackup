@@ -45,19 +45,21 @@
 
                 <StackPanel Margin="0,28,0,0">
 
-                    <TextBlock Text="Имя"
+                    <TextBlock Text="Номер телефона"
                                Foreground="#CBD5E1"
                                Margin="0,0,0,6"/>
 
-                    <TextBox x:Name="ПолеИмя"
+                    <TextBox x:Name="ПолеТелефон"
                              Height="42"
                              FontSize="16"
+                             MaxLength="18"
                              Background="#0F172A"
                              Foreground="White"
                              BorderBrush="#334155"
                              BorderThickness="1"
                              VerticalContentAlignment="Center"
-                             Padding="12,0"/>
+                             Padding="12,0"
+                             TextChanged="ПолеТелефон_TextChanged"/>
 
                 </StackPanel>
 

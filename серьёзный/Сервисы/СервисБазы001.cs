@@ -13,7 +13,7 @@ namespace серьёзный.Сервисы
         private static readonly object блокировка =
             new();
 
-        private const int ТекущаяВерсияБазы = 3;
+        private const int ТекущаяВерсияБазы = 4; // v4: добавлен Accounts.Phone (вход по телефону)
 
 
         // =========================================================
@@ -82,6 +82,9 @@ PRAGMA foreign_keys=ON;";
                     соединение);
 
                 ПроверитьИОбновитьAccounts(
+     соединение);
+
+                ДобавитьСтолбецPhoneЕслиНужно(
                     соединение);
 
                 ПроверитьИСоздатьИндексы(
@@ -309,6 +312,58 @@ ALTER TABLE Accounts
 ADD COLUMN Password TEXT NOT NULL DEFAULT '';";
 
             cmd.ExecuteNonQuery();
+        }
+
+        private static void ДобавитьСтолбецPassword(
+    SqliteConnection соединение)
+        {
+            using var cmd =
+                соединение.CreateCommand();
+
+            cmd.CommandText =
+                @"
+ALTER TABLE Accounts
+ADD COLUMN Password TEXT NOT NULL DEFAULT '';";
+
+            cmd.ExecuteNonQuery();
+        }
+
+
+        // Отдельный метод, а не через ПроверитьИОбновитьAccounts —
+        // NOT NULL UNIQUE здесь намеренно не ставится: у всех старых
+        // строк одинаковый DEFAULT '', UNIQUE на ALTER TABLE упал бы
+        // сразу же. Уникальность телефона проверяется в коде
+        // (СервисАккаунтов.Создать / УстановитьТелефон).
+        private static void ДобавитьСтолбецPhoneЕслиНужно(
+            SqliteConnection соединение)
+        {
+            if (ТаблицаСодержитСтолбец(
+                    соединение,
+                    "Accounts",
+                    "Phone"))
+            {
+                return;
+            }
+
+            using var cmd =
+                соединение.CreateCommand();
+
+            cmd.CommandText =
+                @"
+ALTER TABLE Accounts
+ADD COLUMN Phone TEXT NOT NULL DEFAULT '';";
+
+            cmd.ExecuteNonQuery();
+
+            using var index =
+                соединение.CreateCommand();
+
+            index.CommandText =
+                @"
+CREATE INDEX IF NOT EXISTS IX_Accounts_Phone
+ON Accounts(Phone);";
+
+            index.ExecuteNonQuery();
         }
 
 
