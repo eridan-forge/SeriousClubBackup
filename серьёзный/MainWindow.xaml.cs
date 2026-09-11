@@ -611,60 +611,63 @@ new SessionStartedEvent(
             text.Text = count.ToString();
         }
 
-        
+
 
         private void НастройкаПК_Click(
-            object sender,
-            RoutedEventArgs e)
+    object sender,
+    RoutedEventArgs e)
         {
             if (приложениеЗакрывается)
             {
                 return;
             }
 
-            var окно =
-                new Окна.ОкноНастройкиПК
-                {
-                    Owner = this
-                };
+            var панель = new Панели.ПанельНастройкиПК();
 
-            окно.ShowDialog();
+            панель.Закрыть += ПоказатьГлавную;
 
-            ВыборПК.ItemsSource =
-                null;
-
-            ВыборПК.ItemsSource =
-                КартаКомпьютеров.Все;
-
-            if (КартаКомпьютеров.Все.Count > 0)
+            панель.Изменено += () =>
             {
-                ВыборПК.SelectedIndex = 0;
-            }
+                var выбранныйId =
+                    (ВыборПК.SelectedItem as ЗаписьПК)?.Id;
 
-            СеткаПК.Children.Clear();
+                ВыборПК.ItemsSource = null;
+                ВыборПК.ItemsSource = КартаКомпьютеров.Все;
 
-            карточкиПК.Clear();
+                var восстановить =
+                    ВыборПК.Items
+                        .OfType<ЗаписьПК>()
+                        .FirstOrDefault(x => x.Id == выбранныйId);
 
-            СоздатьКарточкиПК();
+                ВыборПК.SelectedItem =
+                    восстановить ??
+                    ВыборПК.Items.OfType<ЗаписьПК>().FirstOrDefault();
+
+                СеткаПК.Children.Clear();
+
+                карточкиПК.Clear();
+
+                СоздатьКарточкиПК();
+            };
+
+            ПоказатьПанель(панель);
         }
 
 
         private void Аккаунты_Click(
-            object sender,
-            RoutedEventArgs e)
+    object sender,
+    RoutedEventArgs e)
         {
             if (приложениеЗакрывается)
             {
                 return;
             }
 
-            var окно =
-                new Окна.ОкноАккаунты008
-                {
-                    Owner = this
-                };
+            var панель = new Панели.ПанельАккаунтов();
 
-            окно.ShowDialog();
+            панель.Закрыть += ПоказатьГлавную;
+
+            ПоказатьПанель(панель);
         }
 
 
@@ -876,6 +879,21 @@ new SessionStartedEvent(
             }
 
             панельБыстрогоДоступа.Show();
+        }
+
+
+        private void ПоказатьГлавную()
+        {
+            ПанельСодержимого.Content = null;
+            ПанельСодержимого.Visibility = Visibility.Collapsed;
+            СкроллГлавная.Visibility = Visibility.Visible;
+        }
+
+        private void ПоказатьПанель(UIElement панель)
+        {
+            СкроллГлавная.Visibility = Visibility.Collapsed;
+            ПанельСодержимого.Content = панель;
+            ПанельСодержимого.Visibility = Visibility.Visible;
         }
 
 

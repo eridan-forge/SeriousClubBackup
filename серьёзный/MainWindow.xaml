@@ -679,20 +679,21 @@
                     <!-- ============================================ -->
                     <!-- ЦЕНТР: ВЫБРАННЫЙ ПК -->
                     <!-- ============================================ -->
-                    <ScrollViewer Grid.Column="1"
-                            VerticalScrollBarVisibility="Auto"
-                             Margin="18"
-                              Style="{StaticResource CrystalScrollViewer}"
-                             crystal:SmoothScrollBehavior.Enabled="True">
+                    <Grid Grid.Column="1" Margin="18">
+
+                        <ScrollViewer x:Name="СкроллГлавная"
+                             VerticalScrollBarVisibility="Auto"
+                             Style="{StaticResource CrystalScrollViewer}"
+                              crystal:SmoothScrollBehavior.Enabled="True">
 
 
                         <StackPanel>
 
-                            <ComboBox x:Name="ВыборПК" Visibility="Collapsed" SelectionChanged="ВыборПК_SelectionChanged"/>
+                                <ComboBox x:Name="ВыборПК" Visibility="Collapsed" SelectionChanged="ВыборПК_SelectionChanged"/>
 
-                            <Border Style="{StaticResource CrystalCard}">
+                                <Border Style="{StaticResource CrystalCard}">
 
-                                <StackPanel>
+                                    <StackPanel>
 
                                     <TextBlock x:Name="НазваниеПК"
                                        Text="Выберите ПК справа"
@@ -729,9 +730,9 @@
 
                             </Border>
 
-                            <Border Style="{StaticResource CrystalCard}" Margin="0,16,0,0">
+                                <Border Style="{StaticResource CrystalCard}" Margin="0,16,0,0">
 
-                                <Grid>
+                                    <Grid>
 
                                     <Border Background="{StaticResource CarbonFiberBrush}" Opacity="0.05" IsHitTestVisible="False"/>
 
@@ -791,9 +792,9 @@
                                 </Grid>
                             </Border>
 
-                            <Border Style="{StaticResource CrystalCard}" Margin="0,16,0,0">
+                                <Border Style="{StaticResource CrystalCard}" Margin="0,16,0,0">
 
-                                <StackPanel>
+                                    <StackPanel>
 
                                     <TextBlock Text="Дополнительно" Style="{StaticResource CrystalSectionTitle}"/>
 
@@ -890,7 +891,12 @@
 
                     </ScrollViewer>
 
-                    <!-- ============================================ -->
+                    </Grid>
+
+                    <ContentControl x:Name="ПанельСодержимого"
+                     Visibility="Collapsed"/>
+
+                        <!-- ============================================ -->
                     <!-- ПРАВАЯ КОЛОНКА: СПИСОК ПК -->
                     <!-- ============================================ -->
                     <Border Grid.Column="2"
