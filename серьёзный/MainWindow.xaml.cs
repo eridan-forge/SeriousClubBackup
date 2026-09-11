@@ -672,21 +672,19 @@ new SessionStartedEvent(
 
 
         private void История_Click(
-            object sender,
-            RoutedEventArgs e)
+    object sender,
+    RoutedEventArgs e)
         {
             if (приложениеЗакрывается)
             {
                 return;
             }
 
-            var окно =
-                new Окна.ОкноИстории006
-                {
-                    Owner = this
-                };
+            var панель = new Панели.ПанельИстории();
 
-            окно.ShowDialog();
+            панель.Закрыть += ПоказатьГлавную;
+
+            ПоказатьПанель(панель);
         }
 
 
@@ -699,15 +697,14 @@ new SessionStartedEvent(
                 return;
             }
 
-            var окно =
-                new Окна.ОкноСтатистики007(
+            var панель =
+                new Панели.ПанельСтатистики(
                     подключения.Count,
-                    КартаКомпьютеров.Все.Count)
-                {
-                    Owner = this
-                };
+                    КартаКомпьютеров.Все.Count);
 
-            окно.ShowDialog();
+            панель.Закрыть += ПоказатьГлавную;
+
+            ПоказатьПанель(панель);
         }
 
 
@@ -5434,10 +5431,11 @@ SelectionChangedEventArgs e)
     object sender,
     RoutedEventArgs e)
         {
-            new ОкноНастройкиМагазина
-            {
-                Owner = this
-            }.ShowDialog();
+            var панель = new Панели.ПанельНастройкиМагазина();
+
+            панель.Закрыть += ПоказатьГлавную;
+
+            ПоказатьПанель(панель);
         }
 
         private void СжечьВремя_Click(object sender, RoutedEventArgs e)
@@ -5458,7 +5456,11 @@ SelectionChangedEventArgs e)
 
         private void КнопкаРазвлечения_Click(object sender, RoutedEventArgs e)
         {
-            new ОкноРазвлеченияАдмин(имяАдминистратора) { Owner = this }.ShowDialog();
+            var панель = new Панели.ПанельРазвлеченияАдмин(имяАдминистратора);
+
+            панель.Закрыть += ПоказатьГлавную;
+
+            ПоказатьПанель(панель);
         }
 
         private void РезервнаяКопия_Click(object sender, RoutedEventArgs e)

@@ -433,20 +433,28 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Grid.Column="0"
-               Text="СЕРЬЁЗНЫЙ"
-               FontSize="30"
-               FontWeight="Bold"
-               FontFamily="Consolas"
-               VerticalAlignment="Center">
-                                <TextBlock.Foreground>
-                                    <LinearGradientBrush x:Name="ЗаголовокКисть" StartPoint="0,0" EndPoint="1,0">
-                                        <GradientStop Color="#FF2E5C" Offset="0"/>
-                                        <GradientStop Color="#8A0F30" Offset="0.5"/>
-                                        <GradientStop Color="#FF2E5C" Offset="1"/>
-                                    </LinearGradientBrush>
-                                </TextBlock.Foreground>
-                            </TextBlock>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+
+                                <TextBlock Text="СЕРЬЁЗНЫЙ"
+                FontSize="48"
+                FontWeight="Bold"
+              FontFamily="Consolas">
+                                    <TextBlock.Foreground>
+                                        
+                                            <LinearGradientBrush x:Name="ЗаголовокКисть" StartPoint="0,0" EndPoint="1,0">
+                                            <GradientStop Color="#FF2E5C" Offset="0"/>
+                                            <GradientStop Color="#8A0F30" Offset="0.5"/>
+                                            <GradientStop Color="#FF2E5C" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </TextBlock.Foreground>
+                                </TextBlock>
+
+                                <TextBlock Text="КОМПЬЮТЕРНЫЙ КЛУБ"
+  FontSize="22"
+        FontWeight="SemiBold"                                   
+                     Foreground="#7A2B3D"                       
+                          Margin="2,-10,0,0"/>
+                            </StackPanel>
 
                             <StackPanel Grid.Column="1"
                 Orientation="Horizontal"
@@ -499,7 +507,8 @@
                 <Grid Grid.Row="1">
 
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="190"/>
+                        
+                        <ColumnDefinition Width="230"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="320"/>
                     </Grid.ColumnDefinitions>
@@ -891,12 +900,14 @@
 
                     </ScrollViewer>
 
-                    </Grid>
 
-                    <ContentControl x:Name="ПанельСодержимого"
+
+                        <ContentControl x:Name="ПанельСодержимого"
                      Visibility="Collapsed"/>
 
-                        <!-- ============================================ -->
+                    </Grid>
+
+                    <!-- ============================================ -->
                     <!-- ПРАВАЯ КОЛОНКА: СПИСОК ПК -->
                     <!-- ============================================ -->
                     <Border Grid.Column="2"

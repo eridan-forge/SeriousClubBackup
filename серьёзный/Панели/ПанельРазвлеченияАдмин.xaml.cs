@@ -5,10 +5,11 @@ using System.Windows.Controls;
 using серьёзный.Core.CoreAudit;
 using серьёзный.Core.CoreEconomy;
 using серьёзный.Core.CoreProfiles;
+using серьёзный.Окна;
 
-namespace серьёзный.Окна;
+namespace серьёзный.Панели;
 
-public partial class ОкноРазвлеченияАдмин : Window
+public partial class ПанельРазвлеченияАдмин : UserControl
 {
     private readonly EconomyConfigService economy = new();
     private readonly InventoryService inventory = new();
@@ -20,13 +21,20 @@ public partial class ОкноРазвлеченияАдмин : Window
 
     private readonly string имяАдмина;
 
-    public ОкноРазвлеченияАдмин(string имяАдмина)
+    public event Action? Закрыть;
+
+    public ПанельРазвлеченияАдмин(string имяАдмина)
     {
         InitializeComponent();
 
         this.имяАдмина = имяАдмина;
 
         Loaded += (_, _) => ОбновитьВсё();
+    }
+
+    private void Назад_Click(object sender, RoutedEventArgs e)
+    {
+        Закрыть?.Invoke();
     }
 
     private void ОбновитьВсё()
@@ -210,7 +218,10 @@ public partial class ОкноРазвлеченияАдмин : Window
             return;
         }
 
-        new ОкноНаградКейса(c, имяАдмина) { Owner = this }.ShowDialog();
+        new ОкноНаградКейса(c, имяАдмина)
+        {
+            Owner = Window.GetWindow(this)
+        }.ShowDialog();
 
         ОбновитьВсё();
     }
@@ -221,8 +232,6 @@ public partial class ОкноРазвлеченияАдмин : Window
     {
         ГридИстория.ItemsSource = null;
         ГридИстория.ItemsSource = audit.GetRecent();
-
-  
     }
 
     // ============== ДОСТИЖЕНИЯ ==============

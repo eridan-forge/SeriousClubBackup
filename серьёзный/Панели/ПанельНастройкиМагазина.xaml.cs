@@ -1,23 +1,29 @@
-﻿using System.Windows;
+﻿using System;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
 using серьёзный.Core.CoreShop;
 using серьёзный.Core.CoreEvents;
+using серьёзный.Окна;
 
-namespace серьёзный.Окна;
+namespace серьёзный.Панели;
 
-public partial class ОкноНастройкиМагазина : Window
+public partial class ПанельНастройкиМагазина : UserControl
 {
     private readonly ShopService shop =
         new();
 
     private bool загружается;
 
-    public ОкноНастройкиМагазина()
+    public event Action? Закрыть;
+
+    public ПанельНастройкиМагазина()
     {
         InitializeComponent();
 
         ShopChangedEvent.Changed += МагазинИзменился;
 
-        Closed += (_, _) =>
+        Unloaded += (_, _) =>
         {
             ShopChangedEvent.Changed -= МагазинИзменился;
         };
@@ -26,6 +32,11 @@ public partial class ОкноНастройкиМагазина : Window
         ДобавитьТовар.Click += ДобавитьТовар_Click;
 
         Загрузить();
+    }
+
+    private void Назад_Click(object sender, RoutedEventArgs e)
+    {
+        Закрыть?.Invoke();
     }
 
     private void МагазинИзменился()
@@ -78,9 +89,6 @@ public partial class ОкноНастройкиМагазина : Window
         object sender,
         RoutedEventArgs e)
     {
-        // Checked/Unchecked срабатывает и когда мы сами выставляем
-        // IsChecked внутри Загрузить() — в этом случае сохранять
-        // и рассылать ShopChangedEvent не нужно.
         if (загружается)
             return;
 
@@ -94,13 +102,13 @@ public partial class ОкноНастройкиМагазина : Window
     }
 
     private void ДобавитьРаздел_Click(
-    object? sender,
-    RoutedEventArgs e)
+        object? sender,
+        RoutedEventArgs e)
     {
         var win =
             new ОкноСозданияРаздела
             {
-                Owner = this
+                Owner = Window.GetWindow(this)
             };
 
         win.ShowDialog();
@@ -121,7 +129,7 @@ public partial class ОкноНастройкиМагазина : Window
         var win =
             new ОкноСозданияТовара(category.Id)
             {
-                Owner = this
+                Owner = Window.GetWindow(this)
             };
 
         win.ShowDialog();
