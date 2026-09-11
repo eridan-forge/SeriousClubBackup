@@ -314,19 +314,7 @@ ADD COLUMN Password TEXT NOT NULL DEFAULT '';";
             cmd.ExecuteNonQuery();
         }
 
-        private static void ДобавитьСтолбецPassword(
-    SqliteConnection соединение)
-        {
-            using var cmd =
-                соединение.CreateCommand();
-
-            cmd.CommandText =
-                @"
-ALTER TABLE Accounts
-ADD COLUMN Password TEXT NOT NULL DEFAULT '';";
-
-            cmd.ExecuteNonQuery();
-        }
+        
 
 
         // Отдельный метод, а не через ПроверитьИОбновитьAccounts —

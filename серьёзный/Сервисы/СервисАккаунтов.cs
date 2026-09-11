@@ -211,9 +211,8 @@ ORDER BY FirstName;";
                         путь);
 
                 var список =
-                    JsonSerializer.Deserialize
-                        List < АккаунтИгрока >> (
-                        json);
+                    JsonSerializer.Deserialize<List<АккаунтИгрока>>(
+                          json);
 
                 if (список != null)
                 {
@@ -1244,7 +1243,7 @@ WHERE Id=@Id;";
                 }
 
                 if (аккаунт.ВсегоСеансов 
-                    int.MaxValue)
+                      int.MaxValue)
                 {
                     аккаунт.ВсегоСеансов++;
                 }
