@@ -16,7 +16,8 @@ public static class ConfigService
 
         using var r = cmd.ExecuteReader();
 
-        r.Read();
+        if (!r.Read())
+            return new Config();
 
         return new Config
         {

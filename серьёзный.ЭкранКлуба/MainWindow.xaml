@@ -4,7 +4,7 @@
         WindowStyle="None"
         ResizeMode="NoResize"
         WindowState="Maximized"
-        Topmost="True"
+        
         Background="#0F172A"
         ShowInTaskbar="False">
 

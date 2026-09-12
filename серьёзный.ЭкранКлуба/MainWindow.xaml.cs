@@ -448,7 +448,7 @@ namespace серьёзный.ЭкранКлуба
             var окно = new PasswordWindow(config.Password)
             {
                 Owner = this,
-                Topmost = true
+                Topmost = !Debugger.IsAttached
             };
 
             // На случай редкой Z-order гонки между двумя Topmost-окнами
