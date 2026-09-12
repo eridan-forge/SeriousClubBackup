@@ -38,14 +38,51 @@ public class LoginRequestRecord
 // для межпроцессного общения ЭкранКлуба <-> Патруль на одной машине.
 public static class AccountLoginBridgeService
 {
-    private static readonly string db =
-        Path.Combine(
-            Environment.GetFolderPath(
-                Environment.SpecialFolder.CommonApplicationData),
-            "SeriousClub",
-            "SeriousClub.db");
+    private static bool инициализировано;
+    private static readonly object блокировка = new();
 
-    private static SqliteConnection Open() => серьёзный.Core.CoreDb.SqliteDb.Open();
+    private static SqliteConnection Open()
+    {
+        var con = серьёзный.Core.CoreDb.SqliteDb.Open();
+
+        lock (блокировка)
+        {
+            if (!инициализировано)
+            {
+                // ВАЖНО: раньше этой таблицы нигде не создавалось — Open()
+                // просто открывал соединение и предполагал, что таблица
+                // уже есть. На чистой базе (например, при запуске
+                // ЭкранКлуба через Visual Studio без сервера) INSERT ниже
+                // падал с "no such table: AccountLoginRequests". Исключение
+                // вылетало из async void Войти_Click ДО начала цикла
+                // ожидания ответа, глушилось глобальным
+                // DispatcherUnhandledException — и кнопка "Войти" с
+                // текстом "Проверка..." зависали навсегда.
+                var cmd = con.CreateCommand();
+
+                cmd.CommandText =
+                """
+                CREATE TABLE IF NOT EXISTS AccountLoginRequests(
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Login TEXT NOT NULL,
+                    Password TEXT NOT NULL,
+                    Status INTEGER NOT NULL DEFAULT 0,
+                    AccountId TEXT,
+                    FullName TEXT,
+                    RemainingSeconds INTEGER NOT NULL DEFAULT 0,
+                    Error TEXT,
+                    Created TEXT NOT NULL
+                );
+                """;
+
+                cmd.ExecuteNonQuery();
+
+                инициализировано = true;
+            }
+        }
+
+        return con;
+    }
 
     // Вызывает ЭкранКлуба при нажатии "Войти".
     public static long CreateRequest(string login, string password)

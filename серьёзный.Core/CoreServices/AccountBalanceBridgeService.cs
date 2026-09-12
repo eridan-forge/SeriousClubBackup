@@ -22,14 +22,44 @@ public class BalanceRequestRecord
 
 public static class AccountBalanceBridgeService
 {
-    private static readonly string db =
-        Path.Combine(
-            Environment.GetFolderPath(
-                Environment.SpecialFolder.CommonApplicationData),
-            "SeriousClub",
-            "SeriousClub.db");
+    private static bool инициализировано;
+    private static readonly object блокировка = new();
 
-    private static SqliteConnection Open() => серьёзный.Core.CoreDb.SqliteDb.Open();
+    private static SqliteConnection Open()
+    {
+        var con = серьёзный.Core.CoreDb.SqliteDb.Open();
+
+        lock (блокировка)
+        {
+            if (!инициализировано)
+            {
+                // См. пояснение в AccountLoginBridgeService — таблица
+                // нигде не создавалась, первый же запрос баланса на
+                // чистой базе падал с "no such table".
+                var cmd = con.CreateCommand();
+
+                cmd.CommandText =
+                """
+                CREATE TABLE IF NOT EXISTS AccountBalanceRequests(
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    AccountId TEXT NOT NULL,
+                    Done INTEGER NOT NULL DEFAULT 0,
+                    Failed INTEGER NOT NULL DEFAULT 0,
+                    RemainingSeconds INTEGER NOT NULL DEFAULT 0,
+                    PlayedSeconds INTEGER NOT NULL DEFAULT 0,
+                    SessionCount INTEGER NOT NULL DEFAULT 0,
+                    Created TEXT NOT NULL
+                );
+                """;
+
+                cmd.ExecuteNonQuery();
+
+                инициализировано = true;
+            }
+        }
+
+        return con;
+    }
 
     public static long CreateRequest(Guid accountId)
     {

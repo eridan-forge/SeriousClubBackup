@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Windows;
 using серьёзный.ЭкранКлуба.Сервисы;
 
@@ -122,6 +123,31 @@ namespace серьёзный.ЭкранКлуба
                     UseShellExecute = false,
                     CreateNoWindow = true
                 });
+        }
+
+        // Новая кнопка. MainWindow.Closing у экрана клуба всегда
+        // отменяет закрытие (это киоск-окно, не должно закрываться
+        // случайно крестиком/Alt+F4) — обычный Close() тут не сработает.
+        // Environment.Exit гарантированно завершает процесс целиком,
+        // независимо от состояния окон — нужен как аварийный выход
+        // при тестировании через Visual Studio.
+        private void ЗакрытьПриложение_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            var подтверждение =
+                MessageBox.Show(
+                    "Полностью закрыть приложение «Экран клуба»?\n\n" +
+                    "На реальном клубном ПК это закроет киоск-режим " +
+                    "и потребует ручного перезапуска процесса.",
+                    "Закрыть приложение",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+            if (подтверждение != MessageBoxResult.Yes)
+                return;
+
+            Environment.Exit(0);
         }
     }
 }

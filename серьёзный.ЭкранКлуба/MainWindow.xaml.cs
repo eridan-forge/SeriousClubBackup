@@ -208,6 +208,12 @@ namespace серьёзный.ЭкранКлуба
             Topmost = true;
             Activate();
             explorerЗапущен = true;
+
+            // Защитный сброс: если предыдущая попытка входа зависла по
+            // любой причине (сервер не ответил, ошибка базы и т.д.),
+            // возврат на экран блокировки не должен оставлять кнопку
+            // "Войти" отключённой навсегда, а старую ошибку — висящей.
+            СброситьСостояниеВхода();
         }
 
         // =====================================================
@@ -314,29 +320,56 @@ namespace серьёзный.ЭкранКлуба
             ПоказатьОшибку("Проверка...");
             ТекстОшибка.Foreground = System.Windows.Media.Brushes.LightGray;
 
-            var requestId =
-                 AccountLoginBridgeService.CreateRequest(телефон, пароль);
-
             LoginRequestRecord? результат = null;
+            string? ошибкаЗапроса = null;
 
-            // ~15 секунд — с запасом на случай, если Патруль на этом ПК
-            // только что стартовал вместе с экраном входа и ещё
-            // договаривается о подключении с сервером.
-            for (int i = 0; i < 150; i++)
+            try
             {
-                await Task.Delay(100);
+                var requestId =
+                     AccountLoginBridgeService.CreateRequest(телефон, пароль);
 
-                результат = AccountLoginBridgeService.GetResult(requestId);
-
-                if (результат != null &&
-                       результат.Status != LoginRequestStatus.Pending)
+                // ~15 секунд — с запасом на случай, если Патруль на этом ПК
+                // только что стартовал вместе с экраном входа и ещё
+                // договаривается о подключении с сервером. Цикл сам по
+                // себе конечен (150 итераций по 100мс), он не может висеть
+                // вечно. Раньше "Проверка..." зависала не из-за цикла, а
+                // из-за необработанного исключения ДО него (отсутствующая
+                // таблица в ещё не проинициализированной локальной базе) —
+                // такое исключение уходило из async void и гасилось
+                // глобальным обработчиком, а код ниже просто не выполнялся.
+                for (int i = 0; i < 150; i++)
                 {
-                    break;
+                    await Task.Delay(100);
+
+                    результат = AccountLoginBridgeService.GetResult(requestId);
+
+                    if (результат != null &&
+                           результат.Status != LoginRequestStatus.Pending)
+                    {
+                        break;
+                    }
                 }
             }
+            catch (Exception ошибка)
+            {
+                ошибкаЗапроса = ошибка.Message;
 
-            КнопкаВойти.IsEnabled = true;
-            ТекстОшибка.Foreground = System.Windows.Media.Brushes.Red;
+                ЗаписатьЛогВхода(ошибка);
+            }
+            finally
+            {
+                // ГАРАНТИРОВАННО возвращаем кнопку в рабочее состояние —
+                // что бы ни случилось выше (успех, таймаут, исключение).
+                КнопкаВойти.IsEnabled = true;
+                ТекстОшибка.Foreground = System.Windows.Media.Brushes.Red;
+            }
+
+            if (ошибкаЗапроса != null)
+            {
+                ПоказатьОшибку("Ошибка входа: " + ошибкаЗапроса);
+                ПолеПароль.Clear();
+                return;
+            }
 
             if (результат == null ||
                 результат.Status == LoginRequestStatus.Pending)
@@ -361,6 +394,42 @@ namespace серьёзный.ЭкранКлуба
 
         }
 
+        // Приводит экран входа в чистое состояние: кнопка активна, ошибки
+        // скрыты. Вызывается и после возврата на экран блокировки
+        // (Заблокировать), и перед открытием панели обслуживания — так
+        // Обслуживание гарантированно доступно, даже если предыдущая
+        // попытка входа зависла по любой причине.
+        private void СброситьСостояниеВхода()
+        {
+            if (КнопкаВойти == null)
+                return;
+
+            КнопкаВойти.IsEnabled = true;
+
+            if (ТекстОшибка != null)
+                ТекстОшибка.Visibility = Visibility.Collapsed;
+        }
+
+        private static void ЗаписатьЛогВхода(Exception ошибка)
+        {
+            try
+            {
+                var папка = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "SeriousClub",
+                    "logs");
+
+                Directory.CreateDirectory(папка);
+
+                File.AppendAllText(
+                    Path.Combine(папка, "club-screen-crash.log"),
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Ошибка входа: {ошибка}{Environment.NewLine}");
+            }
+            catch
+            {
+            }
+        }
+
         private void ПоказатьОшибку(string текст)
         {
             ТекстОшибка.Text = текст;
@@ -369,6 +438,11 @@ namespace серьёзный.ЭкранКлуба
 
         private void Обслуживание_Click(object sender, RoutedEventArgs e)
         {
+            // Обслуживание должно быть доступно ВСЕГДА, даже если экран
+            // входа завис в состоянии "Проверка..." — сбрасываем его
+            // прежде чем открыть панель.
+            СброситьСостояниеВхода();
+
             config = ConfigService.Загрузить();
 
             var окно = new PasswordWindow(config.Password)
@@ -376,6 +450,12 @@ namespace серьёзный.ЭкранКлуба
                 Owner = this,
                 Topmost = true
             };
+
+            // На случай редкой Z-order гонки между двумя Topmost-окнами
+            // (это и владелец, и диалог) — явный Activate() при загрузке
+            // гарантирует, что окно обслуживания реально окажется поверх
+            // экрана блокировки, а не спрячется за ним незаметно.
+            окно.Loaded += (_, _) => окно.Activate();
 
             окно.ShowDialog();
         }
