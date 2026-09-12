@@ -1,5 +1,4 @@
 ﻿using Microsoft.Data.Sqlite;
-using System.IO;
 
 namespace серьёзный.Core.CoreServices;
 
@@ -14,24 +13,45 @@ public class AchievementNotificationRecord
     public string Description { get; set; } = "";
 }
 
-// Локальный мост НА ФИЗИЧЕСКОМ ПК ИГРОКА (та же роль, что у
-// GameSessionReportBridgeService/AccountBalanceBridgeService):
-// Патруль пишет сюда, когда по сети от сервера пришла команда
-// ДостижениеРазблокировано, ОкноИгрока на этом же ПК читает
-// и показывает тост.
+// Локальный мост НА ФИЗИЧЕСКОМ ПК ИГРОКА: Патруль пишет сюда, когда по
+// сети от сервера пришла команда ДостижениеРазблокировано, ОкноИгрока
+// на этом же ПК читает и показывает тост.
 public static class AchievementNotificationBridgeService
 {
-    private static readonly string db =
-        Path.Combine(
-            Environment.GetFolderPath(
-                Environment.SpecialFolder.CommonApplicationData),
-            "SeriousClub",
-            "SeriousClub.db");
+    private static bool инициализировано;
+    private static readonly object блокировка = new();
 
-    private static SqliteConnection Open() => серьёзный.Core.CoreDb.SqliteDb.Open();
+    private static SqliteConnection Open()
+    {
+        var con = серьёзный.Core.CoreDb.SqliteDb.Open();
 
-    // Вызывает Патруль, когда от сервера пришла команда
-    // ДостижениеРазблокировано.
+        lock (блокировка)
+        {
+            if (!инициализировано)
+            {
+                var cmd = con.CreateCommand();
+
+                cmd.CommandText =
+                """
+                CREATE TABLE IF NOT EXISTS AchievementNotifications(
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    AccountId TEXT NOT NULL,
+                    Name TEXT NOT NULL,
+                    Description TEXT NOT NULL DEFAULT '',
+                    Delivered INTEGER NOT NULL DEFAULT 0,
+                    Created TEXT NOT NULL
+                );
+                """;
+
+                cmd.ExecuteNonQuery();
+
+                инициализировано = true;
+            }
+        }
+
+        return con;
+    }
+
     public static void Enqueue(Guid accountId, string name, string description)
     {
         using var con = Open();
@@ -49,9 +69,6 @@ public static class AchievementNotificationBridgeService
 
         cmd.ExecuteNonQuery();
 
-        // Отдельного фонового воркера для этой таблицы нет (в отличие
-        // от GameSessionReportBridge) — чистим старое прямо тут, раз
-        // строки добавляются нечасто.
         var cleanup = con.CreateCommand();
 
         cleanup.CommandText =
@@ -64,8 +81,6 @@ public static class AchievementNotificationBridgeService
         cleanup.ExecuteNonQuery();
     }
 
-    // Вызывает ОкноИгрока на этом же ПК — берёт следующее непоказанное
-    // уведомление именно этого аккаунта.
     public static AchievementNotificationRecord? TakeNextPending(Guid accountId)
     {
         using var con = Open();

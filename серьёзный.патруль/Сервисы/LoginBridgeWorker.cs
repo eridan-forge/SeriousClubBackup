@@ -47,10 +47,22 @@ public class LoginBridgeWorker
             {
                 var запрос = AccountLoginBridgeService.TakeNextPending();
 
-                if (запрос != null && клиент.Подключен)
-                {
-                    await ОбработатьЗапросAsync(запрос, токен);
-                }
+                if (запрос != null)
+                                    {
+                                        if (клиент.Подключен)
+                                            {
+                        await ОбработатьЗапросAsync(запрос, токен);
+                                            }
+                                        else
+                                            {
+                                                // Раньше запрос молча оставался Pending, пока клиент
+                                                // не подключится — экран входа впустую ждал полные
+                                                // 15 секунд собственного таймаута.
+                        AccountLoginBridgeService.CompleteRequest(
+                        запрос.Id, false, null, null, 0,
+                        "Нет соединения с сервером. Попробуйте через несколько секунд.");
+                                            }
+                                    }
 
                 AccountLoginBridgeService.Cleanup(TimeSpan.FromMinutes(10));
             }
