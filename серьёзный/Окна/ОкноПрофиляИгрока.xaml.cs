@@ -124,6 +124,7 @@ public partial class ОкноПрофиляИгрока : Window
                 Foreground = color,
                 FontWeight = FontWeights.Bold,
                 FontSize = 16
+
             });
 
             stack.Children.Add(new TextBlock

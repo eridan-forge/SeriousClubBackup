@@ -10,7 +10,22 @@
 
     <Grid>
 
-        <Border Width="420"
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="45*"/>
+            <ColumnDefinition Width="55*"/>
+        </Grid.ColumnDefinitions>
+
+        <MediaElement x:Name="ФоновоеВидео"
+                      Grid.Column="0"
+                      Stretch="UniformToFill"
+                      LoadedBehavior="Manual"
+                      UnloadedBehavior="Stop"
+                      IsMuted="True"
+                      Volume="0"
+                      MediaEnded="ФоновоеВидео_MediaEnded"/>
+
+        <Border Grid.Column="1"
+                Width="420"
                 Padding="28"
                 CornerRadius="20"
                 Background="#182235"

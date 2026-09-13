@@ -9,7 +9,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Assets\" />
+    <None Remove="Assets\login.mp4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\login.mp4">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Темы\Дракон\" />
   </ItemGroup>
 
   <ItemGroup>
