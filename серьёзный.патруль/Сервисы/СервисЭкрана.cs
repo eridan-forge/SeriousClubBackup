@@ -67,6 +67,8 @@ VALUES(1, 1, 1);
 
             ДобавитьКолонкуАккаунтаЕслиНужно(db);
 
+            ДобавитьКолонкуТемыЕслиНужно(db);
+
             return db;
         }
 
@@ -102,6 +104,66 @@ VALUES(1, 1, 1);
                 // Таблица ScreenState ещё не создана Экраном Клуба
                 // на этом ПК — добавлять колонку некуда, пропускаем.
             }
+        }
+
+        // Аналогично ДобавитьКолонкуАккаунтаЕслиНужно выше — колонка
+        // ThemeId может отсутствовать в базе, созданной до этого фикса.
+        private static void ДобавитьКолонкуТемыЕслиНужно(
+            SqliteConnection db)
+        {
+            using var check = db.CreateCommand();
+
+            check.CommandText = "PRAGMA table_info(ScreenConfig);";
+
+            using (var reader = check.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var имя = reader.GetString(1);
+
+                    if (имя == "ThemeId")
+                        return;
+                }
+            }
+
+            try
+            {
+                using var alter = db.CreateCommand();
+
+                alter.CommandText =
+                    "ALTER TABLE ScreenConfig ADD COLUMN ThemeId TEXT NOT NULL DEFAULT '';";
+
+                alter.ExecuteNonQuery();
+            }
+            catch
+            {
+                // Таблица ещё не создана Экраном Клуба на этом ПК —
+                // добавлять колонку некуда, пропускаем.
+            }
+        }
+
+        // Вызывается по сети командой КомандаПК.УстановитьТемуВхода —
+        // Патруль пишет присланный Id темы в локальную базу этого ПК,
+        // а MainWindow Экрана Клуба (тот же ПК) подхватывает его сама
+        // через свой таймер и меняет видео/лого без перезапуска.
+        public static void УстановитьТему(
+            string themeId)
+        {
+            using var db = Открыть();
+            using var cmd = db.CreateCommand();
+
+            cmd.CommandText =
+                @"
+UPDATE ScreenConfig
+SET ThemeId = @t
+WHERE Id = 1;
+";
+
+            cmd.Parameters.AddWithValue(
+                "@t",
+                themeId ?? "");
+
+            cmd.ExecuteNonQuery();
         }
 
         public static void Заблокировать()

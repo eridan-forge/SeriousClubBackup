@@ -4,143 +4,319 @@
         WindowStyle="None"
         ResizeMode="NoResize"
         WindowState="Maximized"
-        
-        Background="#0F172A"
+        Background="Black"
         ShowInTaskbar="False">
 
-    <Grid>
+    <Window.Resources>
 
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="45*"/>
-            <ColumnDefinition Width="55*"/>
-        </Grid.ColumnDefinitions>
+        <!-- ============================================================
+             ОГНЕННАЯ КИСТЬ ДЛЯ РАМОК ПОЛЕЙ ВВОДА.
+             Крутится в коде (ЗапуститьМерцаниеРамок в .xaml.cs) между
+             тёмно-бордовым и ярко-красным. Используется как BorderBrush
+             у полей телефона и пароля ниже — это и есть "переливание".
+             ============================================================ -->
+        <SolidColorBrush x:Key="ОгненнаяРамкаКисть" x:Name="ОгненнаяРамкаКисть" Color="#5C1826"/>
 
-        <MediaElement x:Name="ФоновоеВидео"
-                      Grid.Column="0"
+    </Window.Resources>
+
+    <Grid x:Name="Корень">
+
+        <!-- =================================================================
+             СЛОЙ 1 — ФОНОВОЕ ВИДЕО (дракон, 10 минут, цикл).
+             Stretch="UniformToFill" — заполняет весь экран без чёрных
+             полос, но может немного обрезать края кадра по бокам.
+             Если нужно видеть кадр целиком без обрезки — смени на "Uniform".
+             ================================================================= -->
+        <MediaElement x:Name="ФонВидео"
                       Stretch="UniformToFill"
                       LoadedBehavior="Manual"
-                      UnloadedBehavior="Stop"
+                      UnloadedBehavior="Manual"
                       IsMuted="True"
                       Volume="0"
-                      MediaEnded="ФоновоеВидео_MediaEnded"/>
+                      IsHitTestVisible="False"
+                      MediaEnded="ФонВидео_MediaEnded">
 
-        <Border Grid.Column="1"
-                Width="420"
-                Padding="28"
-                CornerRadius="20"
-                Background="#182235"
-                BorderBrush="#24324B"
-                BorderThickness="1"
+            <!-- Лёгкое размытие фона ("замылить слегка").
+                 Radius — сила размытия, 0 = совсем без размытия.
+                 Увеличивай число — размытие сильнее.
+                 Если на слабом ПК появится тормоз — сначала пробуй
+                 уменьшить это число, а не выключать эффект целиком. -->
+            <MediaElement.Effect>
+                <BlurEffect Radius="3.5"/>
+            </MediaElement.Effect>
+
+        </MediaElement>
+
+        <!-- =================================================================
+             СЛОЙ 2 — ЦЕНТРАЛЬНАЯ ПАНЕЛЬ ВХОДА.
+             Width           — ширина панели. Меняй тут, если нужно шире/уже.
+             VerticalAlignment="Stretch" + Margin="0" — панель тянется от
+             самого верха до самого низа экрана ("на весь экран" по высоте).
+             Background      — полупрозрачный ЧЁРНЫЙ. Последние 2 символа
+             hex-цвета — это альфа-канал: "CC" ≈ 80% непрозрачности,
+             "99" ≈ 60%, "FF" = полностью непрозрачно, "00" = невидимо.
+             ================================================================= -->
+        <Border x:Name="ПанельВхода"
+                Width="380"
                 HorizontalAlignment="Center"
-                VerticalAlignment="Center">
+                VerticalAlignment="Stretch"
+                Margin="0"
+                Background="#CC000000"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="1,0,1,0">
 
-            <StackPanel>
+            <!-- Содержимое центрируется ПО ВЫСОТЕ внутри высокой панели,
+                 иначе поля ввода "прилипнут" к самому верху. -->
+            <StackPanel VerticalAlignment="Center" Margin="30,0">
 
-                <TextBlock x:Name="НазваниеКлуба"
-                           Text="Серьёзный"
-                           FontSize="34"
-                           FontWeight="Bold"
-                           Foreground="White"
-                           HorizontalAlignment="Center"/>
+                <!-- =========================================================
+                     ЛОГОТИП "СЕРЬЁЗНЫЙ" ИЗ PNG.
 
-                <TextBlock x:Name="НомерПК"
-                           Text="ПК-07"
-                           Margin="0,6,0,0"
-                           FontSize="15"
-                           Foreground="#94A3B8"
-                           HorizontalAlignment="Center"/>
+                     Если logo.png уже с ПРОЗРАЧНЫМ фоном (не с чёрным
+                     квадратом позади надписи) — можно удалить блок ниже
+                     и заменить на простую строку:
+                         <Image Source="..." Height="80" Margin="0,40,0,30"/>
 
-                <TextBlock x:Name="ГлавныйТекст"
-                           Margin="0,20,0,0"
-                           Text="Войдите в аккаунт"
-                           FontSize="19"
-                           FontWeight="SemiBold"
-                           Foreground="White"
-                           TextAlignment="Center"/>
+                     Если у logo.png ЧЁРНЫЙ фон (как ты и писал) — оставляем
+                     блок ниже как есть. Он использует картинку как МАСКУ:
+                     тёмные пиксели PNG (чёрный фон) становятся прозрачными,
+                     светлые пиксели (сама надпись/свечение) остаются видны
+                     и закрашиваются цветом из ЛогоЦвет. Это и есть тот
+                     "эффект осветления, скрывающий чёрный фон".
 
-                <StackPanel Margin="0,20,0,0">
+                     Height  — размер лого. Margin (верх,низ) — отступы.
+                     ========================================================= -->
+                <Rectangle x:Name="ЛогоФигура"
+                           Height="80"
+                           Margin="0,40,0,30">
+                    <Rectangle.Fill>
+                        <!-- Цвет самой надписи ПОСЛЕ маскирования.
+                             Поменяешь тут — поменяется цвет по всей теме. -->
+                        <SolidColorBrush x:Name="ЛогоЦвет" Color="#E5142F"/>
+                    </Rectangle.Fill>
+                    <Rectangle.OpacityMask>
+                        <ImageBrush x:Name="ЛогоМаска" Stretch="Uniform"/>
+                    </Rectangle.OpacityMask>
+                </Rectangle>
 
-                    <TextBlock Text="Номер телефона"
-                               Foreground="#CBD5E1"
-                               FontSize="13"
-                               Margin="0,0,0,5"/>
+                <!-- =========================================================
+                     ПОЛЕ ТЕЛЕФОНА.
+                     Внешний Border — это и есть переливающиеся красным края.
+                     CornerRadius — скругление углов. Height — высота поля.
+                     ========================================================= -->
+                <Border Background="#0D0D0D"
+                        BorderBrush="{StaticResource ОгненнаяРамкаКисть}"
+                        BorderThickness="1.6"
+                        CornerRadius="10"
+                        Height="44"
+                        Margin="0,0,0,14">
 
-                    <TextBox x:Name="ПолеТелефон"
-                             Height="38"
-                             FontSize="15"
-                             MaxLength="18"
-                             Background="#0F172A"
-                             Foreground="White"
-                             BorderBrush="#334155"
-                             BorderThickness="1"
-                             VerticalContentAlignment="Center"
-                             Padding="10,0"
-                             TextChanged="ПолеТелефон_TextChanged"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="40"/>
+                            <!-- ширина зоны под иконку -->
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-                </StackPanel>
+                        <!-- Иконка телефона. Замени эмодзи на Image со
+                             своей PNG-иконкой, если нужно точнее. -->
+                        <TextBlock Grid.Column="0"
+                                   Text="📱"
+                                   FontSize="17"
+                                   Foreground="#B4123A"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
 
-                <StackPanel Margin="0,14,0,0">
-
-                    <TextBlock Text="Пароль"
-                               Foreground="#CBD5E1"
-                               FontSize="13"
-                               Margin="0,0,0,5"/>
-
-                    <PasswordBox x:Name="ПолеПароль"
-                                 Height="38"
-                                 FontSize="15"
-                                 Background="#0F172A"
+                        <TextBox x:Name="ПолеТелефон"
+                                 Grid.Column="1"
+                                 Background="Transparent"
                                  Foreground="White"
-                                 BorderBrush="#334155"
-                                 BorderThickness="1"
+                                 CaretBrush="White"
+                                 BorderThickness="0"
+                                 FontSize="15"
                                  VerticalContentAlignment="Center"
-                                 Padding="10,0"/>
+                                 Padding="0,0,10,0"
+                                 TextChanged="ПолеТелефон_TextChanged"/>
+                    </Grid>
 
-                </StackPanel>
+                </Border>
+
+                <!-- =========================================================
+                     ПОЛЕ ПАРОЛЯ.
+                     Слева — замок, справа — кнопка-глаз (показать/скрыть).
+                     Внутри ДВА поля друг на друге: PasswordBox (виден по
+                     умолчанию, маскирует ввод) и TextBox (обычный текст,
+                     скрыт). Кнопка-глаз переключает, какое из них видно.
+                     ========================================================= -->
+                <Border Background="#0D0D0D"
+                        BorderBrush="{StaticResource ОгненнаяРамкаКисть}"
+                        BorderThickness="1.6"
+                        CornerRadius="10"
+                        Height="44"
+                        Margin="0,0,0,8">
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="40"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="40"/>
+                            <!-- ширина под кнопку-глаз -->
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0"
+                                   Text="🔒"
+                                   FontSize="16"
+                                   Foreground="#B4123A"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+
+                        <PasswordBox x:Name="ПолеПароль"
+                                     Grid.Column="1"
+                                     Background="Transparent"
+                                     Foreground="White"
+                                     CaretBrush="White"
+                                     BorderThickness="0"
+                                     FontSize="15"
+                                     VerticalContentAlignment="Center"
+                                     Padding="0,0,6,0"/>
+
+                        <!-- Показывается ВМЕСТО PasswordBox при клике на глаз -->
+                        <TextBox x:Name="ПолеПарольВидимый"
+                                 Grid.Column="1"
+                                 Background="Transparent"
+                                 Foreground="White"
+                                 CaretBrush="White"
+                                 BorderThickness="0"
+                                 FontSize="15"
+                                 VerticalContentAlignment="Center"
+                                 Padding="0,0,6,0"
+                                 Visibility="Collapsed"/>
+
+                        <Button x:Name="КнопкаПоказатьПароль"
+                                Grid.Column="2"
+                                Content="👁"
+                                FontSize="15"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="#B4123A"
+                                Cursor="Hand"
+                                Click="ПереключитьВидимостьПароля_Click"/>
+                    </Grid>
+
+                </Border>
+
+                <!-- "Забыли пароль?" -->
+                <Button Content="Забыли пароль?"
+                        HorizontalAlignment="Center"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="#8C8C99"
+                        FontSize="12"
+                        Cursor="Hand"
+                        Margin="0,0,0,20"
+                        Click="ЗабылиПароль_Click"/>
 
                 <Button x:Name="КнопкаВойти"
                         Content="Войти"
-                        Height="40"
-                        Margin="0,18,0,0"
+                        Height="42"
                         FontSize="15"
                         FontWeight="SemiBold"
-                        Background="#2563EB"
+                        Background="#B4123A"
                         Foreground="White"
                         BorderThickness="0"
+                        Cursor="Hand"
                         Click="Войти_Click"/>
 
                 <TextBlock x:Name="ТекстОшибка"
                            Margin="0,12,0,0"
-                           Foreground="#EF4444"
-                           FontSize="13"
+                           Foreground="#FF5C5C"
+                           FontSize="12"
                            TextWrapping="Wrap"
                            Visibility="Collapsed"
                            TextAlignment="Center"/>
 
-                <TextBlock x:Name="Часы"
-                           Margin="0,24,0,0"
-                           FontSize="32"
-                           FontWeight="Bold"
-                           Foreground="#38BDF8"
-                           HorizontalAlignment="Center"/>
+                <!-- "Ещё нет аккаунта? Зарегистрируйтесь" -->
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            Margin="0,26,0,0">
+
+                    <TextBlock Text="Ещё нет аккаунта? "
+                               Foreground="#8C8C99"
+                               FontSize="12"/>
+
+                    <Button Content="Зарегистрируйтесь"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="#E5142F"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Cursor="Hand"
+                            Padding="0"
+                            Click="Зарегистрироваться_Click"/>
+
+                </StackPanel>
 
                 <Button x:Name="Обслуживание"
-                        Margin="0,22,0,0"
-                        Width="150"
-                        Height="30"
+                        Margin="0,40,0,0"
+                        Height="26"
                         Padding="0"
                         Background="Transparent"
                         BorderThickness="0"
-                        Foreground="#475569"
-                        FontSize="12"
+                        Foreground="#4A4A52"
+                        FontSize="11"
                         Cursor="Hand"
                         Content="Обслуживание"
-                        HorizontalAlignment="Center"
                         Click="Обслуживание_Click"/>
 
             </StackPanel>
 
         </Border>
+
+        <!-- =================================================================
+             СЛОЙ 3 — НАЗВАНИЕ ПК СВЕРХУ СЛЕВА (из карточки, что создал
+             админ в "⚙ Настройка ПК" — PC-01, TEST-06 и т.д.)
+             Margin="X,Y,0,0" — X отступ слева, Y отступ сверху. Двигай тут.
+             ================================================================= -->
+        <TextBlock x:Name="ИмяПК"
+                   Text="ПК"
+                   FontSize="30"
+                   FontWeight="Bold"
+                   Foreground="#E5142F"
+                   Opacity="0.55"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Top"
+                   Margin="34,26,0,0"
+                   IsHitTestVisible="False"/>
+
+        <!-- =================================================================
+             СЛОЙ 4 — ЧАСЫ СНИЗУ СПРАВА. МОСКВА, 12-ЧАСОВОЙ ФОРМАТ (0–12,
+             без AM/PM). Обновляется в коде таймером раз в секунду.
+             ================================================================= -->
+        <TextBlock x:Name="Часы"
+                   Text="00:00"
+                   FontSize="26"
+                   FontWeight="Bold"
+                   Foreground="#E5142F"
+                   Opacity="0.7"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Bottom"
+                   Margin="0,0,34,26"
+                   IsHitTestVisible="False"/>
+
+        <!-- =================================================================
+             СЛОЙ 5 (САМЫЙ ВЕРХНИЙ) — ВИДЕО-ЭФФЕКТ ПОВЕРХ ВСЕГО (пепел/угли).
+             IsHitTestVisible="False" ОБЯЗАТЕЛЬНО — без этого клики по
+             кнопкам "Войти"/"Обслуживание" перестанут работать, потому
+             что этот слой физически лежит поверх них.
+             ================================================================= -->
+        <MediaElement x:Name="ЭффектВидео"
+                      Stretch="UniformToFill"
+                      LoadedBehavior="Manual"
+                      UnloadedBehavior="Manual"
+                      IsMuted="True"
+                      Volume="0"
+                      IsHitTestVisible="False"
+                      MediaEnded="ЭффектВидео_MediaEnded"/>
 
     </Grid>
 

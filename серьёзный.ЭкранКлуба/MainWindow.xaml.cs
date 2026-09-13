@@ -6,6 +6,8 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using серьёзный.Модели;
 using серьёзный.Сервисы;
@@ -14,7 +16,8 @@ using серьёзный.ЭкранКлуба.Сервисы;
 using System.Text.Json;
 using серьёзный.Core.CoreServices;
 using System.Threading.Tasks;
-
+using серьёзный.Core.CoreComputers;
+using серьёзный.Core.CoreThemes;
 
 namespace серьёзный.ЭкранКлуба
 {
@@ -22,29 +25,27 @@ namespace серьёзный.ЭкранКлуба
     {
         private readonly DispatcherTimer таймерЧасов = new();
         private readonly DispatcherTimer наблюдение = new();
-
         private readonly DispatcherTimer патрульНаблюдение = new();
+        private readonly DispatcherTimer темаНаблюдение = new(); // следит за сменой темы от админа
 
         private Config config = new();
         private State state = new();
 
         private bool explorerЗапущен;
         private bool прошлоеСостояние = true;
-
         private bool окноИгрокаАктивно;
-
         private bool идётФорматированиеТелефона;
+        private bool парольВиден; // состояние кнопки-глаза
+
+        private string? текущаяТемаId; // какая тема реально включена прямо сейчас
+
+        private static readonly TimeZoneInfo МосковскийПояс = ПолучитьМосковскийПояс();
 
         private bool ЭтоПервыйЗапускShell =>
             (Application.Current as App)?.ЭтоПервыйЗапускShell == true;
 
         public MainWindow()
         {
-            // Максимально рано — ещё до InitializeComponent, не дожидаясь
-            // ни Loaded, ни разблокировки/запуска explorer.exe. Патруль —
-            // самостоятельный процесс, не зависящий от explorer.exe: он
-            // подключается к серверу по TCP независимо от того, показан
-            // сейчас экран входа или уже открыт рабочий стол.
             PatrolProcessLauncher.ЗапуститьЕслиНужно();
 
             InitializeComponent();
@@ -53,90 +54,152 @@ namespace серьёзный.ЭкранКлуба
             Closing += (_, e) => e.Cancel = true;
         }
 
+        // =====================================================
+        // МОСКОВСКОЕ ВРЕМЯ (тот же приём, что и в админке)
+        // =====================================================
+        private static TimeZoneInfo ПолучитьМосковскийПояс()
+        {
+            try { return TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time"); }
+            catch
+            {
+                try { return TimeZoneInfo.FindSystemTimeZoneById("Europe/Moscow"); }
+                catch { return TimeZoneInfo.Local; }
+            }
+        }
+
         private void ПриЗагрузке(object sender, RoutedEventArgs e)
         {
-            ЗапуститьФоновоеВидео();
-
             ОбновитьНастройки();
+
+            ПрименитьТемуПоId(config.ThemeId); // включаем ту тему, что уже сохранена локально
+
+            ЗапуститьМерцаниеРамок();
 
             ЗапуститьПрослушиваниеПередачи();
 
+            // "hh:mm" = 12-часовой формат без AM/PM (07:45, а не 19:45).
+            // Хочешь секунды — поменяй на "hh:mm:ss".
             таймерЧасов.Interval = TimeSpan.FromSeconds(1);
             таймерЧасов.Tick += (_, _) =>
             {
-                Часы.Text = DateTime.Now.ToString("HH:mm:ss");
+                Часы.Text = TimeZoneInfo.ConvertTime(DateTime.Now, МосковскийПояс).ToString("hh:mm");
             };
             таймерЧасов.Start();
 
             наблюдение.Interval = TimeSpan.FromMilliseconds(250);
             наблюдение.Tick += (_, _) =>
             {
-                try
-                {
-                    ПроверитьСостояние();
-                }
-                catch
-                {
-                }
+                try { ПроверитьСостояние(); }
+                catch { }
             };
             наблюдение.Start();
 
             патрульНаблюдение.Interval = TimeSpan.FromSeconds(8);
             патрульНаблюдение.Tick += (_, _) =>
             {
-                try
-                {
-                    PatrolProcessLauncher.ЗапуститьЕслиНужно();
-                }
-                catch
-                {
-                }
+                try { PatrolProcessLauncher.ЗапуститьЕслиНужно(); }
+                catch { }
             };
             патрульНаблюдение.Start();
+
+            // Раз в 3 секунды проверяем — не прислал ли админ новую тему.
+            темаНаблюдение.Interval = TimeSpan.FromSeconds(3);
+            темаНаблюдение.Tick += (_, _) =>
+            {
+                try
+                {
+                    var свежийКонфиг = ConfigService.Загрузить();
+
+                    if (свежийКонфиг.ThemeId != текущаяТемаId)
+                        ПрименитьТемуПоId(свежийКонфиг.ThemeId);
+                }
+                catch { }
+            };
+            темаНаблюдение.Start();
         }
 
         // =====================================================
-        // ФОНОВОЕ ВИДЕО НА ЭКРАНЕ ВХОДА
+        // ТЕМЫ ЭКРАНА ВХОДА
         // =====================================================
 
-        private void ЗапуститьФоновоеВидео()
+        // Пустой Id или тема не найдена -> просто ничего не меняем.
+        private void ПрименитьТемуПоId(string? themeId)
         {
-            try
-            {
-                // Если файл называется иначе — поменяй "login.mp4" тут.
-                var путь = Path.Combine(
-                    AppContext.BaseDirectory,
-                    "Assets",
-                    "login.mp4");
+            текущаяТемаId = themeId;
 
-                if (!File.Exists(путь))
-                    return;
+            if (string.IsNullOrWhiteSpace(themeId))
+                return;
 
-                ФоновоеВидео.Source = new Uri(путь);
+            var тема = ЗагрузчикТем.НайтиПоId(themeId);
 
-                ФоновоеВидео.Play();
-            }
-            catch
-            {
-                // Отсутствие/повреждение видео не должно ронять экран входа —
-                // это единственный экран, который видят игроки за ПК.
-            }
+            if (тема == null)
+                return;
+
+            // ---- фон ----
+            ФонВидео.Source = new Uri(тема.ПутьФон);
+            ФонВидео.Position = TimeSpan.Zero;
+            ФонВидео.Play();
+
+            // ---- эффект поверх всего (пепел/угли) ----
+            ЭффектВидео.Source = new Uri(тема.ПутьЭффект);
+            ЭффектВидео.Position = TimeSpan.Zero;
+            ЭффектВидео.Play();
+
+            // ---- лого "СЕРЬЁЗНЫЙ" ----
+            ЛогоМаска.ImageSource =
+                new System.Windows.Media.Imaging.BitmapImage(new Uri(тема.ПутьЛого));
         }
 
-        private void ФоновоеВидео_MediaEnded(object sender, RoutedEventArgs e)
+        // Видео зациклено самим файлом (первый и последний кадр совпадают),
+        // поэтому просто перематываем в начало и играем заново.
+        private void ФонВидео_MediaEnded(object sender, RoutedEventArgs e)
         {
-            ФоновоеВидео.Position = TimeSpan.Zero;
-            ФоновоеВидео.Play();
+            ФонВидео.Position = TimeSpan.Zero;
+            ФонВидео.Play();
         }
+
+        private void ЭффектВидео_MediaEnded(object sender, RoutedEventArgs e)
+        {
+            ЭффектВидео.Position = TimeSpan.Zero;
+            ЭффектВидео.Play();
+        }
+
+        // =====================================================
+        // МЕРЦАНИЕ КРАСНЫХ РАМОК У ПОЛЕЙ ВВОДА
+        // =====================================================
+        private void ЗапуститьМерцаниеРамок()
+        {
+            if (FindName("ОгненнаяРамкаКисть") is not SolidColorBrush кисть)
+                return;
+
+            var анимация = new ColorAnimation
+            {
+                From = Color.FromRgb(0x5C, 0x18, 0x26), // "спокойное" состояние — тёмно-бордовый
+                To = Color.FromRgb(0xFF, 0x3D, 0x66),   // "вспышка" — ярко-красный
+                Duration = TimeSpan.FromSeconds(1.8),   // скорость переливания
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever
+            };
+
+            кисть.BeginAnimation(SolidColorBrush.ColorProperty, анимация);
+        }
+
+        // =====================================================
+        // НАСТРОЙКИ / СОСТОЯНИЕ ЭКРАНА
+        // =====================================================
 
         private void ОбновитьНастройки()
         {
             config = ConfigService.Загрузить();
             state = StateService.Загрузить();
 
-            НазваниеКлуба.Text = "Серьёзный";
-            НомерПК.Text = $"ПК-{state.PcId}";
-            ГлавныйТекст.Text = "Войдите в аккаунт";
+            // Берём название карточки ПК из той же таблицы Computers,
+            // что видно в админке под "⚙ Настройка ПК". Запрос идёт
+            // вживую каждый раз — удаление/пересоздание карточки с этим
+            // Id подхватится автоматически без правок кода.
+            var карточкаПК = КартаКомпьютеров.НайтиПоId(state.PcId);
+
+            ИмяПК.Text = карточкаПК?.Название ?? $"ПК-{state.PcId}";
 
             if (ЭтоПервыйЗапускShell)
             {
@@ -180,8 +243,6 @@ namespace серьёзный.ЭкранКлуба
                 explorerЗапущен = true;
             }
 
-            ФоновоеВидео.Pause();
-
             Hide();
         }
 
@@ -190,17 +251,10 @@ namespace серьёзный.ЭкранКлуба
             if (окноИгрокаАктивно)
                 return;
 
-            if (текущее.AccountId.HasValue &&
-                текущее.AccountId.Value != Guid.Empty)
-            {
-                ОткрытьОкноИгрока(
-                    текущее.AccountId.Value,
-                    текущее.PcId);
-            }
+            if (текущее.AccountId.HasValue && текущее.AccountId.Value != Guid.Empty)
+                ОткрытьОкноИгрока(текущее.AccountId.Value, текущее.PcId);
             else
-            {
                 Разблокировать();
-            }
         }
 
         private void ОткрытьОкноИгрока(Guid accountId, int pcId)
@@ -216,14 +270,11 @@ namespace серьёзный.ЭкранКлуба
 
             прошлоеСостояние = false;
 
-            ФоновоеВидео.Pause();
-
             Hide();
 
             try
             {
                 var окноИгрока = new ОкноИгрока(accountId, pcId);
-
                 окноИгрока.ShowDialog();
             }
             finally
@@ -249,17 +300,11 @@ namespace серьёзный.ЭкранКлуба
             Activate();
             explorerЗапущен = true;
 
-            ФоновоеВидео.Play();
-
-            // Защитный сброс: если предыдущая попытка входа зависла по
-            // любой причине (сервер не ответил, ошибка базы и т.д.),
-            // возврат на экран блокировки не должен оставлять кнопку
-            // "Войти" отключённой навсегда, а старую ошибку — висящей.
             СброситьСостояниеВхода();
         }
 
         // =====================================================
-        // ФОРМАТИРОВАНИЕ ТЕЛЕФОНА
+        // ФОРМАТИРОВАНИЕ ТЕЛЕФОНА (без изменений)
         // =====================================================
 
         private void ПолеТелефон_TextChanged(object sender, TextChangedEventArgs e)
@@ -271,11 +316,8 @@ namespace серьёзный.ЭкранКлуба
 
             try
             {
-                var курсорВКонце =
-                    ПолеТелефон.CaretIndex == ПолеТелефон.Text.Length;
-
+                var курсорВКонце = ПолеТелефон.CaretIndex == ПолеТелефон.Text.Length;
                 var цифры = ИзвлечьЦифрыСПрефиксом(ПолеТелефон.Text);
-
                 var отформатировано = ФорматТелефона(цифры);
 
                 ПолеТелефон.Text = отформатировано;
@@ -290,12 +332,9 @@ namespace серьёзный.ЭкранКлуба
             }
         }
 
-        // Приводит к "7ХХХХХХХХХХ" независимо от того, начал человек
-        // с 8, с 9 (без кода страны) или с +7.
         private static string ИзвлечьЦифрыСПрефиксом(string текст)
         {
-            var цифры =
-                new string((текст ?? string.Empty).Where(char.IsDigit).ToArray());
+            var цифры = new string((текст ?? string.Empty).Where(char.IsDigit).ToArray());
 
             if (цифры.Length == 0)
                 return string.Empty;
@@ -317,7 +356,6 @@ namespace серьёзный.ЭкранКлуба
                 return string.Empty;
 
             var sb = new StringBuilder("+");
-
             sb.Append(цифры[0]);
 
             if (цифры.Length > 1)
@@ -336,6 +374,40 @@ namespace серьёзный.ЭкранКлуба
         }
 
         // =====================================================
+        // ГЛАЗ — ПОКАЗАТЬ/СКРЫТЬ ПАРОЛЬ
+        // =====================================================
+        private void ПереключитьВидимостьПароля_Click(object sender, RoutedEventArgs e)
+        {
+            парольВиден = !парольВиден;
+
+            if (парольВиден)
+            {
+                ПолеПарольВидимый.Text = ПолеПароль.Password;
+
+                ПолеПароль.Visibility = Visibility.Collapsed;
+                ПолеПарольВидимый.Visibility = Visibility.Visible;
+
+                КнопкаПоказатьПароль.Content = "🙈"; // "скрыть"
+            }
+            else
+            {
+                ПолеПароль.Password = ПолеПарольВидимый.Text;
+
+                ПолеПарольВидимый.Visibility = Visibility.Collapsed;
+                ПолеПароль.Visibility = Visibility.Visible;
+
+                КнопкаПоказатьПароль.Content = "👁"; // "показать"
+            }
+        }
+
+        // Возвращает актуальный пароль независимо от того, какое из
+        // двух полей сейчас видно пользователю.
+        private string ПолучитьТекущийПароль()
+        {
+            return (парольВиден ? ПолеПарольВидимый.Text : ПолеПароль.Password).Trim();
+        }
+
+        // =====================================================
         // ВХОД
         // =====================================================
 
@@ -344,7 +416,7 @@ namespace серьёзный.ЭкранКлуба
             ТекстОшибка.Visibility = Visibility.Collapsed;
 
             var телефон = ИзвлечьЦифрыСПрефиксом(ПолеТелефон.Text);
-            var пароль = ПолеПароль.Password.Trim();
+            var пароль = ПолучитьТекущийПароль();
 
             if (телефон.Length != 11)
             {
@@ -360,15 +432,14 @@ namespace серьёзный.ЭкранКлуба
 
             КнопкаВойти.IsEnabled = false;
             ПоказатьОшибку("Проверка...");
-            ТекстОшибка.Foreground = System.Windows.Media.Brushes.LightGray;
+            ТекстОшибка.Foreground = Brushes.LightGray;
 
             LoginRequestRecord? результат = null;
             string? ошибкаЗапроса = null;
 
             try
             {
-                var requestId =
-                     AccountLoginBridgeService.CreateRequest(телефон, пароль);
+                var requestId = AccountLoginBridgeService.CreateRequest(телефон, пароль);
 
                 for (int i = 0; i < 150; i++)
                 {
@@ -376,53 +447,52 @@ namespace серьёзный.ЭкранКлуба
 
                     результат = AccountLoginBridgeService.GetResult(requestId);
 
-                    if (результат != null &&
-                           результат.Status != LoginRequestStatus.Pending)
-                    {
+                    if (результат != null && результат.Status != LoginRequestStatus.Pending)
                         break;
-                    }
                 }
             }
             catch (Exception ошибка)
             {
                 ошибкаЗапроса = ошибка.Message;
-
                 ЗаписатьЛогВхода(ошибка);
             }
             finally
             {
                 КнопкаВойти.IsEnabled = true;
-                ТекстОшибка.Foreground = System.Windows.Media.Brushes.Red;
+                ТекстОшибка.Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0x5C, 0x5C));
             }
 
             if (ошибкаЗапроса != null)
             {
                 ПоказатьОшибку("Ошибка входа: " + ошибкаЗапроса);
-                ПолеПароль.Clear();
+                ОчиститьПароль();
                 return;
             }
 
-            if (результат == null ||
-                результат.Status == LoginRequestStatus.Pending)
+            if (результат == null || результат.Status == LoginRequestStatus.Pending)
             {
                 ПоказатьОшибку("Сервер не ответил. Попробуйте ещё раз.");
-                ПолеПароль.Clear();
+                ОчиститьПароль();
                 return;
             }
 
-            if (результат.Status == LoginRequestStatus.Failed ||
-                 !результат.AccountId.HasValue)
+            if (результат.Status == LoginRequestStatus.Failed || !результат.AccountId.HasValue)
             {
                 ПоказатьОшибку(результат.Error ?? "Неверный номер телефона или пароль.");
-                ПолеПароль.Clear();
+                ОчиститьПароль();
                 return;
             }
 
             ТекстОшибка.Visibility = Visibility.Collapsed;
-            ПолеПароль.Clear();
+            ОчиститьПароль();
 
             ОткрытьОкноИгрока(результат.AccountId.Value, state.PcId);
+        }
 
+        private void ОчиститьПароль()
+        {
+            ПолеПароль.Password = "";
+            ПолеПарольВидимый.Text = "";
         }
 
         private void СброситьСостояниеВхода()
@@ -442,8 +512,7 @@ namespace серьёзный.ЭкранКлуба
             {
                 var папка = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "SeriousClub",
-                    "logs");
+                    "SeriousClub", "logs");
 
                 Directory.CreateDirectory(папка);
 
@@ -451,15 +520,34 @@ namespace серьёзный.ЭкранКлуба
                     Path.Combine(папка, "club-screen-crash.log"),
                     $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Ошибка входа: {ошибка}{Environment.NewLine}");
             }
-            catch
-            {
-            }
+            catch { }
         }
 
         private void ПоказатьОшибку(string текст)
         {
             ТекстОшибка.Text = текст;
             ТекстОшибка.Visibility = Visibility.Visible;
+        }
+
+        // =====================================================
+        // ССЫЛКИ ПОД ФОРМОЙ
+        // Пока в проекте нет самостоятельного сброса пароля и
+        // самостоятельной регистрации — обе операции делает админ
+        // вручную из "👤 Аккаунты". Эти кнопки просто объясняют это.
+        // =====================================================
+
+        private void ЗабылиПароль_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show(
+                "Обратитесь к администратору клуба, чтобы сбросить пароль.",
+                "Забыли пароль?");
+        }
+
+        private void Зарегистрироваться_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show(
+                "Для создания аккаунта обратитесь к администратору клуба.",
+                "Регистрация");
         }
 
         private void Обслуживание_Click(object sender, RoutedEventArgs e)

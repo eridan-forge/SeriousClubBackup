@@ -10,7 +10,6 @@
 	<ItemGroup>
 		<Folder Include="CoreDownload\" />
 		<Folder Include="CoreServer\" />
-		<Folder Include="Новая папка\" />
 	</ItemGroup>
 
 	<ItemGroup>

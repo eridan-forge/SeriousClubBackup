@@ -659,6 +659,17 @@
                                 <Border Height="1" Background="#2A151D" Margin="0,10,0,10"/>
 
                                 <Button Width="160" Height="104"
+            ToolTip="Тема экрана входа"
+            Click="ТемаВхода_Click">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="🐉" FontSize="34" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Тема входа" FontSize="13" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Border Height="1" Background="#2A151D" Margin="0,10,0,10"/>
+
+                                <Button Width="160" Height="104"
             ToolTip="Резервная копия базы"
             Click="РезервнаяКопия_Click">
                                     <StackPanel HorizontalAlignment="Center">

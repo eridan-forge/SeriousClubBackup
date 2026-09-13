@@ -9,17 +9,31 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Assets\login.mp4" />
+    <None Remove="Assets\bg.mp4" />
+    <None Remove="Темы\Дракон\bg.mp4" />
+    <None Remove="Темы\Дракон\fg.mp4" />
+    <None Remove="Темы\Дракон\logo.png" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Assets\login.mp4">
+    <Content Include="Assets\bg.mp4">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Темы\Дракон\" />
+    <Content Include="Assets\fg.mp4">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\logo.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Темы\Дракон\bg.mp4">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Темы\Дракон\fg.mp4">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Темы\Дракон\logo.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

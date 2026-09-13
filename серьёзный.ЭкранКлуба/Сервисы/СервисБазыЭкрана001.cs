@@ -95,6 +95,8 @@ VALUES
 
         ДобавитьКолонкуАккаунтаЕслиНужно(db);
 
+        ДобавитьКолонкуТемыЕслиНужно(db);
+
         return db;
     }
 
@@ -120,6 +122,32 @@ VALUES
 
         alter.CommandText =
             "ALTER TABLE ScreenState ADD COLUMN AccountId TEXT;";
+
+        alter.ExecuteNonQuery();
+    }
+
+    private static void ДобавитьКолонкуТемыЕслиНужно(
+    SqliteConnection db)
+    {
+        using var check = db.CreateCommand();
+
+        check.CommandText = "PRAGMA table_info(ScreenConfig);";
+
+        using (var reader = check.ExecuteReader())
+        {
+            while (reader.Read())
+            {
+                var имя = reader.GetString(1);
+
+                if (имя == "ThemeId")
+                    return;
+            }
+        }
+
+        using var alter = db.CreateCommand();
+
+        alter.CommandText =
+            "ALTER TABLE ScreenConfig ADD COLUMN ThemeId TEXT NOT NULL DEFAULT '';";
 
         alter.ExecuteNonQuery();
     }
