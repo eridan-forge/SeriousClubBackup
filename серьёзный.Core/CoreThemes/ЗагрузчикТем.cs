@@ -4,10 +4,16 @@ namespace серьёзный.Core.CoreThemes;
 
 public static class ЗагрузчикТем
 {
-    // Ищем темы в двух местах:
-    // 1) Темы\ рядом с exe — темы, которые едут вместе со сборкой.
-    // 2) %ProgramData%\SeriousClub\Themes\ — темы, добавленные позже
-    //    простым копированием папки, без пересборки Visual Studio.
+    private static readonly string[] ФайлыФоновойКартинки =
+    {
+        "bg.png", "bg.jpg", "bg.jpeg"
+    };
+
+    // Темы ищем в двух местах:
+    // 1) Темы\ рядом с exe — темы, вшитые в сборку.
+    // 2) %ProgramData%\SeriousClub\Themes\ — темы, добавленные копированием
+    //    папки, без пересборки Visual Studio. Именно сюда стоит класть
+    //    новые темы (Космос и т.д.).
     private static IEnumerable<string> ПапкиСТемами()
     {
         yield return Path.Combine(AppContext.BaseDirectory, "Темы");
@@ -17,7 +23,9 @@ public static class ЗагрузчикТем
             "SeriousClub", "Themes");
     }
 
-    // Тема попадает в список, только если у неё есть все три файла.
+    // Тема валидна, если есть logo.png И хотя бы один вариант фона:
+    // bg.mp4 (видео, в приоритете) ИЛИ bg.png/bg.jpg/bg.jpeg (картинка).
+    // fg.mp4 больше не читается вообще.
     public static List<ТемаВхода> ЗагрузитьВсе()
     {
         var результат = new List<ТемаВхода>();
@@ -29,18 +37,26 @@ public static class ЗагрузчикТем
 
             foreach (var папкаТемы in Directory.GetDirectories(корень))
             {
-                var фон = Path.Combine(папкаТемы, "bg.mp4");
-                var эффект = Path.Combine(папкаТемы, "fg.mp4");
                 var лого = Path.Combine(папкаТемы, "logo.png");
 
-                if (!File.Exists(фон) || !File.Exists(эффект) || !File.Exists(лого))
+                if (!File.Exists(лого))
+                    continue;
+
+                var видео = Path.Combine(папкаТемы, "bg.mp4");
+                var естьВидео = File.Exists(видео);
+
+                var картинка = ФайлыФоновойКартинки
+                    .Select(имя => Path.Combine(папкаТемы, имя))
+                    .FirstOrDefault(File.Exists);
+
+                if (!естьВидео && картинка == null)
                     continue;
 
                 результат.Add(new ТемаВхода
                 {
                     Id = Path.GetFileName(папкаТемы),
-                    ПутьФон = фон,
-                    ПутьЭффект = эффект,
+                    ПутьФонВидео = естьВидео ? видео : "",
+                    ПутьФонИзображение = естьВидео ? "" : картинка!,
                     ПутьЛого = лого
                 });
             }
@@ -53,19 +69,12 @@ public static class ЗагрузчикТем
             .ToList();
     }
 
-    
-
     public static ТемаВхода? НайтиПоId(string id)
     {
         return ЗагрузитьВсе().FirstOrDefault(x =>
             string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
     }
 
-    // Тема, которую экран включает САМ, если админ ничего не назначал
-    // (ThemeId пустой) или назначенная тема исчезла с диска. Предпочитает
-    // "Дракон" — она всегда идёт в комплекте со сборкой ЭкранКлуба (см.
-    // .csproj), иначе берёт первую найденную. null — только если на
-    // диске вообще нет ни одной валидной темы.
     public static ТемаВхода? НайтиПоУмолчанию()
     {
         var все = ЗагрузитьВсе();

@@ -32,4 +32,16 @@ public static class СервисЭкранаКлуба
         config.Title = текст;
         ConfigService.Сохранить(config);
     }
+
+    // Локальная смена темы прямо с этого ПК (кнопка "Сменить обои" в
+    // обслуживании) — пишет в тот же ScreenConfig.ThemeId, что и
+    // сетевая команда от админа (СервисЭкрана.УстановитьТему в
+    // патруле). MainWindow уже опрашивает ThemeId каждые 3 секунды,
+    // поэтому новая тема подхватится сама, без доп. кода.
+    public static void УстановитьТему(string themeId)
+    {
+        var config = ConfigService.Загрузить();
+        config.ThemeId = themeId;
+        ConfigService.Сохранить(config);
+    }
 }

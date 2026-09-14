@@ -111,6 +111,18 @@ namespace серьёзный.ЭкранКлуба
                 "Готово");
         }
 
+        // Новая кнопка. Локальный выбор темы прямо на этом ПК —
+        // без сети, см. серьёзный.ЭкранКлуба/ОкноСменыОбоев.xaml.cs.
+        private void СменитьОбои_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            new ОкноСменыОбоев
+            {
+                Owner = this
+            }.ShowDialog();
+        }
+
         private void Выключить_Click(
             object sender,
             RoutedEventArgs e)
@@ -125,12 +137,6 @@ namespace серьёзный.ЭкранКлуба
                 });
         }
 
-        // Новая кнопка. MainWindow.Closing у экрана клуба всегда
-        // отменяет закрытие (это киоск-окно, не должно закрываться
-        // случайно крестиком/Alt+F4) — обычный Close() тут не сработает.
-        // Environment.Exit гарантированно завершает процесс целиком,
-        // независимо от состояния окон — нужен как аварийный выход
-        // при тестировании через Visual Studio.
         private void ЗакрытьПриложение_Click(
             object sender,
             RoutedEventArgs e)

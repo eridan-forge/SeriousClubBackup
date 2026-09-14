@@ -41,7 +41,7 @@
 
     <Grid x:Name="Корень">
 
-        <!-- СЛОЙ 1 — ФОНОВОЕ ВИДЕО (дракон, 10 минут, цикл). -->
+        <!-- СЛОЙ 1 — ФОНОВОЕ ВИДЕО (когда фон темы — видео). -->
         <MediaElement x:Name="ФонВидео"
                       Stretch="UniformToFill"
                       LoadedBehavior="Manual"
@@ -49,6 +49,7 @@
                       IsMuted="True"
                       Volume="0"
                       IsHitTestVisible="False"
+                      Visibility="Collapsed"
                       MediaEnded="ФонВидео_MediaEnded"
                       MediaFailed="ФонВидео_MediaFailed">
 
@@ -57,6 +58,18 @@
             </MediaElement.Effect>
 
         </MediaElement>
+
+        <!-- СЛОЙ 1Б — ФОНОВАЯ КАРТИНКА (когда фон темы — bg.png/bg.jpg). -->
+        <Image x:Name="ФонКартинка"
+                Stretch="UniformToFill"
+               IsHitTestVisible="False"
+               Visibility="Collapsed">
+
+            <Image.Effect>
+                <BlurEffect Radius="3.5"/>
+            </Image.Effect>
+
+        </Image>
 
         <!-- СЛОЙ 2 — ЦЕНТРАЛЬНАЯ ПАНЕЛЬ ВХОДА. -->
         <Border x:Name="ПанельВхода"
@@ -84,7 +97,7 @@
                     </Border.Background>
                 </Border>
 
-                <StackPanel VerticalAlignment="Center" Margin="60,0">
+                <StackPanel VerticalAlignment="Center" Margin="60,0,60,140">
 
                     <!-- ЛОГОТИП "СЕРЬЁЗНЫЙ" ИЗ PNG -->
                     <Rectangle x:Name="ЛогоФигура"
@@ -140,7 +153,7 @@
                                 <Grid Grid.Row="1" VerticalAlignment="Center">
 
                                     <TextBlock x:Name="ПодсказкаТелефон"
-                                               Text="+7"
+                                               Text="+"
                                                FontSize="15"
                                                Foreground="#585C66"
                                                IsHitTestVisible="False"/>
@@ -265,7 +278,7 @@
 
                                     <Border x:Name="ФонКнопки"
                                             CornerRadius="23"
-                                            Background="#E5142F"/>
+                                             Background="#D5122C"/>
 
                                     <ContentPresenter HorizontalAlignment="Center"
                                                       VerticalAlignment="Center"/>
@@ -371,8 +384,6 @@
                 VerticalAlignment="Bottom"
                 Margin="0,0,0,26"
                 CornerRadius="14,0,0,14"
-                BorderBrush="#26FFFFFF"
-                BorderThickness="1,1,0,1"
                 Background="#4D050505"
                 Padding="42,20"
                 IsHitTestVisible="False">
@@ -385,18 +396,7 @@
 
         </Border>
 
-        <!-- СЛОЙ 5 — ВИДЕО-ЭФФЕКТ (пепел/угли) — поверх панели входа и
-             кнопок. IsHitTestVisible="False" — клики проходят сквозь него. -->
-        <MediaElement x:Name="ЭффектВидео"
-                      Stretch="UniformToFill"
-                      Opacity="0.4"
-                      LoadedBehavior="Manual"
-                      UnloadedBehavior="Manual"
-                      IsMuted="True"
-                      Volume="0"
-                      IsHitTestVisible="False"
-                      MediaEnded="ЭффектВидео_MediaEnded"
-                      MediaFailed="ЭффектВидео_MediaFailed"/>
+        
 
     </Grid>
 
