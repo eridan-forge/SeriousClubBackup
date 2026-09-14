@@ -11,6 +11,32 @@
 
         <SolidColorBrush x:Key="ОгненнаяРамкаКисть" x:Name="ОгненнаяРамкаКисть" Color="#5C1826"/>
 
+        <!-- Кнопка-ссылка: реагирует только сам текст (лёгкое затемнение
+             при наведении), никакой белой плашки под всей шириной кнопки. -->
+        <Style x:Key="ТекстоваяКнопка" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Opacity" Value="0.7"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Opacity" Value="0.5"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
     </Window.Resources>
 
     <Grid x:Name="Корень">
@@ -32,25 +58,17 @@
 
         </MediaElement>
 
-        <!-- СЛОЙ 2 — ЦЕНТРАЛЬНАЯ СТЕКЛЯННАЯ ПАНЕЛЬ ВХОДА. -->
+        <!-- СЛОЙ 2 — ЦЕНТРАЛЬНАЯ ПАНЕЛЬ ВХОДА. -->
         <Border x:Name="ПанельВхода"
                 Width="700"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Stretch"
-                Margin="0">
+                Margin="0"
+                Background="#4D050505">
 
             <Border.Effect>
                 <DropShadowEffect Color="Black" BlurRadius="36" ShadowDepth="0" Opacity="0.55"/>
             </Border.Effect>
-
-            <Border.Background>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                    <GradientStop Color="#00000000" Offset="0"/>
-                    <GradientStop Color="#D6060608" Offset="0.10"/>
-                    <GradientStop Color="#D6060608" Offset="0.90"/>
-                    <GradientStop Color="#00000000" Offset="1"/>
-                </LinearGradientBrush>
-            </Border.Background>
 
             <Grid>
 
@@ -89,7 +107,9 @@
                             BorderBrush="#34343C"
                             BorderThickness="1"
                             CornerRadius="14"
-                            Height="58"
+                            Height="52"
+                            Width="440"
+                            HorizontalAlignment="Center"
                             Margin="0,0,0,14">
 
                         <Grid>
@@ -105,7 +125,7 @@
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"/>
 
-                            <Grid Grid.Column="1" Margin="0,7,14,7">
+                            <Grid Grid.Column="1" Margin="0,6,14,6">
 
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -120,7 +140,7 @@
                                 <Grid Grid.Row="1" VerticalAlignment="Center">
 
                                     <TextBlock x:Name="ПодсказкаТелефон"
-                                               Text="+7 (___) ___-__-__"
+                                               Text="+7"
                                                FontSize="15"
                                                Foreground="#585C66"
                                                IsHitTestVisible="False"/>
@@ -148,7 +168,9 @@
                             BorderBrush="#34343C"
                             BorderThickness="1"
                             CornerRadius="14"
-                            Height="58"
+                            Height="52"
+                            Width="440"
+                            HorizontalAlignment="Center"
                             Margin="0,0,0,8">
 
                         <Grid>
@@ -165,7 +187,7 @@
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"/>
 
-                            <Grid Grid.Column="1" Margin="0,7,8,7">
+                            <Grid Grid.Column="1" Margin="0,6,8,6">
 
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -206,10 +228,9 @@
                                     Grid.Column="2"
                                     Content="👁"
                                     FontSize="15"
-                                    Background="Transparent"
-                                    BorderThickness="0"
                                     Foreground="#9AA0AE"
-                                    Cursor="Hand"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource ТекстоваяКнопка}"
                                     Click="ПереключитьВидимостьПароля_Click"/>
 
                         </Grid>
@@ -217,18 +238,17 @@
                     </Border>
 
                     <Button Content="Забыли пароль?"
-                            HorizontalAlignment="Center"
-                            Background="Transparent"
-                            BorderThickness="0"
+                            Style="{StaticResource ТекстоваяКнопка}"
                             Foreground="White"
                             FontSize="12"
-                            Cursor="Hand"
                             Margin="0,4,0,22"
                             Click="ЗабылиПароль_Click"/>
 
                     <Button x:Name="КнопкаВойти"
                             Content="ВОЙТИ"
                             Height="46"
+                            Width="440"
+                            HorizontalAlignment="Center"
                             FontSize="15"
                             FontWeight="Bold"
                             Foreground="White"
@@ -312,29 +332,21 @@
                                    HorizontalAlignment="Center"/>
 
                         <Button Content="Зарегистрируйтесь"
-                                Background="Transparent"
-                                BorderThickness="0"
+                                Style="{StaticResource ТекстоваяКнопка}"
                                 Foreground="#E5142F"
                                 FontSize="13"
                                 FontWeight="SemiBold"
-                                Cursor="Hand"
-                                Padding="0"
-                                HorizontalAlignment="Center"
                                 Margin="0,4,0,0"
                                 Click="Зарегистрироваться_Click"/>
 
                     </StackPanel>
 
                     <Button x:Name="Обслуживание"
-                            Margin="0,40,0,0"
-                            Height="26"
-                            Padding="0"
-                            Background="Transparent"
-                            BorderThickness="0"
+                            Content="Обслуживание"
+                            Style="{StaticResource ТекстоваяКнопка}"
                             Foreground="#4A4A52"
                             FontSize="11"
-                            Cursor="Hand"
-                            Content="Обслуживание"
+                            Margin="0,40,0,0"
                             Click="Обслуживание_Click"/>
 
                 </StackPanel>
@@ -346,42 +358,35 @@
         <!-- СЛОЙ 3 — НАЗВАНИЕ ПК -->
         <TextBlock x:Name="ИмяПК"
                    Text="ПК"
-                   FontSize="34"
+                   FontSize="120"
                    FontWeight="Bold"
                    Foreground="White"
                    HorizontalAlignment="Left"
                    VerticalAlignment="Top"
-                   Margin="34,26,0,0"
+                   Margin="34,20,0,0"
                    IsHitTestVisible="False"/>
 
-        <!-- СЛОЙ 4 — ЧАСЫ, В СТЕКЛЯННОЙ РАМКЕ -->
+        <!-- СЛОЙ 4 — ЧАСЫ, ВПРИТЫК К ПРАВОМУ КРАЮ -->
         <Border HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
-                Margin="0,0,34,26"
-                CornerRadius="12"
+                Margin="0,0,0,26"
+                CornerRadius="14,0,0,14"
                 BorderBrush="#26FFFFFF"
-                BorderThickness="1"
-                Padding="26,12"
+                BorderThickness="1,1,0,1"
+                Background="#4D050505"
+                Padding="42,20"
                 IsHitTestVisible="False">
-
-            <Border.Background>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                    <GradientStop Color="#B3060608" Offset="0"/>
-                    <GradientStop Color="#B3050505" Offset="1"/>
-                </LinearGradientBrush>
-            </Border.Background>
 
             <TextBlock x:Name="Часы"
                        Text="00:00"
-                       FontSize="34"
+                       FontSize="78"
                        FontWeight="Bold"
                        Foreground="White"/>
 
         </Border>
 
-        <!-- СЛОЙ 5 — ВИДЕО-ЭФФЕКТ (пепел/угли) — теперь ПОВЕРХ панели входа
-             и всех кнопок. IsHitTestVisible="False" гарантирует, что клики
-             мышью проходят сквозь него к полям и кнопкам под ним. -->
+        <!-- СЛОЙ 5 — ВИДЕО-ЭФФЕКТ (пепел/угли) — поверх панели входа и
+             кнопок. IsHitTestVisible="False" — клики проходят сквозь него. -->
         <MediaElement x:Name="ЭффектВидео"
                       Stretch="UniformToFill"
                       Opacity="0.4"

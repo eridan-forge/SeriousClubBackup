@@ -13,14 +13,8 @@
     <Border CornerRadius="18"
             BorderBrush="#5C1826"
             BorderThickness="1.4"
+            Background="#050505"
             Padding="28">
-
-        <Border.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                <GradientStop Color="#F2111114" Offset="0"/>
-                <GradientStop Color="#F2000000" Offset="1"/>
-            </LinearGradientBrush>
-        </Border.Background>
 
         <Border.Effect>
             <DropShadowEffect Color="Black" BlurRadius="30" ShadowDepth="0" Opacity="0.6"/>
