@@ -9,22 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Assets\bg.mp4" />
     <None Remove="Темы\Дракон\bg.mp4" />
     <None Remove="Темы\Дракон\fg.mp4" />
     <None Remove="Темы\Дракон\logo.png" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Assets\bg.mp4">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Assets\fg.mp4">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Assets\logo.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Include="Темы\Дракон\bg.mp4">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using серьёзный.Модели;
 using серьёзный.Сервисы;
@@ -122,32 +123,162 @@ namespace серьёзный.ЭкранКлуба
         // ТЕМЫ ЭКРАНА ВХОДА
         // =====================================================
 
-        // Пустой Id или тема не найдена -> просто ничего не меняем.
+        // Никакого фолбэка на Assets\ больше нет — Темы\<Id>\ (или
+        // %ProgramData%\SeriousClub\Themes\<Id>\) единственный источник.
+        // Если темы нет/не назначена — экран просто остаётся без видео
+        // и без лого (чёрный фон окна), а не показывает случайные
+        // подставные файлы, которых может уже не быть на диске.
         private void ПрименитьТемуПоId(string? themeId)
         {
             текущаяТемаId = themeId;
 
+            ФонВидео.Source = null;
+            ЭффектВидео.Source = null;
+            ЛогоМаска.ImageSource = null;
+            ЛогоФигура.Visibility = Visibility.Collapsed;
+
             if (string.IsNullOrWhiteSpace(themeId))
+            {
+                ЗаписатьЛогТемы("ThemeId пуст — тема не назначена, экран без видео/лого.");
                 return;
+            }
 
             var тема = ЗагрузчикТем.НайтиПоId(themeId);
 
             if (тема == null)
+            {
+                ЗаписатьЛогТемы(
+                    $"Тема «{themeId}» не найдена ни в Темы\\ рядом с exe, " +
+                    "ни в %ProgramData%\\SeriousClub\\Themes\\.");
+
                 return;
+            }
 
             // ---- фон ----
-            ФонВидео.Source = new Uri(тема.ПутьФон);
-            ФонВидео.Position = TimeSpan.Zero;
-            ФонВидео.Play();
+            if (File.Exists(тема.ПутьФон))
+            {
+                ФонВидео.Source = new Uri(тема.ПутьФон);
+                ФонВидео.Position = TimeSpan.Zero;
+                ФонВидео.Play();
+            }
+            else
+            {
+                ЗаписатьЛогТемы($"bg.mp4 темы «{themeId}» не найден: {тема.ПутьФон}");
+            }
 
-            // ---- эффект поверх всего (пепел/угли) ----
-            ЭффектВидео.Source = new Uri(тема.ПутьЭффект);
-            ЭффектВидео.Position = TimeSpan.Zero;
-            ЭффектВидео.Play();
+            // ---- эффект поверх (пепел/угли) — Opacity вместо честного
+            // screen-блендинга: MP4 не умеет альфа-канал, поэтому любой
+            // непрозрачный фон видео перекроет дракон целиком независимо
+            // от порядка слоёв. Полупрозрачность — рабочий компромисс
+            // без кастомного шейдера. ----
+            if (File.Exists(тема.ПутьЭффект))
+            {
+                ЭффектВидео.Source = new Uri(тема.ПутьЭффект);
+                ЭффектВидео.Position = TimeSpan.Zero;
+                ЭффектВидео.Play();
+            }
+            else
+            {
+                ЗаписатьЛогТемы($"fg.mp4 темы «{themeId}» не найден: {тема.ПутьЭффект}");
+            }
 
             // ---- лого "СЕРЬЁЗНЫЙ" ----
-            ЛогоМаска.ImageSource =
-                new System.Windows.Media.Imaging.BitmapImage(new Uri(тема.ПутьЛого));
+            if (File.Exists(тема.ПутьЛого))
+            {
+                try
+                {
+                    ЛогоМаска.ImageSource = СделатьЧёрныйФонПрозрачным(тема.ПутьЛого);
+                    ЛогоФигура.Visibility = Visibility.Visible;
+                }
+                catch (Exception ошибка)
+                {
+                    ЗаписатьЛогТемы($"Не удалось обработать logo.png темы «{themeId}»: {ошибка}");
+                }
+            }
+            else
+            {
+                ЗаписатьЛогТемы($"logo.png темы «{themeId}» не найден: {тема.ПутьЛого}");
+            }
+        }
+
+        // OpacityMask в WPF смотрит на АЛЬФА-канал кисти, а не на яркость
+        // пикселей. Обычный "плоский" PNG (сохранённый без реальной
+        // прозрачности) имеет альфа=255 везде — в том числе у чёрного
+        // фона. Из-за этого маска ничего не вырезала, и вся фигура
+        // заливалась ЛогоЦвет сплошным цветом — это и был красный
+        // квадрат. Здесь вручную превращаем близкие к чёрному пиксели
+        // в alpha=0, не трогая сам файл на диске.
+        private static BitmapSource СделатьЧёрныйФонПрозрачным(
+            string путь,
+            byte порог = 24)
+        {
+            var исходное = new BitmapImage();
+
+            исходное.BeginInit();
+            исходное.CacheOption = BitmapCacheOption.OnLoad;
+            исходное.UriSource = new Uri(путь);
+            исходное.EndInit();
+            исходное.Freeze();
+
+            var конверт = new FormatConvertedBitmap(
+                исходное,
+                PixelFormats.Bgra32,
+                null,
+                0);
+
+            int width = конверт.PixelWidth;
+            int height = конверт.PixelHeight;
+            int stride = width * 4;
+
+            var pixels = new byte[height * stride];
+
+            конверт.CopyPixels(pixels, stride, 0);
+
+            for (int i = 0; i < pixels.Length; i += 4)
+            {
+                byte b = pixels[i];
+                byte g = pixels[i + 1];
+                byte r = pixels[i + 2];
+
+                if (r <= порог && g <= порог && b <= порог)
+                {
+                    pixels[i] = 0;
+                    pixels[i + 1] = 0;
+                    pixels[i + 2] = 0;
+                    pixels[i + 3] = 0;
+                }
+            }
+
+            var результат = BitmapSource.Create(
+                width,
+                height,
+                конверт.DpiX,
+                конверт.DpiY,
+                PixelFormats.Bgra32,
+                null,
+                pixels,
+                stride);
+
+            результат.Freeze();
+
+            return результат;
+        }
+
+        private static void ЗаписатьЛогТемы(string сообщение)
+        {
+            try
+            {
+                var папка = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "SeriousClub", "logs");
+
+                Directory.CreateDirectory(папка);
+
+                File.AppendAllText(
+                    Path.Combine(папка, "club-screen-crash.log"),
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Тема входа: {сообщение}{Environment.NewLine}");
+            }
+            catch { }
         }
 
         // Видео зациклено самим файлом (первый и последний кадр совпадают),
@@ -162,6 +293,36 @@ namespace серьёзный.ЭкранКлуба
         {
             ЭффектВидео.Position = TimeSpan.Zero;
             ЭффектВидео.Play();
+        }
+
+        // Ошибка декодирования (нет кодека — частый случай на "голых"
+        // сборках Windows без Media Feature Pack) раньше проглатывалась
+        // полностью молча. Теперь пишем в тот же club-screen-crash.log.
+        private void ФонВидео_MediaFailed(object sender, ExceptionRoutedEventArgs e)
+        {
+            ЗаписатьЛогМедиа("ФонВидео", e.ErrorException);
+        }
+
+        private void ЭффектВидео_MediaFailed(object sender, ExceptionRoutedEventArgs e)
+        {
+            ЗаписатьЛогМедиа("ЭффектВидео", e.ErrorException);
+        }
+
+        private static void ЗаписатьЛогМедиа(string слой, Exception? ошибка)
+        {
+            try
+            {
+                var папка = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "SeriousClub", "logs");
+
+                Directory.CreateDirectory(папка);
+
+                File.AppendAllText(
+                    Path.Combine(папка, "club-screen-crash.log"),
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] MediaFailed ({слой}): {ошибка}{Environment.NewLine}");
+            }
+            catch { }
         }
 
         // =====================================================
