@@ -32,14 +32,356 @@
 
         </MediaElement>
 
-        <!-- СЛОЙ 2 — ВИДЕО-ЭФФЕКТ (пепел/угли).
-             MP4 не умеет альфа-канал — непрозрачный фон этого видео
-             физически не может "прорезаться", независимо от порядка
-             слоёв. Opacity ниже — рабочий компромисс: дракон просвечивает
-             сквозь полупрозрачный пепел. Настоящий screen-блендинг
-             (чтобы чёрное вообще не участвовало) требует кастомный
-             pixel shader — отдельная задача, если нужен именно он.
-             Значение 0.4 — подбирай на глаз под конкретное видео. -->
+        <!-- СЛОЙ 2 — ЦЕНТРАЛЬНАЯ СТЕКЛЯННАЯ ПАНЕЛЬ ВХОДА. -->
+        <Border x:Name="ПанельВхода"
+                Width="700"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Stretch"
+                Margin="0">
+
+            <Border.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="36" ShadowDepth="0" Opacity="0.55"/>
+            </Border.Effect>
+
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                    <GradientStop Color="#00000000" Offset="0"/>
+                    <GradientStop Color="#D6060608" Offset="0.10"/>
+                    <GradientStop Color="#D6060608" Offset="0.90"/>
+                    <GradientStop Color="#00000000" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+
+            <Grid>
+
+                <!-- лёгкий стеклянный блик у верхнего края панели -->
+                <Border VerticalAlignment="Top"
+                        Height="260"
+                        IsHitTestVisible="False">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#20FFFFFF" Offset="0"/>
+                            <GradientStop Color="#00FFFFFF" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+
+                <StackPanel VerticalAlignment="Center" Margin="60,0">
+
+                    <!-- ЛОГОТИП "СЕРЬЁЗНЫЙ" ИЗ PNG -->
+                    <Rectangle x:Name="ЛогоФигура"
+                               Height="104"
+                               Margin="0,40,0,32"
+                               Visibility="Collapsed">
+                        <Rectangle.Effect>
+                            <BlurEffect Radius="1.3"/>
+                        </Rectangle.Effect>
+                        <Rectangle.Fill>
+                            <SolidColorBrush x:Name="ЛогоЦвет" Color="#E5142F"/>
+                        </Rectangle.Fill>
+                        <Rectangle.OpacityMask>
+                            <ImageBrush x:Name="ЛогоМаска" Stretch="Uniform"/>
+                        </Rectangle.OpacityMask>
+                    </Rectangle>
+
+                    <!-- ПОЛЕ ТЕЛЕФОНА -->
+                    <Border Background="#242429"
+                            BorderBrush="#34343C"
+                            BorderThickness="1"
+                            CornerRadius="14"
+                            Height="58"
+                            Margin="0,0,0,14">
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="44"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0"
+                                       Text="📱"
+                                       FontSize="18"
+                                       Foreground="#9AA0AE"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+
+                            <Grid Grid.Column="1" Margin="0,7,14,7">
+
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="Номер телефона"
+                                           FontSize="10"
+                                           Foreground="#7D8290"
+                                           Margin="0,0,0,2"/>
+
+                                <Grid Grid.Row="1" VerticalAlignment="Center">
+
+                                    <TextBlock x:Name="ПодсказкаТелефон"
+                                               Text="+7 (___) ___-__-__"
+                                               FontSize="15"
+                                               Foreground="#585C66"
+                                               IsHitTestVisible="False"/>
+
+                                    <TextBox x:Name="ПолеТелефон"
+                                             Background="Transparent"
+                                             Foreground="White"
+                                             CaretBrush="White"
+                                             BorderThickness="0"
+                                             FontSize="15"
+                                             Padding="0"
+                                             VerticalContentAlignment="Center"
+                                             TextChanged="ПолеТелефон_TextChanged"/>
+
+                                </Grid>
+
+                            </Grid>
+
+                        </Grid>
+
+                    </Border>
+
+                    <!-- ПОЛЕ ПАРОЛЯ -->
+                    <Border Background="#242429"
+                            BorderBrush="#34343C"
+                            BorderThickness="1"
+                            CornerRadius="14"
+                            Height="58"
+                            Margin="0,0,0,8">
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="44"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="40"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0"
+                                       Text="🔒"
+                                       FontSize="17"
+                                       Foreground="#9AA0AE"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+
+                            <Grid Grid.Column="1" Margin="0,7,8,7">
+
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="Пароль"
+                                           FontSize="10"
+                                           Foreground="#7D8290"
+                                           Margin="0,0,0,2"/>
+
+                                <Grid Grid.Row="1" VerticalAlignment="Center">
+
+                                    <PasswordBox x:Name="ПолеПароль"
+                                                 Background="Transparent"
+                                                 Foreground="White"
+                                                 CaretBrush="White"
+                                                 BorderThickness="0"
+                                                 FontSize="15"
+                                                 Padding="0"
+                                                 VerticalContentAlignment="Center"/>
+
+                                    <TextBox x:Name="ПолеПарольВидимый"
+                                             Background="Transparent"
+                                             Foreground="White"
+                                             CaretBrush="White"
+                                             BorderThickness="0"
+                                             FontSize="15"
+                                             Padding="0"
+                                             VerticalContentAlignment="Center"
+                                             Visibility="Collapsed"/>
+
+                                </Grid>
+
+                            </Grid>
+
+                            <Button x:Name="КнопкаПоказатьПароль"
+                                    Grid.Column="2"
+                                    Content="👁"
+                                    FontSize="15"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Foreground="#9AA0AE"
+                                    Cursor="Hand"
+                                    Click="ПереключитьВидимостьПароля_Click"/>
+
+                        </Grid>
+
+                    </Border>
+
+                    <Button Content="Забыли пароль?"
+                            HorizontalAlignment="Center"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="White"
+                            FontSize="12"
+                            Cursor="Hand"
+                            Margin="0,4,0,22"
+                            Click="ЗабылиПароль_Click"/>
+
+                    <Button x:Name="КнопкаВойти"
+                            Content="ВОЙТИ"
+                            Height="46"
+                            FontSize="15"
+                            FontWeight="Bold"
+                            Foreground="White"
+                            Cursor="Hand"
+                            Click="Войти_Click">
+
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Grid RenderTransformOrigin="0.5,0.5">
+
+                                    <Grid.RenderTransform>
+                                        <ScaleTransform x:Name="МасштабКнопки" ScaleX="1" ScaleY="1"/>
+                                    </Grid.RenderTransform>
+
+                                    <Border x:Name="ФонКнопки"
+                                            CornerRadius="23"
+                                            Background="#E5142F"/>
+
+                                    <ContentPresenter HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"/>
+
+                                </Grid>
+
+                                <ControlTemplate.Triggers>
+
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="ФонКнопки" Property="Background" Value="#FF2A47"/>
+                                    </Trigger>
+
+                                    <Trigger Property="IsPressed" Value="True">
+
+                                        <Trigger.EnterActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetName="МасштабКнопки"
+                                                                     Storyboard.TargetProperty="ScaleX"
+                                                                     To="0.95" Duration="0:0:0.08"/>
+                                                    <DoubleAnimation Storyboard.TargetName="МасштабКнопки"
+                                                                     Storyboard.TargetProperty="ScaleY"
+                                                                     To="0.95" Duration="0:0:0.08"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </Trigger.EnterActions>
+
+                                        <Trigger.ExitActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetName="МасштабКнопки"
+                                                                     Storyboard.TargetProperty="ScaleX"
+                                                                     To="1" Duration="0:0:0.15"/>
+                                                    <DoubleAnimation Storyboard.TargetName="МасштабКнопки"
+                                                                     Storyboard.TargetProperty="ScaleY"
+                                                                     To="1" Duration="0:0:0.15"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </Trigger.ExitActions>
+
+                                    </Trigger>
+
+                                </ControlTemplate.Triggers>
+
+                            </ControlTemplate>
+                        </Button.Template>
+
+                    </Button>
+
+                    <TextBlock x:Name="ТекстОшибка"
+                               Margin="0,12,0,0"
+                               Foreground="#FF5C5C"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               Visibility="Collapsed"
+                               TextAlignment="Center"/>
+
+                    <StackPanel HorizontalAlignment="Center"
+                                Margin="0,26,0,0">
+
+                        <TextBlock Text="Если у вас ещё нет аккаунта"
+                                   Foreground="White"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"/>
+
+                        <Button Content="Зарегистрируйтесь"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="#E5142F"
+                                FontSize="13"
+                                FontWeight="SemiBold"
+                                Cursor="Hand"
+                                Padding="0"
+                                HorizontalAlignment="Center"
+                                Margin="0,4,0,0"
+                                Click="Зарегистрироваться_Click"/>
+
+                    </StackPanel>
+
+                    <Button x:Name="Обслуживание"
+                            Margin="0,40,0,0"
+                            Height="26"
+                            Padding="0"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="#4A4A52"
+                            FontSize="11"
+                            Cursor="Hand"
+                            Content="Обслуживание"
+                            Click="Обслуживание_Click"/>
+
+                </StackPanel>
+
+            </Grid>
+
+        </Border>
+
+        <!-- СЛОЙ 3 — НАЗВАНИЕ ПК -->
+        <TextBlock x:Name="ИмяПК"
+                   Text="ПК"
+                   FontSize="34"
+                   FontWeight="Bold"
+                   Foreground="White"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Top"
+                   Margin="34,26,0,0"
+                   IsHitTestVisible="False"/>
+
+        <!-- СЛОЙ 4 — ЧАСЫ, В СТЕКЛЯННОЙ РАМКЕ -->
+        <Border HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Margin="0,0,34,26"
+                CornerRadius="12"
+                BorderBrush="#26FFFFFF"
+                BorderThickness="1"
+                Padding="26,12"
+                IsHitTestVisible="False">
+
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#B3060608" Offset="0"/>
+                    <GradientStop Color="#B3050505" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+
+            <TextBlock x:Name="Часы"
+                       Text="00:00"
+                       FontSize="34"
+                       FontWeight="Bold"
+                       Foreground="White"/>
+
+        </Border>
+
+        <!-- СЛОЙ 5 — ВИДЕО-ЭФФЕКТ (пепел/угли) — теперь ПОВЕРХ панели входа
+             и всех кнопок. IsHitTestVisible="False" гарантирует, что клики
+             мышью проходят сквозь него к полям и кнопкам под ним. -->
         <MediaElement x:Name="ЭффектВидео"
                       Stretch="UniformToFill"
                       Opacity="0.4"
@@ -50,217 +392,6 @@
                       IsHitTestVisible="False"
                       MediaEnded="ЭффектВидео_MediaEnded"
                       MediaFailed="ЭффектВидео_MediaFailed"/>
-
-        <!-- СЛОЙ 3 — ЦЕНТРАЛЬНАЯ ПАНЕЛЬ ВХОДА. -->
-        <Border x:Name="ПанельВхода"
-                Width="380"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Stretch"
-                Margin="0"
-                Background="#CC000000"
-                BorderBrush="#33FFFFFF"
-                BorderThickness="1,0,1,0">
-
-            <StackPanel VerticalAlignment="Center" Margin="30,0">
-
-                <!-- ЛОГОТИП "СЕРЬЁЗНЫЙ" ИЗ PNG.
-                     Visibility="Collapsed" по умолчанию — пока код не
-                     подтвердит, что logo.png реально загружен и обработан
-                     (см. СделатьЧёрныйФонПрозрачным в .xaml.cs), фигура
-                     скрыта. Раньше при отсутствии/незагруженном логотипе
-                     тут был виден сплошной красный квадрат — Rectangle
-                     без валидной маски просто заливался ЛогоЦвет целиком. -->
-                <Rectangle x:Name="ЛогоФигура"
-                           Height="80"
-                           Margin="0,40,0,30"
-                           Visibility="Collapsed">
-                    <Rectangle.Fill>
-                        <SolidColorBrush x:Name="ЛогоЦвет" Color="#E5142F"/>
-                    </Rectangle.Fill>
-                    <Rectangle.OpacityMask>
-                        <ImageBrush x:Name="ЛогоМаска" Stretch="Uniform"/>
-                    </Rectangle.OpacityMask>
-                </Rectangle>
-
-                <!-- ПОЛЕ ТЕЛЕФОНА -->
-                <Border Background="#0D0D0D"
-                        BorderBrush="{StaticResource ОгненнаяРамкаКисть}"
-                        BorderThickness="1.6"
-                        CornerRadius="10"
-                        Height="44"
-                        Margin="0,0,0,14">
-
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="40"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <TextBlock Grid.Column="0"
-                                   Text="📱"
-                                   FontSize="17"
-                                   Foreground="#B4123A"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"/>
-
-                        <TextBox x:Name="ПолеТелефон"
-                                 Grid.Column="1"
-                                 Background="Transparent"
-                                 Foreground="White"
-                                 CaretBrush="White"
-                                 BorderThickness="0"
-                                 FontSize="15"
-                                 VerticalContentAlignment="Center"
-                                 Padding="0,0,10,0"
-                                 TextChanged="ПолеТелефон_TextChanged"/>
-                    </Grid>
-
-                </Border>
-
-                <!-- ПОЛЕ ПАРОЛЯ -->
-                <Border Background="#0D0D0D"
-                        BorderBrush="{StaticResource ОгненнаяРамкаКисть}"
-                        BorderThickness="1.6"
-                        CornerRadius="10"
-                        Height="44"
-                        Margin="0,0,0,8">
-
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="40"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="40"/>
-                        </Grid.ColumnDefinitions>
-
-                        <TextBlock Grid.Column="0"
-                                   Text="🔒"
-                                   FontSize="16"
-                                   Foreground="#B4123A"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"/>
-
-                        <PasswordBox x:Name="ПолеПароль"
-                                     Grid.Column="1"
-                                     Background="Transparent"
-                                     Foreground="White"
-                                     CaretBrush="White"
-                                     BorderThickness="0"
-                                     FontSize="15"
-                                     VerticalContentAlignment="Center"
-                                     Padding="0,0,6,0"/>
-
-                        <TextBox x:Name="ПолеПарольВидимый"
-                                 Grid.Column="1"
-                                 Background="Transparent"
-                                 Foreground="White"
-                                 CaretBrush="White"
-                                 BorderThickness="0"
-                                 FontSize="15"
-                                 VerticalContentAlignment="Center"
-                                 Padding="0,0,6,0"
-                                 Visibility="Collapsed"/>
-
-                        <Button x:Name="КнопкаПоказатьПароль"
-                                Grid.Column="2"
-                                Content="👁"
-                                FontSize="15"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                Foreground="#B4123A"
-                                Cursor="Hand"
-                                Click="ПереключитьВидимостьПароля_Click"/>
-                    </Grid>
-
-                </Border>
-
-                <Button Content="Забыли пароль?"
-                        HorizontalAlignment="Center"
-                        Background="Transparent"
-                        BorderThickness="0"
-                        Foreground="#8C8C99"
-                        FontSize="12"
-                        Cursor="Hand"
-                        Margin="0,0,0,20"
-                        Click="ЗабылиПароль_Click"/>
-
-                <Button x:Name="КнопкаВойти"
-                        Content="Войти"
-                        Height="42"
-                        FontSize="15"
-                        FontWeight="SemiBold"
-                        Background="#B4123A"
-                        Foreground="White"
-                        BorderThickness="0"
-                        Cursor="Hand"
-                        Click="Войти_Click"/>
-
-                <TextBlock x:Name="ТекстОшибка"
-                           Margin="0,12,0,0"
-                           Foreground="#FF5C5C"
-                           FontSize="12"
-                           TextWrapping="Wrap"
-                           Visibility="Collapsed"
-                           TextAlignment="Center"/>
-
-                <StackPanel Orientation="Horizontal"
-                            HorizontalAlignment="Center"
-                            Margin="0,26,0,0">
-
-                    <TextBlock Text="Ещё нет аккаунта? "
-                               Foreground="#8C8C99"
-                               FontSize="12"/>
-
-                    <Button Content="Зарегистрируйтесь"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Foreground="#E5142F"
-                            FontSize="12"
-                            FontWeight="SemiBold"
-                            Cursor="Hand"
-                            Padding="0"
-                            Click="Зарегистрироваться_Click"/>
-
-                </StackPanel>
-
-                <Button x:Name="Обслуживание"
-                        Margin="0,40,0,0"
-                        Height="26"
-                        Padding="0"
-                        Background="Transparent"
-                        BorderThickness="0"
-                        Foreground="#4A4A52"
-                        FontSize="11"
-                        Cursor="Hand"
-                        Content="Обслуживание"
-                        Click="Обслуживание_Click"/>
-
-            </StackPanel>
-
-        </Border>
-
-        <!-- СЛОЙ 4 — НАЗВАНИЕ ПК -->
-        <TextBlock x:Name="ИмяПК"
-                   Text="ПК"
-                   FontSize="30"
-                   FontWeight="Bold"
-                   Foreground="#E5142F"
-                   Opacity="0.55"
-                   HorizontalAlignment="Left"
-                   VerticalAlignment="Top"
-                   Margin="34,26,0,0"
-                   IsHitTestVisible="False"/>
-
-        <!-- СЛОЙ 5 — ЧАСЫ -->
-        <TextBlock x:Name="Часы"
-                   Text="00:00"
-                   FontSize="26"
-                   FontWeight="Bold"
-                   Foreground="#E5142F"
-                   Opacity="0.7"
-                   HorizontalAlignment="Right"
-                   VerticalAlignment="Bottom"
-                   Margin="0,0,34,26"
-                   IsHitTestVisible="False"/>
 
     </Grid>
 
