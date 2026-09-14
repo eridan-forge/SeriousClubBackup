@@ -76,7 +76,15 @@ namespace серьёзный.ЭкранКлуба
 
             ЗапуститьМерцаниеРамок();
 
-            ЗапуститьПрослушиваниеПередачи();
+            try
+            {
+                ЗапуститьПрослушиваниеПередачи();
+            }
+            catch (Exception ошибка)
+            {
+                ЗаписатьЛогИнициализации(
+                     "Синхронизация игр (UDP) не запущена: " + ошибка);
+            }
 
             // "hh:mm" = 12-часовой формат без AM/PM (07:45, а не 19:45).
             // Хочешь секунды — поменяй на "hh:mm:ss".
@@ -137,19 +145,30 @@ namespace серьёзный.ЭкранКлуба
             ЛогоМаска.ImageSource = null;
             ЛогоФигура.Visibility = Visibility.Collapsed;
 
-            if (string.IsNullOrWhiteSpace(themeId))
+            var тема = string.IsNullOrWhiteSpace(themeId)
+                ? null
+                : ЗагрузчикТем.НайтиПоId(themeId);
+
+            if (тема == null && !string.IsNullOrWhiteSpace(themeId))
             {
-                ЗаписатьЛогТемы("ThemeId пуст — тема не назначена, экран без видео/лого.");
-                return;
+                ЗаписатьЛогТемы(
+                    $"Тема «{themeId}» не найдена ни в Темы\\ рядом с exe, " +
+                    "ни в %ProgramData%\\SeriousClub\\Themes\\. Подставляю тему по умолчанию.");
             }
 
-            var тема = ЗагрузчикТем.НайтиПоId(themeId);
+            // Ничего явно не назначено (обычное состояние свежей базы, пока
+            // админ ни разу не отправил тему) ИЛИ назначенная тема пропала
+            // с диска — в обоих случаях подставляем тему по умолчанию,
+            // чтобы экран никогда не оставался чёрным без видео. Работает
+            // полностью локально: НайтиПоУмолчанию только сканирует папки
+            // на диске, ни Патруль, ни сервер тут не участвуют.
+            тема ??= ЗагрузчикТем.НайтиПоУмолчанию();
 
             if (тема == null)
             {
                 ЗаписатьЛогТемы(
-                    $"Тема «{themeId}» не найдена ни в Темы\\ рядом с exe, " +
-                    "ни в %ProgramData%\\SeriousClub\\Themes\\.");
+                    "Тем не найдено ни в Темы\\ рядом с exe, ни в " +
+                    "%ProgramData%\\SeriousClub\\Themes\\ — экран без видео/лого.");
 
                 return;
             }
@@ -163,7 +182,7 @@ namespace серьёзный.ЭкранКлуба
             }
             else
             {
-                ЗаписатьЛогТемы($"bg.mp4 темы «{themeId}» не найден: {тема.ПутьФон}");
+                ЗаписатьЛогТемы($"bg.mp4 темы «{тема.Id}» не найден: {тема.ПутьФон}");
             }
 
             // ---- эффект поверх (пепел/угли) — Opacity вместо честного
@@ -179,7 +198,7 @@ namespace серьёзный.ЭкранКлуба
             }
             else
             {
-                ЗаписатьЛогТемы($"fg.mp4 темы «{themeId}» не найден: {тема.ПутьЭффект}");
+                ЗаписатьЛогТемы($"fg.mp4 темы «{тема.Id}» не найден: {тема.ПутьЭффект}");
             }
 
             // ---- лого "СЕРЬЁЗНЫЙ" ----
@@ -192,12 +211,12 @@ namespace серьёзный.ЭкранКлуба
                 }
                 catch (Exception ошибка)
                 {
-                    ЗаписатьЛогТемы($"Не удалось обработать logo.png темы «{themeId}»: {ошибка}");
+                    ЗаписатьЛогТемы($"Не удалось обработать logo.png темы «{тема.Id}»: {ошибка}");
                 }
             }
             else
             {
-                ЗаписатьЛогТемы($"logo.png темы «{themeId}» не найден: {тема.ПутьЛого}");
+                ЗаписатьЛогТемы($"logo.png темы «{тема.Id}» не найден: {тема.ПутьЛого}");
             }
         }
 
@@ -308,6 +327,8 @@ namespace серьёзный.ЭкранКлуба
             ЗаписатьЛогМедиа("ЭффектВидео", e.ErrorException);
         }
 
+        
+
         private static void ЗаписатьЛогМедиа(string слой, Exception? ошибка)
         {
             try
@@ -321,6 +342,23 @@ namespace серьёзный.ЭкранКлуба
                 File.AppendAllText(
                     Path.Combine(папка, "club-screen-crash.log"),
                     $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] MediaFailed ({слой}): {ошибка}{Environment.NewLine}");
+            }
+            catch { }
+        }
+
+        private static void ЗаписатьЛогИнициализации(string сообщение)
+        {
+            try
+            {
+                var папка = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "SeriousClub", "logs");
+
+                Directory.CreateDirectory(папка);
+
+                File.AppendAllText(
+                    Path.Combine(папка, "club-screen-crash.log"),
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Инициализация: {сообщение}{Environment.NewLine}");
             }
             catch { }
         }

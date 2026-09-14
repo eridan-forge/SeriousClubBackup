@@ -53,9 +53,28 @@ public static class ЗагрузчикТем
             .ToList();
     }
 
+    
+
     public static ТемаВхода? НайтиПоId(string id)
     {
         return ЗагрузитьВсе().FirstOrDefault(x =>
             string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
+    }
+
+    // Тема, которую экран включает САМ, если админ ничего не назначал
+    // (ThemeId пустой) или назначенная тема исчезла с диска. Предпочитает
+    // "Дракон" — она всегда идёт в комплекте со сборкой ЭкранКлуба (см.
+    // .csproj), иначе берёт первую найденную. null — только если на
+    // диске вообще нет ни одной валидной темы.
+    public static ТемаВхода? НайтиПоУмолчанию()
+    {
+        var все = ЗагрузитьВсе();
+
+        if (все.Count == 0)
+            return null;
+
+        return все.FirstOrDefault(x =>
+                   string.Equals(x.Id, "Дракон", StringComparison.OrdinalIgnoreCase))
+               ?? все[0];
     }
 }

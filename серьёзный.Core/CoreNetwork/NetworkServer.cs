@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using серьёзный.Core.CoreModels;
+using серьёзный.Core.CoreLogs;
 
 namespace серьёзный.Core.CoreNetwork
 {
@@ -19,12 +20,30 @@ namespace серьёзный.Core.CoreNetwork
         {
             if (server != null)
                 return;
+            try
+            {
+                server = new UdpClient(port);
 
-            server = new UdpClient(port);
+                server.EnableBroadcast = true;
 
-            server.EnableBroadcast = true;
+                BeginReceive();
+            }
+            catch (Exception ошибка)
+            {
 
-            BeginReceive();
+                // Порт уже занят (второй запущенный экземпляр процесса —
+                                // частый случай, т.к. окно ЭкранКлуба нельзя закрыть
+                                // крестиком и его не видно в трее). Раньше SocketException
+                                // вылетал отсюда наружу и обрывал ПриЗагрузке целиком —
+                                // ни часы, ни опрос состояния, ни живая смена темы дальше
+                                // не запускались. Эта фича не критична — просто логируем.
+                server = null;
+                
+                LaunchLogger.Write(
+                $"NetworkServer: не удалось занять порт {port}: {ошибка.Message}");
+            }
+            
+
         }
 
         public void Stop()
