@@ -10,10 +10,8 @@ public static class ЗагрузчикТем
     };
 
     // Темы ищем в двух местах:
-    // 1) Темы\ рядом с exe — темы, вшитые в сборку.
-    // 2) %ProgramData%\SeriousClub\Themes\ — темы, добавленные копированием
-    //    папки, без пересборки Visual Studio. Именно сюда стоит класть
-    //    новые темы (Космос и т.д.).
+    // 1) Темы\ рядом с exe — вшитые в сборку.
+    // 2) %ProgramData%\SeriousClub\Themes\ — добавленные копированием папки.
     private static IEnumerable<string> ПапкиСТемами()
     {
         yield return Path.Combine(AppContext.BaseDirectory, "Темы");
@@ -23,9 +21,7 @@ public static class ЗагрузчикТем
             "SeriousClub", "Themes");
     }
 
-    // Тема валидна, если есть logo.png И хотя бы один вариант фона:
-    // bg.mp4 (видео, в приоритете) ИЛИ bg.png/bg.jpg/bg.jpeg (картинка).
-    // fg.mp4 больше не читается вообще.
+    // Тема валидна, если есть logo.png И хотя бы один mp4 ИЛИ картинка фона.
     public static List<ТемаВхода> ЗагрузитьВсе()
     {
         var результат = new List<ТемаВхода>();
@@ -42,21 +38,35 @@ public static class ЗагрузчикТем
                 if (!File.Exists(лого))
                     continue;
 
-                var видео = Path.Combine(папкаТемы, "bg.mp4");
-                var естьВидео = File.Exists(видео);
+                // ВСЕ mp4 папки = плейлист темы. Порядок — естественная
+                // сортировка имён, поэтому bg2.mp4 идёт раньше bg10.mp4.
+                List<string> видео;
+
+                try
+                {
+                    видео = Directory.GetFiles(папкаТемы, "*.mp4")
+                        .Where(файл => !Path.GetFileName(файл)
+                            .StartsWith("fg", StringComparison.OrdinalIgnoreCase))
+                        .OrderBy(файл => Path.GetFileName(файл), ЕстественноеСравнение.Экземпляр)
+                        .ToList();
+                }
+                catch
+                {
+                    видео = new List<string>();
+                }
 
                 var картинка = ФайлыФоновойКартинки
                     .Select(имя => Path.Combine(папкаТемы, имя))
                     .FirstOrDefault(File.Exists);
 
-                if (!естьВидео && картинка == null)
+                if (видео.Count == 0 && картинка == null)
                     continue;
 
                 результат.Add(new ТемаВхода
                 {
                     Id = Path.GetFileName(папкаТемы),
-                    ПутьФонВидео = естьВидео ? видео : "",
-                    ПутьФонИзображение = естьВидео ? "" : картинка!,
+                    Видео = видео,
+                    ПутьФонИзображение = видео.Count > 0 ? "" : картинка!,
                     ПутьЛого = лого
                 });
             }
@@ -85,5 +95,54 @@ public static class ЗагрузчикТем
         return все.FirstOrDefault(x =>
                    string.Equals(x.Id, "Дракон", StringComparison.OrdinalIgnoreCase))
                ?? все[0];
+    }
+
+    // "bg2.mp4" < "bg10.mp4" — обычная строковая сортировка дала бы наоборот.
+    private sealed class ЕстественноеСравнение : IComparer<string>
+    {
+        public static readonly ЕстественноеСравнение Экземпляр = new();
+
+        public int Compare(string? первая, string? вторая)
+        {
+            var a = первая ?? "";
+            var b = вторая ?? "";
+
+            int i = 0, j = 0;
+
+            while (i < a.Length && j < b.Length)
+            {
+                if (char.IsDigit(a[i]) && char.IsDigit(b[j]))
+                {
+                    int началоA = i, началоB = j;
+
+                    while (i < a.Length && char.IsDigit(a[i])) i++;
+                    while (j < b.Length && char.IsDigit(b[j])) j++;
+
+                    var числоA = a.Substring(началоA, i - началоA).TrimStart('0');
+                    var числоB = b.Substring(началоB, j - началоB).TrimStart('0');
+
+                    if (числоA.Length != числоB.Length)
+                        return числоA.Length - числоB.Length;
+
+                    var сравнение = string.CompareOrdinal(числоA, числоB);
+
+                    if (сравнение != 0)
+                        return сравнение;
+                }
+                else
+                {
+                    var сравнение =
+                        char.ToUpperInvariant(a[i]).CompareTo(char.ToUpperInvariant(b[j]));
+
+                    if (сравнение != 0)
+                        return сравнение;
+
+                    i++;
+                    j++;
+                }
+            }
+
+            return (a.Length - i) - (b.Length - j);
+        }
     }
 }

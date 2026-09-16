@@ -1,159 +1,147 @@
 ﻿using System;
-using System.Diagnostics;
+using System.IO;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using серьёзный.Core.CoreAudit;
+using серьёзный.Core.CoreThemes;
 using серьёзный.ЭкранКлуба.Сервисы;
 
-namespace серьёзный.ЭкранКлуба
+namespace серьёзный.ЭкранКлуба;
+
+public partial class ОкноСменыОбоев : Window
 {
-    public partial class PasswordWindow : Window
+    private readonly AdminActionLogService лог = new();
+
+    private readonly int idПК;
+
+    public ОкноСменыОбоев()
     {
-        private readonly string пароль;
+        InitializeComponent();
 
-        public PasswordWindow(string пароль)
+        try { idПК = StateService.Загрузить().PcId; }
+        catch { idПК = 0; }
+
+        Loaded += (_, _) => ПостроитьСписок();
+    }
+
+    private void ПостроитьСписок()
+    {
+        СписокТем.Children.Clear();
+
+        var темы = ЗагрузчикТем.ЗагрузитьВсе();
+
+        if (темы.Count == 0)
         {
-            InitializeComponent();
-
-            this.пароль = пароль;
-        }
-
-        private void Войти_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            if (ПолеПароля.Password != пароль)
+            СписокТем.Children.Add(new TextBlock
             {
-                ТекстОшибки.Text =
-                    "Неверный пароль.";
-                return;
-            }
+                Text = "Тем не найдено. Проверь Темы\\ рядом с программой или " +
+                       "%ProgramData%\\SeriousClub\\Themes\\.",
+                Foreground = Brushes.Gray,
+                TextWrapping = TextWrapping.Wrap
+            });
 
-            ВходПанель.Visibility =
-                Visibility.Collapsed;
-
-            ПанельАдмина.Visibility =
-                Visibility.Visible;
+            return;
         }
 
-        private void Запустить_Click(
-    object sender,
-    RoutedEventArgs e)
+        foreach (var тема in темы)
         {
-            var state = StateService.Загрузить();
+            СписокТем.Children.Add(СоздатьКарточку(тема));
+        }
+    }
 
-            state.Locked = false;
+    private Border СоздатьКарточку(ТемаВхода тема)
+    {
+        var превью = new Border
+        {
+            Width = 46,
+            Height = 46,
+            CornerRadius = new CornerRadius(8),
+            Background = new SolidColorBrush(Color.FromRgb(36, 36, 41)),
+            ClipToBounds = true,
+            VerticalAlignment = VerticalAlignment.Center
+        };
 
-            StateService.Сохранить(state);
+        DockPanel.SetDock(превью, Dock.Left);
+
+        if (File.Exists(тема.ПутьЛого))
+        {
+            превью.Child = new Image
+            {
+                Source = new BitmapImage(new Uri(тема.ПутьЛого)),
+                Stretch = Stretch.Uniform,
+                Margin = new Thickness(6)
+            };
+        }
+
+        var название = new TextBlock
+        {
+            Text = тема.Id,
+            Foreground = Brushes.White,
+            FontSize = 16,
+            FontWeight = FontWeights.SemiBold
+        };
+
+        var тип = new TextBlock
+        {
+            Text = тема.ФонЭтоВидео
+                ? $"🎬 видео × {тема.Видео.Count}"
+                : "🖼 фото",
+            Foreground = Brushes.Gray,
+            FontSize = 12,
+            Margin = new Thickness(0, 2, 0, 0)
+        };
+
+        var текстоваяКолонка = new StackPanel
+        {
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(14, 0, 0, 0)
+        };
+
+        текстоваяКолонка.Children.Add(название);
+        текстоваяКолонка.Children.Add(тип);
+
+        var содержимое = new DockPanel();
+        содержимое.Children.Add(превью);
+        содержимое.Children.Add(текстоваяКолонка);
+
+        var карточка = new Border
+        {
+            Background = new SolidColorBrush(Color.FromRgb(26, 17, 22)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(58, 34, 43)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(12),
+            Padding = new Thickness(14),
+            Margin = new Thickness(0, 0, 0, 10),
+            Cursor = Cursors.Hand,
+            Child = содержимое
+        };
+
+        карточка.MouseLeftButtonUp += (_, _) =>
+        {
+            серьёзный.Патруль.Сервисы.СервисЭкранаКлуба.УстановитьТему(тема.Id);
+
+            try
+            {
+                лог.Log(
+                    "Смена обоев",
+                    $"Тема «{тема.Id}», видео в плейлисте: {тема.Видео.Count}",
+                    $"Обслуживание ПК-{idПК}");
+            }
+            catch
+            {
+            }
 
             DialogResult = true;
-        }
+        };
 
-        private void Заблокировать_Click(
-     object sender,
-     RoutedEventArgs e)
-        {
-            var state = StateService.Загрузить();
+        return карточка;
+    }
 
-            state.Locked = true;
-
-            StateService.Сохранить(state);
-
-            DialogResult = false;
-        }
-
-        private void СменитьПароль_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            var окно =
-                new серьёзный.ОкноВвода(
-                    "Новый пароль обслуживания");
-
-            if (окно.ShowDialog() != true)
-                return;
-
-            var новыйПароль =
-                окно.Текст.Trim();
-
-            if (string.IsNullOrWhiteSpace(новыйПароль))
-            {
-                MessageBox.Show("Пароль не может быть пустым.");
-                return;
-            }
-
-            серьёзный.Патруль.Сервисы.СервисЭкранаКлуба
-                .СменитьПароль(новыйПароль);
-
-            MessageBox.Show(
-                "Пароль обслуживания изменён.",
-                "Готово");
-        }
-
-        private void ИзменитьТекст_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            var текущий =
-                ConfigService.Загрузить();
-
-            var окно =
-                new серьёзный.ОкноВвода(
-                    "Текст на экране клуба",
-                    текущий.Title);
-
-            if (окно.ShowDialog() != true)
-                return;
-
-            серьёзный.Патруль.Сервисы.СервисЭкранаКлуба
-                .ИзменитьТекст(окно.Текст.Trim());
-
-            MessageBox.Show(
-                "Текст экрана изменён.",
-                "Готово");
-        }
-
-        // Новая кнопка. Локальный выбор темы прямо на этом ПК —
-        // без сети, см. серьёзный.ЭкранКлуба/ОкноСменыОбоев.xaml.cs.
-        private void СменитьОбои_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            new ОкноСменыОбоев
-            {
-                Owner = this
-            }.ShowDialog();
-        }
-
-        private void Выключить_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            Process.Start(
-                new ProcessStartInfo
-                {
-                    FileName = "shutdown.exe",
-                    Arguments = "/s /t 0",
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                });
-        }
-
-        private void ЗакрытьПриложение_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            var подтверждение =
-                MessageBox.Show(
-                    "Полностью закрыть приложение «Экран клуба»?\n\n" +
-                    "На реальном клубном ПК это закроет киоск-режим " +
-                    "и потребует ручного перезапуска процесса.",
-                    "Закрыть приложение",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning);
-
-            if (подтверждение != MessageBoxResult.Yes)
-                return;
-
-            Environment.Exit(0);
-        }
+    private void Закрыть_Click(object sender, RoutedEventArgs e)
+    {
+        DialogResult = false;
     }
 }

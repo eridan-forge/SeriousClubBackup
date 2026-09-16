@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -27,7 +29,7 @@ namespace серьёзный.ЭкранКлуба
         private readonly DispatcherTimer таймерЧасов = new();
         private readonly DispatcherTimer наблюдение = new();
         private readonly DispatcherTimer патрульНаблюдение = new();
-        private readonly DispatcherTimer темаНаблюдение = new(); // следит за сменой темы от админа
+        private readonly DispatcherTimer темаНаблюдение = new();
 
         private Config config = new();
         private State state = new();
@@ -36,11 +38,18 @@ namespace серьёзный.ЭкранКлуба
         private bool прошлоеСостояние = true;
         private bool окноИгрокаАктивно;
         private bool идётФорматированиеТелефона;
-        private bool парольВиден; // состояние кнопки-глаза
+        private bool парольВиден;
 
-        private string? текущаяТемаId; // какая тема реально включена прямо сейчас
+        private string? текущаяТемаId;
+
+        // ---- ПЛЕЙЛИСТ ВИДЕО ТЕКУЩЕЙ ТЕМЫ ----
+        private readonly List<string> видеоТемы = new();
+        private int индексВидео;
+        private int неудачныхВидеоПодряд;
 
         private static readonly TimeZoneInfo МосковскийПояс = ПолучитьМосковскийПояс();
+
+        private static readonly CultureInfo РусскаяКультура = new("ru-RU");
 
         private bool ЭтоПервыйЗапускShell =>
             (Application.Current as App)?.ЭтоПервыйЗапускShell == true;
@@ -55,9 +64,6 @@ namespace серьёзный.ЭкранКлуба
             Closing += (_, e) => e.Cancel = true;
         }
 
-        // =====================================================
-        // МОСКОВСКОЕ ВРЕМЯ (тот же приём, что и в админке)
-        // =====================================================
         private static TimeZoneInfo ПолучитьМосковскийПояс()
         {
             try { return TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time"); }
@@ -72,7 +78,7 @@ namespace серьёзный.ЭкранКлуба
         {
             ОбновитьНастройки();
 
-            ПрименитьТемуПоId(config.ThemeId); // включаем ту тему, что уже сохранена локально
+            ПрименитьТемуПоId(config.ThemeId);
 
             ЗапуститьМерцаниеРамок();
 
@@ -86,13 +92,10 @@ namespace серьёзный.ЭкранКлуба
                      "Синхронизация игр (UDP) не запущена: " + ошибка);
             }
 
-            // "hh:mm" = 12-часовой формат без AM/PM (07:45, а не 19:45).
-            // Хочешь секунды — поменяй на "hh:mm:ss".
+            ОбновитьЧасы();
+
             таймерЧасов.Interval = TimeSpan.FromSeconds(1);
-            таймерЧасов.Tick += (_, _) =>
-            {
-                Часы.Text = TimeZoneInfo.ConvertTime(DateTime.Now, МосковскийПояс).ToString("hh:mm");
-            };
+            таймерЧасов.Tick += (_, _) => ОбновитьЧасы();
             таймерЧасов.Start();
 
             наблюдение.Interval = TimeSpan.FromMilliseconds(250);
@@ -111,7 +114,6 @@ namespace серьёзный.ЭкранКлуба
             };
             патрульНаблюдение.Start();
 
-            // Раз в 3 секунды проверяем — не прислал ли админ новую тему.
             темаНаблюдение.Interval = TimeSpan.FromSeconds(3);
             темаНаблюдение.Tick += (_, _) =>
             {
@@ -128,17 +130,34 @@ namespace серьёзный.ЭкранКлуба
         }
 
         // =====================================================
-        // ТЕМЫ ЭКРАНА ВХОДА
+        // ЧАСЫ / ДАТА / ДЕНЬ НЕДЕЛИ
         // =====================================================
 
-        // Никакого фолбэка на Assets\ больше нет — Темы\<Id>\ (или
-        // %ProgramData%\SeriousClub\Themes\<Id>\) единственный источник.
-        // Если темы нет/не назначена — экран просто остаётся без видео
-        // и без лого (чёрный фон окна), а не показывает случайные
-        // подставные файлы, которых может уже не быть на диске.
+        private void ОбновитьЧасы()
+        {
+            var сейчас = TimeZoneInfo.ConvertTime(DateTime.Now, МосковскийПояс);
+
+            // "HH:mm" = 24 часа. Нужен 12-часовой — поставь "hh:mm".
+            // Нужны секунды — "HH:mm:ss".
+            Часы.Text = сейчас.ToString("HH:mm");
+
+            ТекстДата.Text = сейчас.ToString("d MMMM yyyy", РусскаяКультура);
+
+            ТекстДеньНедели.Text =
+                сейчас.ToString("dddd", РусскаяКультура).ToUpper(РусскаяКультура);
+        }
+
+        // =====================================================
+        // ТЕМЫ ЭКРАНА ВХОДА (с плейлистом видео)
+        // =====================================================
+
         private void ПрименитьТемуПоId(string? themeId)
         {
             текущаяТемаId = themeId;
+
+            видеоТемы.Clear();
+            индексВидео = 0;
+            неудачныхВидеоПодряд = 0;
 
             ФонВидео.Stop();
             ФонВидео.Source = null;
@@ -172,21 +191,15 @@ namespace серьёзный.ЭкранКлуба
                 return;
             }
 
-            // ---- фон: видео ИЛИ картинка (эффект пепла больше не
-            // используется вообще — тема требует только фон + лого) ----
+            // ---- фон: плейлист видео ИЛИ картинка ----
             if (тема.ФонЭтоВидео)
             {
-                if (File.Exists(тема.ПутьФонВидео))
-                {
-                    ФонВидео.Source = new Uri(тема.ПутьФонВидео);
-                    ФонВидео.Position = TimeSpan.Zero;
-                    ФонВидео.Visibility = Visibility.Visible;
-                    ФонВидео.Play();
-                }
-                else
-                {
-                    ЗаписатьЛогТемы($"bg.mp4 темы «{тема.Id}» не найден: {тема.ПутьФонВидео}");
-                }
+                видеоТемы.AddRange(тема.Видео);
+
+                ЗаписатьЛогТемы(
+                    $"Тема «{тема.Id}»: видео в плейлисте — {видеоТемы.Count}.");
+
+                ВключитьВидео(0);
             }
             else
             {
@@ -216,7 +229,7 @@ namespace серьёзный.ЭкранКлуба
                 }
             }
 
-            // ---- лого "СЕРЬЁЗНЫЙ" ----
+            // ---- лого ----
             if (File.Exists(тема.ПутьЛого))
             {
                 try
@@ -234,15 +247,83 @@ namespace серьёзный.ЭкранКлуба
                 ЗаписатьЛогТемы($"logo.png темы «{тема.Id}» не найден: {тема.ПутьЛого}");
             }
         }
-        
 
-        // OpacityMask в WPF смотрит на АЛЬФА-канал кисти, а не на яркость
-        // пикселей. Обычный "плоский" PNG (сохранённый без реальной
-        // прозрачности) имеет альфа=255 везде — в том числе у чёрного
-        // фона. Из-за этого маска ничего не вырезала, и вся фигура
-        // заливалась ЛогоЦвет сплошным цветом — это и был красный
-        // квадрат. Здесь вручную превращаем близкие к чёрному пиксели
-        // в alpha=0, не трогая сам файл на диске.
+        // Включает видео плейлиста по индексу (индекс зацикливается).
+        private void ВключитьВидео(int индекс)
+        {
+            if (видеоТемы.Count == 0)
+            {
+                ФонВидео.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            индексВидео =
+                ((индекс % видеоТемы.Count) + видеоТемы.Count) % видеоТемы.Count;
+
+            var путь = видеоТемы[индексВидео];
+
+            if (!File.Exists(путь))
+            {
+                ПропуститьСломанноеВидео($"файл не найден: {путь}");
+                return;
+            }
+
+            try
+            {
+                ФонВидео.Stop();
+                ФонВидео.Source = new Uri(путь);
+                ФонВидео.Position = TimeSpan.Zero;
+                ФонВидео.Visibility = Visibility.Visible;
+                ФонВидео.Play();
+            }
+            catch (Exception ошибка)
+            {
+                ПропуститьСломанноеВидео($"не удалось открыть {путь}: {ошибка.Message}");
+            }
+        }
+
+        // Битое/отсутствующее видео не должно вешать весь плейлист.
+        private void ПропуститьСломанноеВидео(string причина)
+        {
+            ЗаписатьЛогТемы("Видео пропущено — " + причина);
+
+            неудачныхВидеоПодряд++;
+
+            if (видеоТемы.Count == 0 ||
+                неудачныхВидеоПодряд >= видеоТемы.Count)
+            {
+                ФонВидео.Stop();
+                ФонВидео.Source = null;
+                ФонВидео.Visibility = Visibility.Collapsed;
+
+                return;
+            }
+
+            ВключитьВидео(индексВидео + 1);
+        }
+
+        private void ФонВидео_MediaOpened(object sender, RoutedEventArgs e)
+        {
+            неудачныхВидеоПодряд = 0;
+        }
+
+        // Видео доиграло — включаем следующее из плейлиста.
+        // Когда список кончился, начинается заново (индекс зацикливается).
+        private void ФонВидео_MediaEnded(object sender, RoutedEventArgs e)
+        {
+            неудачныхВидеоПодряд = 0;
+
+            ВключитьВидео(индексВидео + 1);
+        }
+
+        private void ФонВидео_MediaFailed(object sender, ExceptionRoutedEventArgs e)
+        {
+            ЗаписатьЛогМедиа("ФонВидео", e.ErrorException);
+
+            ПропуститьСломанноеВидео(
+                "ошибка воспроизведения: " + (e.ErrorException?.Message ?? "неизвестно"));
+        }
+
         private static BitmapSource СделатьЧёрныйФонПрозрачным(
             string путь,
             byte порог = 24)
@@ -316,26 +397,6 @@ namespace серьёзный.ЭкранКлуба
             catch { }
         }
 
-        // Видео зациклено самим файлом (первый и последний кадр совпадают),
-        // поэтому просто перематываем в начало и играем заново.
-        private void ФонВидео_MediaEnded(object sender, RoutedEventArgs e)
-        {
-            ФонВидео.Position = TimeSpan.Zero;
-            ФонВидео.Play();
-        }
-
-       
-        // Ошибка декодирования (нет кодека — частый случай на "голых"
-        // сборках Windows без Media Feature Pack) раньше проглатывалась
-        // полностью молча. Теперь пишем в тот же club-screen-crash.log.
-        private void ФонВидео_MediaFailed(object sender, ExceptionRoutedEventArgs e)
-        {
-            ЗаписатьЛогМедиа("ФонВидео", e.ErrorException);
-        }
-
-
-
-
         private static void ЗаписатьЛогМедиа(string слой, Exception? ошибка)
         {
             try
@@ -375,14 +436,18 @@ namespace серьёзный.ЭкранКлуба
         // =====================================================
         private void ЗапуститьМерцаниеРамок()
         {
-            if (FindName("ОгненнаяРамкаКисть") is not SolidColorBrush кисть)
+            var кисть =
+                FindName("ОгненнаяРамкаКисть") as SolidColorBrush
+                ?? Resources["ОгненнаяРамкаКисть"] as SolidColorBrush;
+
+            if (кисть == null)
                 return;
 
             var анимация = new ColorAnimation
             {
-                From = Color.FromRgb(0x5C, 0x18, 0x26), // "спокойное" состояние — тёмно-бордовый
-                To = Color.FromRgb(0xFF, 0x3D, 0x66),   // "вспышка" — ярко-красный
-                Duration = TimeSpan.FromSeconds(1.8),   // скорость переливания
+                From = Color.FromRgb(0x5C, 0x18, 0x26), // спокойное состояние
+                To = Color.FromRgb(0xFF, 0x3D, 0x66),   // вспышка
+                Duration = TimeSpan.FromSeconds(1.8),   // скорость перелива
                 AutoReverse = true,
                 RepeatBehavior = RepeatBehavior.Forever
             };
@@ -399,10 +464,6 @@ namespace серьёзный.ЭкранКлуба
             config = ConfigService.Загрузить();
             state = StateService.Загрузить();
 
-            // Берём название карточки ПК из той же таблицы Computers,
-            // что видно в админке под "⚙ Настройка ПК". Запрос идёт
-            // вживую каждый раз — удаление/пересоздание карточки с этим
-            // Id подхватится автоматически без правок кода.
             var карточкаПК = КартаКомпьютеров.НайтиПоId(state.PcId);
 
             ИмяПК.Text = карточкаПК?.Название ?? $"ПК-{state.PcId}";
@@ -510,7 +571,43 @@ namespace серьёзный.ЭкранКлуба
         }
 
         // =====================================================
-        // ФОРМАТИРОВАНИЕ ТЕЛЕФОНА (без изменений)
+        // КЛИК В ЛЮБОЕ МЕСТО ПОЛЯ = ФОКУС НА ВВОД
+        // =====================================================
+
+        private void ПанельТелефона_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            ПолеТелефон.Focus();
+            ПолеТелефон.CaretIndex = ПолеТелефон.Text.Length;
+        }
+
+        private void ПанельПароля_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // Клик по «глазу» сюда не долетает: Button гасит MouseLeftButtonDown.
+            if (парольВиден)
+            {
+                ПолеПарольВидимый.Focus();
+                ПолеПарольВидимый.CaretIndex = ПолеПарольВидимый.Text.Length;
+            }
+            else
+            {
+                ПолеПароль.Focus();
+            }
+        }
+
+        // Enter в любом поле = нажать «ВОЙТИ».
+        private void ПолеВвода_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter)
+                return;
+
+            e.Handled = true;
+
+            if (КнопкаВойти.IsEnabled)
+                Войти_Click(КнопкаВойти, new RoutedEventArgs());
+        }
+
+        // =====================================================
+        // ФОРМАТИРОВАНИЕ ТЕЛЕФОНА
         // =====================================================
 
         private void ПолеТелефон_TextChanged(object sender, TextChangedEventArgs e)
@@ -532,9 +629,6 @@ namespace серьёзный.ЭкранКлуба
                     ? отформатировано.Length
                     : Math.Min(ПолеТелефон.CaretIndex, отформатировано.Length);
 
-                // Пример формата ("+7 (___) ___-__-__") показываем только
-                // пока поле реально пустое — как только появились цифры,
-                // прячем подсказку, чтобы она не наезжала на введённый текст.
                 if (ПодсказкаТелефон != null)
                 {
                     ПодсказкаТелефон.Visibility = string.IsNullOrEmpty(ПолеТелефон.Text)
@@ -548,25 +642,19 @@ namespace серьёзный.ЭкранКлуба
             }
         }
 
-      // Просто цифры, которые набрал человек — без подстановки "7".
-        // Нормализация под формат сервера (7XXXXXXXXXX) происходит
-        // отдельно, только при отправке запроса на вход (см. ниже) —
-        // поэтому вход работает одинаково, с чего бы ни начал набор.
         private static string ИзвлечьСырыеЦифры(string текст)
         {
             var цифры = new string((текст ?? string.Empty).Where(char.IsDigit).ToArray());
 
-           
             if (цифры.Length > 11)
                 цифры = цифры.Substring(0, 11);
 
             return цифры;
         }
 
-        // Та же нормализация, что на сервере — только при отправке.
         private static string НормализоватьДляВхода(string цифры)
         {
-           if (цифры.Length == 0)
+            if (цифры.Length == 0)
                 return string.Empty;
 
             if (цифры[0] == '8')
@@ -574,7 +662,7 @@ namespace серьёзный.ЭкранКлуба
             else if (цифры[0] != '7')
                 цифры = "7" + цифры;
 
-           if (цифры.Length > 11)
+            if (цифры.Length > 11)
                 цифры = цифры.Substring(0, 11);
 
             return цифры;
@@ -617,7 +705,7 @@ namespace серьёзный.ЭкранКлуба
                 ПолеПароль.Visibility = Visibility.Collapsed;
                 ПолеПарольВидимый.Visibility = Visibility.Visible;
 
-                КнопкаПоказатьПароль.Content = "🙈"; // "скрыть"
+                КнопкаПоказатьПароль.Content = "🙈";
             }
             else
             {
@@ -626,12 +714,10 @@ namespace серьёзный.ЭкранКлуба
                 ПолеПарольВидимый.Visibility = Visibility.Collapsed;
                 ПолеПароль.Visibility = Visibility.Visible;
 
-                КнопкаПоказатьПароль.Content = "👁"; // "показать"
+                КнопкаПоказатьПароль.Content = "👁";
             }
         }
 
-        // Возвращает актуальный пароль независимо от того, какое из
-        // двух полей сейчас видно пользователю.
         private string ПолучитьТекущийПароль()
         {
             return (парольВиден ? ПолеПарольВидимый.Text : ПолеПароль.Password).Trim();
@@ -645,10 +731,10 @@ namespace серьёзный.ЭкранКлуба
         {
             ТекстОшибка.Visibility = Visibility.Collapsed;
 
-            var телефон = (ПолеТелефон.Text);
+            var телефон = ПолеТелефон.Text;
             var пароль = ПолучитьТекущийПароль();
 
-            if (телефон.Length != 11) 
+            if (ИзвлечьСырыеЦифры(телефон).Length < 10)
             {
                 ПоказатьОшибку("Введите корректный номер телефона.");
                 return;
@@ -669,7 +755,9 @@ namespace серьёзный.ЭкранКлуба
 
             try
             {
-                var requestId = AccountLoginBridgeService.CreateRequest(телефон, пароль);
+                var requestId = AccountLoginBridgeService.CreateRequest(
+                    НормализоватьДляВхода(ИзвлечьСырыеЦифры(телефон)),
+                    пароль);
 
                 for (int i = 0; i < 150; i++)
                 {
