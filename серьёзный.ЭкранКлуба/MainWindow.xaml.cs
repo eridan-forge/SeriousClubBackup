@@ -21,6 +21,8 @@ using серьёзный.Core.CoreServices;
 using System.Threading.Tasks;
 using серьёзный.Core.CoreComputers;
 using серьёзный.Core.CoreThemes;
+using серьёзный.Core.CoreModels;
+using серьёзный.Core.CoreWeather;
 
 namespace серьёзный.ЭкранКлуба
 {
@@ -30,6 +32,7 @@ namespace серьёзный.ЭкранКлуба
         private readonly DispatcherTimer наблюдение = new();
         private readonly DispatcherTimer патрульНаблюдение = new();
         private readonly DispatcherTimer темаНаблюдение = new();
+        private readonly DispatcherTimer погодаНаблюдение = new();
 
         private Config config = new();
         private State state = new();
@@ -39,6 +42,8 @@ namespace серьёзный.ЭкранКлуба
         private bool окноИгрокаАктивно;
         private bool идётФорматированиеТелефона;
         private bool парольВиден;
+        private bool погодаОбновляется;
+        private WeatherDto? последняяПогода;
 
         private string? текущаяТемаId;
 
@@ -127,6 +132,16 @@ namespace серьёзный.ЭкранКлуба
                 catch { }
             };
             темаНаблюдение.Start();
+
+            // Первый запрос сразу, дальше раз в 30 минут. В интернет
+                        // экран не ходит вообще — спрашивает сервер по локальной
+                        // сети, а тот отвечает из кэша.
+            _ = ОбновитьПогодуAsync();
+            
+            погодаНаблюдение.Interval = TimeSpan.FromMinutes(30);
+            погодаНаблюдение.Tick += async (_, _) => await ОбновитьПогодуAsync();
+            погодаНаблюдение.Start();
+        
         }
 
         // =====================================================

@@ -5,15 +5,24 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using серьёзный.Core.CoreAudit;
 using серьёзный.Core.CoreThemes;
+using серьёзный.ЭкранКлуба.Сервисы;
 
 namespace серьёзный.ЭкранКлуба;
 
 public partial class ОкноСменыОбоев : Window
 {
+    private readonly AdminActionLogService лог = new();
+
+    private readonly int idПК;
+
     public ОкноСменыОбоев()
     {
         InitializeComponent();
+
+        try { idПК = StateService.Загрузить().PcId; }
+        catch { idПК = 0; }
 
         Loaded += (_, _) => ПостроитьСписок();
     }
@@ -77,7 +86,9 @@ public partial class ОкноСменыОбоев : Window
 
         var тип = new TextBlock
         {
-            Text = тема.ФонЭтоВидео ? "🎬 видео" : "🖼 фото",
+            Text = тема.ФонЭтоВидео
+                ? $"🎬 видео × {тема.Видео.Count}"
+                : "🖼 фото",
             Foreground = Brushes.Gray,
             FontSize = 12,
             Margin = new Thickness(0, 2, 0, 0)
@@ -111,6 +122,17 @@ public partial class ОкноСменыОбоев : Window
         карточка.MouseLeftButtonUp += (_, _) =>
         {
             серьёзный.Патруль.Сервисы.СервисЭкранаКлуба.УстановитьТему(тема.Id);
+
+            try
+            {
+                лог.Log(
+                    "Смена обоев",
+                    $"Тема «{тема.Id}», видео в плейлисте: {тема.Видео.Count}",
+                    $"Обслуживание ПК-{idПК}");
+            }
+            catch
+            {
+            }
 
             DialogResult = true;
         };

@@ -388,8 +388,7 @@
                                             CornerRadius="24"
                                             Background="#D5122C">
                                         <Border.Effect>
-                                            <DropShadowEffect x:Name="НеонКнопки"
-                                                              Color="#FF2A47"
+                                            <DropShadowEffect Color="#FF2A47"
                                                               BlurRadius="26"
                                                               ShadowDepth="0"
                                                               Opacity="0.55"/>
@@ -405,8 +404,18 @@
 
                                     <Trigger Property="IsMouseOver" Value="True">
                                         <Setter TargetName="ФонКнопки" Property="Background" Value="#FF2A47"/>
-                                        <Setter TargetName="НеонКнопки" Property="Opacity" Value="0.95"/>
-                                        <Setter TargetName="НеонКнопки" Property="BlurRadius" Value="40"/>
+                                        <!-- Эффект меняем целиком: TargetName умеет
+                                             целиться только в ЭЛЕМЕНТЫ шаблона, а
+                                             DropShadowEffect элементом не является —
+                                             именно из-за этого была ошибка XDG0006. -->
+                                        <Setter TargetName="ФонКнопки" Property="Effect">
+                                            <Setter.Value>
+                                                <DropShadowEffect Color="#FF2A47"
+                                                                  BlurRadius="44"
+                                                                  ShadowDepth="0"
+                                                                  Opacity="0.95"/>
+                                            </Setter.Value>
+                                        </Setter>
                                     </Trigger>
 
                                     <Trigger Property="IsPressed" Value="True">
@@ -552,13 +561,100 @@
 
             </Border>
 
-            <!-- Панель 2: пустая, под будущие данные -->
+            <!-- Панель 2: ПОГОДА -->
             <Border x:Name="ПанельДанных"
                     Background="{StaticResource СтеклоПанели}"
                     CornerRadius="18"
-                    Width="250"/>
+                    Width="250">
+
+                <Grid ClipToBounds="True">
+
+                    <!-- мягкое красное свечение в верхнем углу панели -->
+                    <Ellipse Width="230" Height="230"
+                             HorizontalAlignment="Right"
+                             VerticalAlignment="Top"
+                             Margin="0,-80,-80,0">
+                        <Ellipse.Fill>
+                            <RadialGradientBrush>
+                                <GradientStop Color="#2AE5142F" Offset="0"/>
+                                <GradientStop Color="#00E5142F" Offset="1"/>
+                            </RadialGradientBrush>
+                        </Ellipse.Fill>
+                    </Ellipse>
+
+                    <StackPanel Margin="24,16,24,16">
+
+                        <!-- заголовок с красной чертой -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+
+                            <Rectangle Width="3" Height="14"
+                                       RadiusX="1.5" RadiusY="1.5"
+                                       Fill="#E5142F"
+                                       Margin="0,0,9,0">
+                                <Rectangle.Effect>
+                                    <DropShadowEffect Color="#FF2A47" BlurRadius="12"
+                                                      ShadowDepth="0" Opacity="0.8"/>
+                                </Rectangle.Effect>
+                            </Rectangle>
+
+                            <TextBlock Text="ПОГОДА"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="#7D8290"
+                                       VerticalAlignment="Center"/>
+
+                        </StackPanel>
+
+                        <!-- иконка + градусы -->
+                        <StackPanel Orientation="Horizontal">
+
+                            <TextBlock x:Name="ПогодаИконка"
+                                       Text="❔"
+                                       FontSize="38"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,14,0"/>
+
+                            <TextBlock x:Name="ПогодаТемпература"
+                                       Text="—°"
+                                       FontSize="40"
+                                       FontWeight="Bold"
+                                       Foreground="White"
+                                       VerticalAlignment="Center"/>
+
+                        </StackPanel>
+
+                        <TextBlock x:Name="ПогодаОписание"
+                                   Text="Загрузка..."
+                                   FontSize="13"
+                                   Foreground="#C9CBD3"
+                                   TextWrapping="Wrap"
+                                   Margin="0,6,0,0"/>
+
+                        <!-- разделитель, затухающий слева направо -->
+                        <Rectangle Height="1" Margin="0,12,0,10">
+                            <Rectangle.Fill>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                    <GradientStop Color="#66E5142F" Offset="0"/>
+                                    <GradientStop Color="#00FFFFFF" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Rectangle.Fill>
+                        </Rectangle>
+
+                        <TextBlock x:Name="ПогодаМесто"
+                                   Text="с. Вилино"
+                                   FontSize="11"
+                                   Foreground="#6C707A"/>
+
+                    </StackPanel>
+
+                </Grid>
+
+            </Border>
 
         </StackPanel>
+        <!-- ↑ ЭТОТ ТЕГ ЗАКРЫВАЕТ СЛОЙ 4 (часы + погода).
+             Именно его не хватало — без него «БРЕНД» и «ИГРАЙ»
+             попадали внутрь панели часов, и XAML не разбирался. -->
 
         <!-- СЛОЙ 5 — БРЕНД СНИЗУ СЛЕВА -->
         <StackPanel Orientation="Horizontal"

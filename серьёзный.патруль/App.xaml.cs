@@ -317,6 +317,10 @@ namespace серьёзный.Патруль
 
             _ = playerProfileBridge.ЗапуститьAsync(токен);
 
+            var weatherBridge =
+new WeatherBridgeWorker(клиент, конфигурация);
+            
+            _ = weatherBridge.ЗапуститьAsync(токен);
 
 
             try
