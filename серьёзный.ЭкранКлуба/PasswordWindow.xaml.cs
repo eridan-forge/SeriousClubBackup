@@ -104,7 +104,12 @@ namespace серьёзный.ЭкранКлуба
 
         private void СменитьПароль_Click(object sender, RoutedEventArgs e)
         {
-            var окно = new серьёзный.ОкноВвода("Новый пароль обслуживания");
+            var окно = new серьёзный.ОкноВвода("Новый пароль обслуживания")
+           {
+                Owner = this,
+Topmost = true
+            }
+            ;
 
             if (окно.ShowDialog() != true)
                 return;
@@ -128,7 +133,12 @@ namespace серьёзный.ЭкранКлуба
         {
             var текущий = ConfigService.Загрузить();
 
-            var окно = new серьёзный.ОкноВвода("Текст на экране клуба", текущий.Title);
+            var окно = new серьёзный.ОкноВвода("Текст на экране клуба", текущий.Title)
+            {
+                Owner = this,
+Topmost = true
+            }
+            ;
 
             if (окно.ShowDialog() != true)
                 return;

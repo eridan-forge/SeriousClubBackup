@@ -9,24 +9,25 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Темы\Мадина Османовна\bg.mp4" />
-    <None Remove="Темы\Эля\bg.mp4" />
-    <None Remove="Темы\Эля\logo.png" />
+    <None Remove="Темы\**\*.mp4" />
+    <None Remove="Темы\**\*.png" />
+    <None Remove="Темы\**\*.jpg" />
+    <None Remove="Темы\**\*.jpeg" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Темы\Мадина Османовна\bg.mp4">
+    <Content Include="Темы\**\*.mp4">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Темы\Мадина Османовна\logo.png">
+    <Content Include="Темы\**\*.png">
+     <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Темы\**\*.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Темы\Эля\bg.mp4">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Темы\Эля\logo.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <Content Include="Темы\**\*.jpeg">
+     <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+   </Content>
   </ItemGroup>
 
   <ItemGroup>

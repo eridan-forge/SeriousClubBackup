@@ -717,9 +717,7 @@ new SessionStartedEvent(
             object sender,
             RoutedEventArgs e)
         {
-            var окно =
-                new ОкноВвода(
-                    "Текст экрана");
+            var окно = new ОкноВвода("Текст экрана") { Owner = this };
 
             if (окно.ShowDialog() != true)
             {
@@ -736,9 +734,7 @@ new SessionStartedEvent(
             object sender,
             RoutedEventArgs e)
         {
-            var окно =
-                new ОкноВвода(
-                    "Новый пароль");
+            var окно = new ОкноВвода("Новый пароль") { Owner = this };
 
             if (окно.ShowDialog() != true)
             {
@@ -755,10 +751,7 @@ new SessionStartedEvent(
             object sender,
             RoutedEventArgs e)
         {
-            var окно =
-                new ОкноВвода(
-                    "Имя администратора в чате",
-                    имяАдминистратора);
+            var окно = new ОкноВвода("Имя администратора в чате", имяАдминистратора) { Owner = this };
 
             if (окно.ShowDialog() != true)
             {
@@ -3175,9 +3168,7 @@ protected override void OnSourceInitialized(EventArgs e)
                 return;
             }
 
-            var окно =
-                new ОкноВвода(
-                    "Сколько минут добавить?");
+            var окно = new ОкноВвода("Сколько минут добавить?") { Owner = this };
 
             if (окно.ShowDialog() != true)
             {
@@ -3229,9 +3220,7 @@ protected override void OnSourceInitialized(EventArgs e)
                 return;
             }
 
-            var окно =
-                new ОкноВвода(
-                    "Сколько минут убрать?");
+            var окно = new ОкноВвода("Сколько минут убрать?") { Owner = this };
 
             if (окно.ShowDialog() != true)
             {

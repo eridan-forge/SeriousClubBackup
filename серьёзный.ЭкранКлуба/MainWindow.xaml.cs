@@ -38,7 +38,12 @@ namespace серьёзный.ЭкранКлуба
         {
             Interval = TimeSpan.FromMilliseconds(120)
         };
-    private Config config = new();
+
+        private readonly DispatcherTimer видеоЗагрузкаТаймаут = new()
+        {
+            Interval = TimeSpan.FromSeconds(6)
+        };
+        private Config config = new();
         private State state = new();
 
         private bool explorerЗапущен;
@@ -98,6 +103,13 @@ namespace серьёзный.ЭкранКлуба
                 ФонВидеоСнимок.Source = null;
                             }
             ;
+
+            видеоЗагрузкаТаймаут.Tick += (_, _) =>
+            {
+                видеоЗагрузкаТаймаут.Stop();
+                ЗаписатьЛогТемы("Видео не открылось за отведённое время — пробуем следующее.");
+                ПропуститьСломанноеВидео("таймаут открытия видео");
+            };
 
             try
             {
@@ -192,6 +204,8 @@ namespace серьёзный.ЭкранКлуба
             снимокФонаСкрытие.Stop();
             ФонВидеоСнимок.Visibility = Visibility.Collapsed;
             ФонВидеоСнимок.Source = null;
+
+            видеоЗагрузкаТаймаут.Stop();
 
             ФонКартинка.Source = null;
             ФонКартинка.Visibility = Visibility.Collapsed;
@@ -298,24 +312,41 @@ namespace серьёзный.ЭкранКлуба
                 return;
             }
 
-            try
-            {
+            видеоЗагрузкаТаймаут.Stop();
+            
+                   // Смена Source синхронно ВНУТРИ обработчика MediaEnded — известная
+                    // особенность WPF MediaElement: движок иногда не успевает закрыть
+                    // предыдущий поток, и следующий Source не поднимает вообще никаких
+                    // событий (ни MediaOpened, ни MediaFailed) — экран просто виснет.
+                   // Откладываем смену на следующий цикл диспетчера, чтобы дать
+                    // движку закончить остановку предыдущего видео.
+            Dispatcher.BeginInvoke(
+            DispatcherPriority.Background,
+            new Action(() =>
+                        {
+                            try
+                {
                 ФонВидео.Stop();
                 ФонВидео.Source = new Uri(путь);
                 ФонВидео.Position = TimeSpan.Zero;
-                ФонВидео.Visibility = Visibility.Visible;
+               ФонВидео.Visibility = Visibility.Visible;
                 ФонВидео.Play();
-            }
-            catch (Exception ошибка)
-            {
+                
+                видеоЗагрузкаТаймаут.Start();
+                                }
+                            catch (Exception ошибка)
+                {
                 ПропуститьСломанноеВидео($"не удалось открыть {путь}: {ошибка.Message}");
-            }
+                                }
+                        }));
         }
 
         // Битое/отсутствующее видео не должно вешать весь плейлист.
         private void ПропуститьСломанноеВидео(string причина)
         {
             ЗаписатьЛогТемы("Видео пропущено — " + причина);
+
+            видеоЗагрузкаТаймаут.Stop();
 
             неудачныхВидеоПодряд++;
 
@@ -339,6 +370,7 @@ namespace серьёзный.ЭкранКлуба
         private void ФонВидео_MediaOpened(object sender, RoutedEventArgs e)
         {
             неудачныхВидеоПодряд = 0;
+            видеоЗагрузкаТаймаут.Stop();
 
             снимокФонаСкрытие.Stop();
             снимокФонаСкрытие.Start();
