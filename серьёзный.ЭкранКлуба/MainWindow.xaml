@@ -17,6 +17,10 @@
              ================================================================ -->
         <SolidColorBrush x:Key="СтеклоПанели" Color="#050505" Opacity="0.55"/>
 
+        <!-- Отдельная, чуть более прозрачная версия только для панели входа -->
+        
+        <SolidColorBrush x:Key="СтеклоПанелиВхода" Color="#050505" Opacity="0.42"/>
+
         <SolidColorBrush x:Key="ОгненнаяРамкаКисть" x:Name="ОгненнаяРамкаКисть" Color="#5C1826"/>
 
         <!-- Кнопка-ссылка: реагирует только сам текст. -->
@@ -67,7 +71,15 @@
 
         </MediaElement>
 
-        <!-- СЛОЙ 1Б — ФОНОВАЯ КАРТИНКА (bg.png/bg.jpg). -->
+        <!-- Статичный "снимок" последнего кадра — держит картинку, пока
+             ФонВидео меняет Source между роликами плейлиста. -->
+        
+        <Image x:Name="ФонВидеоСнимок"
+               Stretch="UniformToFill"
+               IsHitTestVisible="False"
+               Visibility="Collapsed"/>
+
+            <!-- СЛОЙ 1Б — ФОНОВАЯ КАРТИНКА (bg.png/bg.jpg). -->
         <Image x:Name="ФонКартинка"
                Stretch="UniformToFill"
                IsHitTestVisible="False"
@@ -111,7 +123,7 @@
                 Width="560"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Stretch"
-                Background="{StaticResource СтеклоПанели}">
+                Background="{StaticResource СтеклоПанелиВхода}">
 
             <Border.Effect>
                 <DropShadowEffect Color="Black" BlurRadius="40" ShadowDepth="0" Opacity="0.6"/>
@@ -220,11 +232,11 @@
 
                     <!-- ПОЛЕ ТЕЛЕФОНА: клик в ЛЮБОЕ место открывает ввод -->
                     <Border Background="#242429"
-                            BorderBrush="{StaticResource ОгненнаяРамкаКисть}"
+                           
                             BorderThickness="1"
                             CornerRadius="14"
                             Height="54"
-                            Width="380"
+                            Width="475"
                             Cursor="IBeam"
                             HorizontalAlignment="Center"
                             Margin="0,0,0,14"
@@ -282,11 +294,11 @@
 
                     <!-- ПОЛЕ ПАРОЛЯ: клик в любое место, кроме «глаза» -->
                     <Border Background="#242429"
-                            BorderBrush="{StaticResource ОгненнаяРамкаКисть}"
+                            
                             BorderThickness="1"
                             CornerRadius="14"
                             Height="54"
-                            Width="380"
+                            Width="475"
                             Cursor="IBeam"
                             HorizontalAlignment="Center"
                             Margin="0,0,0,8"
@@ -368,7 +380,7 @@
                     <Button x:Name="КнопкаВойти"
                             Content="ВОЙТИ  →"
                             Height="48"
-                            Width="380"
+                            Width="455"
                             HorizontalAlignment="Center"
                             FontSize="15"
                             FontWeight="Bold"
@@ -479,10 +491,10 @@
 
                 <!-- ОБСЛУЖИВАНИЕ — внизу панели, но не впритык (отступ 34) -->
                 <Button x:Name="Обслуживание"
-                        Content="Обслуживание 🔧"
+                          Content="🔧 Обслуживание"
                         Style="{StaticResource ТекстоваяКнопка}"
                         Foreground="#4A4A52"
-                        FontSize="11"
+                        FontSize="18"
                         VerticalAlignment="Bottom"
                         Margin="0,0,0,34"
                         Click="Обслуживание_Click"/>
@@ -499,7 +511,7 @@
                     IsHitTestVisible="False">
 
             <Rectangle Width="5" RadiusX="2.5" RadiusY="2.5"
-                       Fill="#E5142F" Margin="0,4,18,4">
+                       Fill="#E5142F" Margin="0,32,18,4">
                 <Rectangle.Effect>
                     <DropShadowEffect Color="#FF2A47" BlurRadius="24" ShadowDepth="0" Opacity="0.85"/>
                 </Rectangle.Effect>
@@ -533,27 +545,28 @@
             <!-- Панель 1: время / дата / день недели -->
             <Border Background="{StaticResource СтеклоПанели}"
                     CornerRadius="18"
-                    Padding="30,16"
-                    Margin="0,0,14,0">
+                    Padding="20,14"
+                    Margin="0,0,14,0"
+                    VerticalAlignment="Center">
 
                 <StackPanel>
                     <TextBlock x:Name="Часы"
                                Text="00:00"
-                               FontSize="48"
+                               FontSize="40"
                                FontWeight="Bold"
                                Foreground="White"
                                HorizontalAlignment="Center"/>
 
                     <TextBlock x:Name="ТекстДата"
                                Text=""
-                               FontSize="14"
+                               FontSize="13"
                                Foreground="#C9CBD3"
                                HorizontalAlignment="Center"
                                Margin="0,4,0,0"/>
 
                     <TextBlock x:Name="ТекстДеньНедели"
                                Text=""
-                               FontSize="12"
+                               FontSize="11"
                                Foreground="#7D8290"
                                HorizontalAlignment="Center"
                                Margin="0,2,0,0"/>
@@ -565,12 +578,13 @@
             <Border x:Name="ПанельДанных"
                     Background="{StaticResource СтеклоПанели}"
                     CornerRadius="18"
-                    Width="250">
+                    Width="220"
+                    VerticalAlignment="Center">
 
                 <Grid ClipToBounds="True">
 
                     <!-- мягкое красное свечение в верхнем углу панели -->
-                    <Ellipse Width="230" Height="230"
+                    <Ellipse Width="200" Height="200"
                              HorizontalAlignment="Right"
                              VerticalAlignment="Top"
                              Margin="0,-80,-80,0">
@@ -582,15 +596,15 @@
                         </Ellipse.Fill>
                     </Ellipse>
 
-                    <StackPanel Margin="24,16,24,16">
+                    <StackPanel Margin="22,14,22,14">
 
                         <!-- заголовок с красной чертой -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
 
                             <Rectangle Width="3" Height="14"
-                                       RadiusX="1.5" RadiusY="1.5"
+                                       RadiusX="3" RadiusY="3"
                                        Fill="#E5142F"
-                                       Margin="0,0,9,0">
+                                       Margin="19,0,9,0">
                                 <Rectangle.Effect>
                                     <DropShadowEffect Color="#FF2A47" BlurRadius="12"
                                                       ShadowDepth="0" Opacity="0.8"/>
@@ -598,7 +612,7 @@
                             </Rectangle>
 
                             <TextBlock Text="ПОГОДА"
-                                       FontSize="11"
+                                       FontSize="13"
                                        FontWeight="SemiBold"
                                        Foreground="#7D8290"
                                        VerticalAlignment="Center"/>
@@ -606,17 +620,18 @@
                         </StackPanel>
 
                         <!-- иконка + градусы -->
-                        <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center">
 
                             <TextBlock x:Name="ПогодаИконка"
                                        Text="❔"
-                                       FontSize="38"
+                                       FontSize="32"
                                        VerticalAlignment="Center"
-                                       Margin="0,0,14,0"/>
+                                       Margin="0,0,12,0"/>
 
                             <TextBlock x:Name="ПогодаТемпература"
                                        Text="—°"
-                                       FontSize="40"
+                                       FontSize="34"
                                        FontWeight="Bold"
                                        Foreground="White"
                                        VerticalAlignment="Center"/>
@@ -625,9 +640,11 @@
 
                         <TextBlock x:Name="ПогодаОписание"
                                    Text="Загрузка..."
-                                   FontSize="13"
+                                   FontSize="12"
                                    Foreground="#C9CBD3"
                                    TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   HorizontalAlignment="Center"
                                    Margin="0,6,0,0"/>
 
                         <!-- разделитель, затухающий слева направо -->
@@ -643,7 +660,8 @@
                         <TextBlock x:Name="ПогодаМесто"
                                    Text="с. Вилино"
                                    FontSize="11"
-                                   Foreground="#6C707A"/>
+                                   Foreground="#6C707A"
+                                   HorizontalAlignment="Center"/>
 
                     </StackPanel>
 
@@ -663,22 +681,22 @@
                     Margin="40,0,0,34"
                     IsHitTestVisible="False">
 
-            <Rectangle Width="3" RadiusX="1.5" RadiusY="1.5"
-                       Fill="#E5142F" Margin="0,0,12,0">
+            <Rectangle Width="6" RadiusX="3" RadiusY="3"
+                       Fill="#E5142F" Margin="0,0,20,0">
                 <Rectangle.Effect>
-                    <DropShadowEffect Color="#FF2A47" BlurRadius="16" ShadowDepth="0" Opacity="0.8"/>
+                    <DropShadowEffect Color="#FF2A47" BlurRadius="32" ShadowDepth="0" Opacity="0.8"/>
                 </Rectangle.Effect>
             </Rectangle>
 
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="СЕРЬЁЗНЫЙ"
-                           FontSize="14"
+                           FontSize="26"
                            FontWeight="Bold"
                            Foreground="White"/>
                 <TextBlock Text="ПК КЛУБ"
-                           FontSize="11"
+                           FontSize="20"
                            Foreground="#7D8290"
-                           Margin="0,2,0,0"/>
+                           Margin="0,4,0,0"/>
             </StackPanel>
 
         </StackPanel>
@@ -691,47 +709,35 @@
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
 
-                <!-- джойстик: вектор, поэтому реально красный -->
-                <Path Width="46" Height="28"
-                      Stretch="Uniform"
-                      Fill="#E5142F"
-                      VerticalAlignment="Center"
-                      Margin="0,0,16,0">
-                    <Path.Effect>
-                        <DropShadowEffect Color="#FF2A47" BlurRadius="22" ShadowDepth="0" Opacity="0.9"/>
-                    </Path.Effect>
-                    <Path.Data>
-                        <GeometryGroup FillRule="EvenOdd">
-                            <RectangleGeometry Rect="0,3,38,18" RadiusX="9" RadiusY="9"/>
-                            <CombinedGeometry GeometryCombineMode="Union">
-                                <CombinedGeometry.Geometry1>
-                                    <RectangleGeometry Rect="7,10.5,10,3"/>
-                                </CombinedGeometry.Geometry1>
-                                <CombinedGeometry.Geometry2>
-                                    <RectangleGeometry Rect="10.5,7,3,10"/>
-                                </CombinedGeometry.Geometry2>
-                            </CombinedGeometry>
-                            <EllipseGeometry Center="26.5,9.5" RadiusX="2.3" RadiusY="2.3"/>
-                            <EllipseGeometry Center="31.5,14.5" RadiusX="2.3" RadiusY="2.3"/>
-                        </GeometryGroup>
-                    </Path.Data>
-                </Path>
+                <!-- джойстик: готовый эмодзи геймпада вместо своей векторной формы -->
+                
+                <TextBlock Text="🎮"
+                           FontSize="52"
+                           VerticalAlignment="Center"
+                           Margin="0,0,10,0">
+
+                    <TextBlock.Effect>
+                        
+                        <DropShadowEffect Color="#FF2A47" BlurRadius="26" ShadowDepth="0" Opacity="0.75"/>
+                        
+                    </TextBlock.Effect>
+</TextBlock>
 
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="ИГРАЙ"
-                               FontSize="16"
+                               FontSize="28"
                                FontWeight="Bold"
                                Foreground="#9AA0AE"/>
                     <TextBlock Text="С КОМФОРТОМ"
-                               FontSize="13"
+                               FontSize="20"
                                Foreground="#6C707A"
-                               Margin="0,2,0,0"/>
+                               Margin="0,0,0,0"/>
                 </StackPanel>
 
             </StackPanel>
 
             <!-- полоска от джойстика до конца надписи -->
-            <Rectangle Height="3" RadiusX="1.5" RadiusY="1.5" Margin="0,12,0,0">
+            <Rectangle Height="6" RadiusX="3" RadiusY="3" Margin="0,20,0,0">
                 <Rectangle.Fill>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                         <GradientStop Color="#FF2A47" Offset="0"/>

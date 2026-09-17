@@ -34,7 +34,11 @@ namespace серьёзный.ЭкранКлуба
         private readonly DispatcherTimer темаНаблюдение = new();
         private readonly DispatcherTimer погодаНаблюдение = new();
 
-        private Config config = new();
+        private readonly DispatcherTimer снимокФонаСкрытие = new()
+        {
+            Interval = TimeSpan.FromMilliseconds(120)
+        };
+    private Config config = new();
         private State state = new();
 
         private bool explorerЗапущен;
@@ -86,6 +90,14 @@ namespace серьёзный.ЭкранКлуба
             ПрименитьТемуПоId(config.ThemeId);
 
             ЗапуститьМерцаниеРамок();
+
+            снимокФонаСкрытие.Tick += (_, _) =>
+            {
+                снимокФонаСкрытие.Stop();
+                ФонВидеоСнимок.Visibility = Visibility.Collapsed;
+                ФонВидеоСнимок.Source = null;
+                            }
+            ;
 
             try
             {
@@ -176,6 +188,10 @@ namespace серьёзный.ЭкранКлуба
             ФонВидео.Stop();
             ФонВидео.Source = null;
             ФонВидео.Visibility = Visibility.Collapsed;
+
+            снимокФонаСкрытие.Stop();
+            ФонВидеоСнимок.Visibility = Visibility.Collapsed;
+            ФонВидеоСнимок.Source = null;
 
             ФонКартинка.Source = null;
             ФонКартинка.Visibility = Visibility.Collapsed;
@@ -310,6 +326,10 @@ namespace серьёзный.ЭкранКлуба
                 ФонВидео.Source = null;
                 ФонВидео.Visibility = Visibility.Collapsed;
 
+                снимокФонаСкрытие.Stop();
+                ФонВидеоСнимок.Visibility = Visibility.Collapsed;
+                ФонВидеоСнимок.Source = null;
+
                 return;
             }
 
@@ -319,6 +339,9 @@ namespace серьёзный.ЭкранКлуба
         private void ФонВидео_MediaOpened(object sender, RoutedEventArgs e)
         {
             неудачныхВидеоПодряд = 0;
+
+            снимокФонаСкрытие.Stop();
+            снимокФонаСкрытие.Start();
         }
 
         // Видео доиграло — включаем следующее из плейлиста.
@@ -326,6 +349,8 @@ namespace серьёзный.ЭкранКлуба
         private void ФонВидео_MediaEnded(object sender, RoutedEventArgs e)
         {
             неудачныхВидеоПодряд = 0;
+
+            ЗафиксироватьСнимокФона();
 
             ВключитьВидео(индексВидео + 1);
         }
@@ -336,6 +361,38 @@ namespace серьёзный.ЭкранКлуба
 
             ПропуститьСломанноеВидео(
                 "ошибка воспроизведения: " + (e.ErrorException?.Message ?? "неизвестно"));
+        }
+
+        // Замораживает текущий кадр ФонВидео в картинку ПЕРЕД сменой
+        // Source на следующий ролик — закрывает собой момент, когда
+        // MediaElement сбрасывает кадр. Прячется в ФонВидео_MediaOpened.
+        private void ЗафиксироватьСнимокФона()
+        {
+            try
+            {
+                if (ФонВидео.Visibility != Visibility.Visible)
+                    return;
+
+                if (ФонВидео.ActualWidth <= 0 || ФонВидео.ActualHeight <= 0)
+                    return;
+
+                var снимок = new RenderTargetBitmap(
+                    (int)Math.Ceiling(ФонВидео.ActualWidth),
+                    (int)Math.Ceiling(ФонВидео.ActualHeight),
+                    96,
+                    96,
+                    PixelFormats.Pbgra32);
+
+                снимок.Render(ФонВидео);
+                снимок.Freeze();
+
+                ФонВидеоСнимок.Source = снимок;
+                ФонВидеоСнимок.Visibility = Visibility.Visible;
+            }
+            catch
+            {
+                // Снимок — только защита от мигания, не должен ронять смену видео.
+            }
         }
 
         private static BitmapSource СделатьЧёрныйФонПрозрачным(
@@ -880,6 +937,16 @@ namespace серьёзный.ЭкранКлуба
             new ИнфоОкно(
                 "Для создания аккаунта обратитесь к администратору клуба.",
                 "Регистрация")
+            {
+                Owner = this
+            }.ShowDialog();
+        }
+
+        private void ВойтиКакГость_Click(object sender, RoutedEventArgs e)
+        {
+            new ИнфоОкно(
+                "Обратитесь к администратору клуба с просьбой начать вам сессию не создавая себе аккаунт.",
+                "Гостевой вход")
             {
                 Owner = this
             }.ShowDialog();
