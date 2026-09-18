@@ -15,7 +15,7 @@
                       1 = панель полностью чёрная.
              0.55 — «слегка затемнено». Меняй ТОЛЬКО эту цифру.
              ================================================================ -->
-        <SolidColorBrush x:Key="СтеклоПанели" Color="#050505" Opacity="0.55"/>
+        <SolidColorBrush x:Key="СтеклоПанели" Color="#050505" Opacity="0.3"/>
 
         <!-- Отдельная, чуть более прозрачная версия только для панели входа -->
 
@@ -52,18 +52,21 @@
 
     <Grid x:Name="Корень">
 
-        <!-- СЛОЙ 1 — ФОНОВОЕ ВИДЕО (плейлист темы). -->
-        <MediaElement x:Name="ФонВидео"
-                      Stretch="UniformToFill"
-                      LoadedBehavior="Manual"
-                      UnloadedBehavior="Manual"
-                      IsMuted="True"
-                      Volume="0"
-                      IsHitTestVisible="False"
-                      Visibility="Collapsed"
-                      MediaOpened="ФонВидео_MediaOpened"
-                      MediaEnded="ФонВидео_MediaEnded"
-                      MediaFailed="ФонВидео_MediaFailed">
+        <!-- СЛОЙ 1 — ФОНОВОЕ ВИДЕО (плейлист темы).
+     Два элемента: пока один играет, второй уже открыл и держит
+     на паузе следующий ролик — переключение мгновенное, без
+     чёрного кадра и без ожидания открытия файла. -->
+        <MediaElement x:Name="ФонВидеоА"
+              Stretch="UniformToFill"
+              LoadedBehavior="Manual"
+              UnloadedBehavior="Manual"
+              IsMuted="True"
+              Volume="0"
+              IsHitTestVisible="False"
+              Visibility="Collapsed"
+              MediaOpened="ФонВидео_MediaOpened"
+              MediaEnded="ФонВидео_MediaEnded"
+              MediaFailed="ФонВидео_MediaFailed">
 
             <MediaElement.Effect>
                 <BlurEffect Radius="3.5"/>
@@ -71,15 +74,25 @@
 
         </MediaElement>
 
-        <!-- Статичный "снимок" последнего кадра — держит картинку, пока
-             ФонВидео меняет Source между роликами плейлиста. -->
-        
-        <Image x:Name="ФонВидеоСнимок"
-               Stretch="UniformToFill"
-               IsHitTestVisible="False"
-               Visibility="Collapsed"/>
+        <MediaElement x:Name="ФонВидеоБ"
+              Stretch="UniformToFill"
+              LoadedBehavior="Manual"
+              UnloadedBehavior="Manual"
+              IsMuted="True"
+              Volume="0"
+              IsHitTestVisible="False"
+              Visibility="Collapsed"
+              MediaOpened="ФонВидео_MediaOpened"
+              MediaEnded="ФонВидео_MediaEnded"
+              MediaFailed="ФонВидео_MediaFailed">
 
-            <!-- СЛОЙ 1Б — ФОНОВАЯ КАРТИНКА (bg.png/bg.jpg). -->
+            <MediaElement.Effect>
+                <BlurEffect Radius="3.5"/>
+            </MediaElement.Effect>
+
+        </MediaElement>
+
+        <!-- СЛОЙ 1Б — ФОНОВАЯ КАРТИНКА (bg.png/bg.jpg). -->
         <Image x:Name="ФонКартинка"
                Stretch="UniformToFill"
                IsHitTestVisible="False"
@@ -190,7 +203,7 @@
 
                         <TextBlock Grid.Column="1"
                                    Text="ДОБРО ПОЖАЛОВАТЬ"
-                                   FontSize="15"
+                                   FontSize="18"
                                    FontWeight="SemiBold"
                                    Foreground="White"/>
 
@@ -206,7 +219,7 @@
                     </Grid>
 
                     <TextBlock Text="Войдите в свой аккаунт"
-                               FontSize="12"
+                               FontSize="14"
                                Foreground="#8A8F9A"
                                HorizontalAlignment="Center"
                                  Margin="0,0,0,32"/>
@@ -351,11 +364,11 @@
                     </Border>
 
                     <Button Content="Забыли пароль?"
-                            Style="{StaticResource ТекстоваяКнопка}"
-                            Foreground="White"
-                            FontSize="12"
-                            Margin="0,6,0,26"
-                            Click="ЗабылиПароль_Click"/>
+        Style="{StaticResource ТекстоваяКнопка}"
+        Foreground="White"
+        FontSize="15"
+        Margin="0,6,0,16"
+        Click="ЗабылиПароль_Click"/>
 
                     <!-- КНОПКА ВОЙТИ + СТРЕЛКА + НЕОН -->
                     <Button x:Name="КнопкаВойти"
@@ -519,13 +532,13 @@
 
         <!-- СЛОЙ 4 — ВРЕМЯ + ПОГОДА В ОДНОМ БЛОКЕ -->
         <Border x:Name="ПанельДанных"
-        Background="{StaticResource СтеклоПанели}"
-        CornerRadius="18"
-        Padding="26,18"
-        HorizontalAlignment="Right"
-        VerticalAlignment="Top"
-        Margin="0,30,34,0"
-        IsHitTestVisible="False">
+Background="{StaticResource СтеклоПанели}"
+CornerRadius="18"
+Padding="26,18"
+HorizontalAlignment="Right"
+VerticalAlignment="Top"
+Margin="0,-8,4,0"
+IsHitTestVisible="False">
 
             <Grid>
 
@@ -564,11 +577,20 @@
 
                 </StackPanel>
 
-                <!-- ЕДВА ВИДИМЫЙ РАЗДЕЛИТЕЛЬ -->
+                <!-- РАЗДЕЛИТЕЛЬ — тает к краям, не жёсткая линия -->
                 <Rectangle Grid.Column="1"
-                   Width="1"
-                   Fill="#40888888"
-                   Margin="24,4,24,4"/>
+           Width="1"
+           Height="90"
+           VerticalAlignment="Center"
+           Margin="24,0,24,0">
+                    <Rectangle.Fill>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#00888888" Offset="0"/>
+                            <GradientStop Color="#30888888" Offset="0.5"/>
+                            <GradientStop Color="#00888888" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
 
                 <!-- ПОГОДА -->
                 <StackPanel Grid.Column="2"
@@ -666,13 +688,13 @@
 
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="ИГРАЙ"
-                                 FontSize="18"
-                               FontWeight="Bold"
-                               Foreground="#9AA0AE"/>
+             FontSize="16"
+           FontWeight="Bold"
+           Foreground="#9AA0AE"/>
                     <TextBlock Text="С КОМФОРТОМ"
-                              FontSize="13"
-                               Foreground="#6C707A"
-                                Margin="0,2,0,0"/>
+          FontSize="12"
+           Foreground="#6C707A"
+            Margin="0,2,0,0"/>
                 </StackPanel>
 
             </StackPanel>

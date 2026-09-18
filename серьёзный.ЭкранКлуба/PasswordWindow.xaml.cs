@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 using серьёзный.Core.CoreAudit;
 using серьёзный.Core.CoreThemes;
 using серьёзный.ЭкранКлуба.Сервисы;
@@ -17,6 +18,8 @@ namespace серьёзный.ЭкранКлуба
 
         private readonly int idПК;
 
+        private const double ВысотаОкнаАдмина = 700;
+
         public PasswordWindow(string пароль)
         {
             InitializeComponent();
@@ -29,9 +32,6 @@ namespace серьёзный.ЭкранКлуба
             Loaded += (_, _) => ПолеПароля.Focus();
         }
 
-        // Все действия обслуживания пишутся в ОДНУ общую историю
-        // (таблица AdminActionLog в SeriousClub.db этого ПК) —
-        // её же показывает кнопка "🕓 История действий".
         private void Записать(string действие, string детали = "")
         {
             try
@@ -40,7 +40,6 @@ namespace серьёзный.ЭкранКлуба
             }
             catch
             {
-                // История не должна ронять панель обслуживания.
             }
         }
 
@@ -74,6 +73,47 @@ namespace серьёзный.ЭкранКлуба
 
             ВходПанель.Visibility = Visibility.Collapsed;
             ПанельАдмина.Visibility = Visibility.Visible;
+
+            РасширитьОкноДляПанелиАдмина();
+        }
+
+        // Окно входа — маленькое, без пустого места. После верного
+        // пароля раскрываем его до размера, где видно все кнопки
+        // обслуживания (плюс скролл внутри — подстраховка на случай
+        // маленького экрана, где даже увеличенное окно не влезло бы).
+        private void РасширитьОкноДляПанелиАдмина()
+        {
+            var рабочаяОбласть = SystemParameters.WorkArea;
+
+            var целеваяВысота = Math.Min(
+                ВысотаОкнаАдмина,
+                Math.Max(360, рабочаяОбласть.Height - 60));
+
+            var стартТоп = Top;
+            var стартВысота = ActualHeight > 0 ? ActualHeight : Height;
+
+            var центрY = стартТоп + стартВысота / 2.0;
+
+            var новыйTop = центрY - целеваяВысота / 2.0;
+
+            новыйTop = Math.Max(
+                рабочаяОбласть.Top + 10,
+                Math.Min(новыйTop, рабочаяОбласть.Bottom - целеваяВысота - 10));
+
+            var сглаживание = new CubicEase { EasingMode = EasingMode.EaseOut };
+
+            var анимВысота = new DoubleAnimation(стартВысота, целеваяВысота, TimeSpan.FromMilliseconds(220))
+            {
+                EasingFunction = сглаживание
+            };
+
+            var анимTop = new DoubleAnimation(стартТоп, новыйTop, TimeSpan.FromMilliseconds(220))
+            {
+                EasingFunction = сглаживание
+            };
+
+            BeginAnimation(HeightProperty, анимВысота);
+            BeginAnimation(TopProperty, анимTop);
         }
 
         private void Запустить_Click(object sender, RoutedEventArgs e)
@@ -105,11 +145,10 @@ namespace серьёзный.ЭкранКлуба
         private void СменитьПароль_Click(object sender, RoutedEventArgs e)
         {
             var окно = new серьёзный.ОкноВвода("Новый пароль обслуживания")
-           {
+            {
                 Owner = this,
-Topmost = true
-            }
-            ;
+                Topmost = true
+            };
 
             if (окно.ShowDialog() != true)
                 return;
@@ -136,9 +175,8 @@ Topmost = true
             var окно = new серьёзный.ОкноВвода("Текст на экране клуба", текущий.Title)
             {
                 Owner = this,
-Topmost = true
-            }
-            ;
+                Topmost = true
+            };
 
             if (окно.ShowDialog() != true)
                 return;
@@ -152,7 +190,6 @@ Topmost = true
             MessageBox.Show("Текст экрана изменён.", "Готово");
         }
 
-        // Локальный выбор темы. Запись в историю делает само окно выбора.
         private void СменитьОбои_Click(object sender, RoutedEventArgs e)
         {
             new ОкноСменыОбоев
@@ -161,7 +198,6 @@ Topmost = true
             }.ShowDialog();
         }
 
-        // Случайная тема: каждый раз ставит другую (текущую не повторяет).
         private void СлучайнаяТема_Click(object sender, RoutedEventArgs e)
         {
             var темы = ЗагрузчикТем.ЗагрузитьВсе();
