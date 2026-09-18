@@ -498,12 +498,15 @@
 
         </Border>
 
-        <!-- СЛОЙ 3 — НАЗВАНИЕ ПК + «ИГРОВОЙ ПК» + КРАСНАЯ ПОЛОСА -->
+        <!-- СЛОЙ 3 — НАЗВАНИЕ ПК + «ИГРОВОЙ ПК» + КРАСНАЯ ПОЛОСА.
+     Поднято выше и сдвинуто левее — верх блока теперь на одном
+     уровне с панелью времени/погоды справа (та прижата к самому
+     верхнему краю). -->
         <StackPanel Orientation="Horizontal"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Top"
-                    Margin="40,30,0,0"
-                    IsHitTestVisible="False">
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Margin="20,-10,0,0"
+            IsHitTestVisible="False">
 
             <Rectangle Width="5" RadiusX="2.5" RadiusY="2.5"
                        Fill="#E5142F" Margin="0,32,18,4">
@@ -530,17 +533,31 @@
 
         </StackPanel>
 
-        <!-- СЛОЙ 4 — ВРЕМЯ + ПОГОДА В ОДНОМ БЛОКЕ -->
+        <!-- СЛОЙ 4 — ВРЕМЯ + ПОГОДА В ОДНОМ БЛОКЕ.
+     Флеш к правому верхнему углу (Margin=0). Скруглён только
+     внутренний верхний угол (левый) — правый верхний и оба нижних
+     угла квадратные, потому что они либо у самого края экрана,
+     либо не должны закругляться по требованию. Низ не обрывается
+     линией: фон — вертикальный градиент, прозрачность растёт книзу,
+     поэтому нижний край просто растворяется, а не выглядит "срезанным". -->
         <Border x:Name="ПанельДанных"
-Background="{StaticResource СтеклоПанели}"
-CornerRadius="18"
-Padding="26,18"
-HorizontalAlignment="Right"
-VerticalAlignment="Top"
-Margin="0,-8,4,0"
-IsHitTestVisible="False">
+        Height="250"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Top"
+        Margin="0,0,0,0"
+        CornerRadius="0,0,0,0"
+        IsHitTestVisible="False">
 
-            <Grid>
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#4D050505" Offset="0"/>
+                    <GradientStop Color="#30050505" Offset="0.35"/>
+                    <GradientStop Color="#12050505" Offset="0.68"/>
+                    <GradientStop Color="#00050505" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+
+            <Grid Margin="30,22,30,0" VerticalAlignment="Top">
 
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -550,30 +567,31 @@ IsHitTestVisible="False">
 
                 <!-- ВРЕМЯ -->
                 <StackPanel Grid.Column="0"
-                    MinWidth="150"
-                    VerticalAlignment="Top"
-                    HorizontalAlignment="Center">
+            MinWidth="150"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Center">
 
                     <TextBlock x:Name="Часы"
-                       Text="00:00"
-                       FontSize="36"
-                       FontWeight="Bold"
-                       Foreground="White"
-                       HorizontalAlignment="Center"/>
-
-                    <TextBlock x:Name="ТекстДата"
-                       Text=""
-                       FontSize="13"
-                       Foreground="#9AA0AE"
-                       HorizontalAlignment="Center"
-                       Margin="0,6,0,0"/>
+               Text="00:00"
+               FontSize="36"
+               FontWeight="Bold"
+               Foreground="White"
+               HorizontalAlignment="Center"/>
 
                     <TextBlock x:Name="ТекстДеньНедели"
-                       Text=""
-                       FontSize="11"
-                       Foreground="#7D8290"
-                       HorizontalAlignment="Center"
-                       Margin="0,2,0,0"/>
+               Text=""
+               FontSize="12"
+               FontWeight="SemiBold"
+               Foreground="#B7BCC6"
+               HorizontalAlignment="Center"
+               Margin="0,8,0,0"/>
+
+                    <TextBlock x:Name="ТекстДата"
+               Text=""
+               FontSize="11"
+               Foreground="#7D8290"
+               HorizontalAlignment="Center"
+               Margin="0,3,0,0"/>
 
                 </StackPanel>
 
@@ -594,39 +612,39 @@ IsHitTestVisible="False">
 
                 <!-- ПОГОДА -->
                 <StackPanel Grid.Column="2"
-                    MinWidth="100"
-                    VerticalAlignment="Top"
-                    HorizontalAlignment="Center">
+            MinWidth="100"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Center">
 
                     <TextBlock x:Name="ПогодаИконка"
-                       Text="❔"
-                       FontSize="32"
-                       Foreground="White"
-                       HorizontalAlignment="Center"/>
-
-                    <TextBlock x:Name="ПогодаОписание"
-                       Text="Загрузка..."
-                       FontSize="13"
-                       Foreground="White"
-                       TextWrapping="Wrap"
-                       TextAlignment="Center"
-                       HorizontalAlignment="Center"
-                       Margin="0,6,0,0"/>
+               Text="❔"
+               FontSize="32"
+               Foreground="White"
+               HorizontalAlignment="Center"/>
 
                     <TextBlock x:Name="ПогодаТемпература"
-                       Text="—°"
-                       FontSize="20"
-                       FontWeight="Bold"
-                       Foreground="White"
-                       HorizontalAlignment="Center"
-                       Margin="0,2,0,0"/>
+               Text="—°"
+               FontSize="22"
+               FontWeight="Bold"
+               Foreground="White"
+               HorizontalAlignment="Center"
+               Margin="0,6,0,0"/>
+
+                    <TextBlock x:Name="ПогодаОписание"
+               Text="Загрузка..."
+               FontSize="12"
+               Foreground="#B7BCC6"
+               TextWrapping="Wrap"
+               TextAlignment="Center"
+               HorizontalAlignment="Center"
+               Margin="0,3,0,0"/>
 
                     <TextBlock x:Name="ПогодаМесто"
-                       Text="с. Вилино"
-                       FontSize="11"
-                       Foreground="#7D8290"
-                       HorizontalAlignment="Center"
-                       Margin="0,6,0,0"/>
+               Text="с. Вилино"
+               FontSize="11"
+               Foreground="#7D8290"
+               HorizontalAlignment="Center"
+               Margin="0,3,0,0"/>
 
                 </StackPanel>
 
