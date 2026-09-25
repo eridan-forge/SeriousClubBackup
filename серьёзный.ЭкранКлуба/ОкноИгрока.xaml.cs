@@ -1085,6 +1085,33 @@ private void Таймер(object? sender, EventArgs e)
 
                 if (каталог == null) return;
 
+                // ===================== ВРЕМЕННЫЕ ТЕСТОВЫЕ КАРТОЧКИ =====================
+                // УДАЛИТЬ ЭТОТ БЛОК ЦЕЛИКОМ, когда проверишь карусель на одном ПК.
+                if (каталог.Games.Count < 8)
+                {
+                    var тестовыеОбложки = new[]
+                    {
+        "https://cdn.cloudflare.steamstatic.com/steam/apps/730/library_600x900.jpg",
+        "https://cdn.cloudflare.steamstatic.com/steam/apps/570/library_600x900.jpg",
+        "https://cdn.cloudflare.steamstatic.com/steam/apps/1174180/library_600x900.jpg",
+    };
+
+                    for (int i = 0; i < 8; i++)
+                    {
+                        каталог.Games.Add(new GameCatalogItemDto
+                        {
+                            Id = Guid.NewGuid(),
+                            Название = $"Тестовая игра {i + 1}",
+                            Категория = i % 2 == 0 ? "Шутеры" : "Популярные",
+                            Путь = "",
+                            Обложка = "",
+                            ОбложкаData = null,
+                            ОбложкаExtension = null
+                        });
+                    }
+                }
+                // ===================== КОНЕЦ ВРЕМЕННОГО БЛОКА =====================
+
                 игры = каталог.Games
                     .Select(x => new Игра
                     {
