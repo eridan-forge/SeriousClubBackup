@@ -52,6 +52,8 @@ namespace серьёзный.ЭкранКлуба
         private readonly Dictionary<string, КарусельИгр> каруселиПоКатегориям = new();
 
         private bool каталогИгрЗагружается;
+
+        private string? последняяСигнатураИгр;
         private bool каталогЗагружается;
         private bool чатОткрыт;
         private int показаноСообщенийЧата;
@@ -65,6 +67,8 @@ namespace серьёзный.ЭкранКлуба
         // Момент открытия окна для тестового аккаунта — от него локально
         // отсчитывается убывающее время, без обращений к серверу.
         private DateTime? тестовыйСтарт;
+
+        
 
         public ОкноИгрока(Guid idАккаунта, int idПК)
         {
@@ -1198,65 +1202,33 @@ private void Таймер(object? sender, EventArgs e)
             try
             {
                 GameCatalogDto? каталог;
-                
-                                if (аккаунтId == ТестовыйАккаунт.Id)
-                                    {
-                                        // Тестовый аккаунт работает в обход сервера/Патруля —
-                                        // сетевой запрос каталога никогда не получит ответ,
-                                       // поэтому сразу строим пустой каталог локально вместо
-                                        // 6 секунд бесполезного ожидания.
-                    каталог = new GameCatalogDto();
-                                    }
-                                else
-                                    {
-                    var requestId = GameCatalogBridgeService.CreateRequest(компьютерId);
-                    
-                   каталог = null;
-                    
-                                        for (int i = 0; i < 20; i++)
-                                            {
-                        await Task.Delay(300);
-                                                if (окноЗакрывается) return;
-                        каталог = GameCatalogBridgeService.GetResult(requestId);
-                                                if (каталог != null) break;
-                                            }
-                    
-                                       if (каталог == null) return;
-                                    }
 
-
-
-
-                // ===================== ВРЕМЕННЫЕ ТЕСТОВЫЕ КАРТОЧКИ =====================
-                // УДАЛИТЬ ЭТОТ БЛОК ЦЕЛИКОМ, когда проверишь карусель на одном ПК.
-                if (каталог.Games.Count < 24)
+                if (аккаунтId == ТестовыйАккаунт.Id)
                 {
-                    var тестовыеОбложки = new[]
-                    {
-        "https://cdn.cloudflare.steamstatic.com/steam/apps/730/library_600x900.jpg",
-        "https://cdn.cloudflare.steamstatic.com/steam/apps/570/library_600x900.jpg",
-        "https://cdn.cloudflare.steamstatic.com/steam/apps/1174180/library_600x900.jpg",
-    };
-
-                    var тестовыеКатегории = new[] { "Шутеры", "Популярные", "RPG", "Спорт", "Стратегии", "Гонки" };
-
-                    for (int i = 0; i < 24; i++)
-                    {
-                        каталог.Games.Add(new GameCatalogItemDto
-                        {
-                            Id = Guid.NewGuid(),
-                            Название = $"Тестовая игра {i + 1}",
-                            Категория = тестовыеКатегории[i % тестовыеКатегории.Length],
-                            Путь = "",
-                            Обложка = "",
-                            ОбложкаData = null,
-                            ОбложкаExtension = null
-                        });
-                    }
+                    // Тестовый аккаунт работает в обход сервера/Патруля —
+                    // сетевой запрос каталога никогда не получит ответ,
+                    // поэтому сразу строим пустой каталог локально вместо
+                    // 6 секунд бесполезного ожидания.
+                    каталог = new GameCatalogDto();
                 }
-                // ===================== КОНЕЦ ВРЕМЕННОГО БЛОКА =====================
+                else
+                {
+                    var requestId = GameCatalogBridgeService.CreateRequest(компьютерId);
 
-                игры = каталог.Games
+                    каталог = null;
+
+                    for (int i = 0; i < 20; i++)
+                    {
+                        await Task.Delay(300);
+                        if (окноЗакрывается) return;
+                        каталог = GameCatalogBridgeService.GetResult(requestId);
+                        if (каталог != null) break;
+                    }
+
+                    if (каталог == null) return;
+                }
+
+                var новыеИгры = каталог.Games
                     .Select(x => new Игра
                     {
                         Id = x.Id,
@@ -1270,6 +1242,16 @@ private void Таймер(object? sender, EventArgs e)
                         Launcher = x.Launcher
                     })
                     .ToList();
+
+                var сигнатура = string.Join("|",
+                    новыеИгры.OrderBy(x => x.Порядок)
+                             .Select(x => $"{x.Id}:{x.Название}:{x.Категория}:{x.Обложка}"));
+
+                if (сигнатура == последняяСигнатураИгр)
+                    return; // каталог не изменился — карусель не трогаем, никакого мигания
+
+                последняяСигнатураИгр = сигнатура;
+                игры = новыеИгры;
 
                 ОбновитьСетку();
             }
