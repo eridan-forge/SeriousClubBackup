@@ -43,6 +43,7 @@ namespace серьёзный.ЭкранКлуба
         private АккаунтИгрока? аккаунт;
         private НастройкиИгрока настройкиИгрока = new();
         private List<Игра> игры = new();
+        private string? выбраннаяКатегорияЦеликом;
 
         private EconomySummaryDto? сводкаЭкономики;
         private PlayerProfileDto? профильДанные;
@@ -115,9 +116,7 @@ namespace серьёзный.ЭкранКлуба
 
             настройкиИгрока = сервисНастроек.Загрузить(аккаунт.Id);
 
-            КарусельИгрЭлемент.ИграЗапущена += ЗапускИгры;
-            КарусельИгрЭлемент.ИзбранноеИзменилось += ПереключитьИзбранное;
-            КарусельИгрЭлемент.ИграСкрыта += СкрытьИгру;
+            
 
             _ = ЗагрузитьКаталогМагазина();
             _ = ОбновитьЭкономикуAsync(new EconomyRequestDto { Action = EconomyAction.GetSummary });
@@ -396,7 +395,7 @@ private void Таймер(object? sender, EventArgs e)
             СкрытьВсеСтраницы();
             СтраницаМагазин.Visibility = Visibility.Visible;
             Выделить(КнопкаМагазин);
-            КарусельИгрЭлемент.Focus();
+           
         }
 
         private void ПоказатьРазвлечения()
@@ -1153,128 +1152,258 @@ private void Таймер(object? sender, EventArgs e)
 
         private void ОбновитьСетку()
         {
-            var выбраннаяКатегория = Категории.SelectedItem as string ?? "Все";
-            var поиск = ПоискИгр.Text.Trim().ToLower();
+            var поиск = ПоискИгр.Text.Trim();
 
             var видимые = игры
                 .Where(x => !настройкиИгрока.Скрытые.Contains(x.Id))
-                .Where(x => string.IsNullOrWhiteSpace(поиск) || x.Название.ToLower().Contains(поиск))
-                .Where(x => выбраннаяКатегория == "Все" || x.Категория == выбраннаяКатегория)
                 .ToList();
 
-            КарусельИгрЭлемент.Загрузить(видимые, настройкиИгрока.Избранное.ToHashSet());
-
-            var списокКатегорий = new[] { "Все" }
-                .Concat(игры.Select(x => x.Категория).Distinct())
+            var категории = видимые
+                .Select(x => x.Категория)
+                .Distinct()
+                .OrderBy(x => x)
                 .ToList();
 
-            Категории.ItemsSource = списокКатегорий;
+            var избранные = настройкиИгрока.Избранное.ToHashSet();
 
-            if (!списокКатегорий.Contains(выбраннаяКатегория))
-                выбраннаяКатегория = "Все";
+            ПостроитьКнопкиКатегорий(категории, поиск);
 
-            Категории.SelectedItem = выбраннаяКатегория;
-        }
-
-        
-
-        private void ЗапускИгры(Игра игра)
-        {
-            var model = new GameInfo { Name = игра.Название, Path = игра.Путь, Launcher = игра.Launcher, AppId = игра.AppId, LaunchArguments = "" };
-
-            var process = GameLaunchService.Launch(model);
-
-            трекер.Start(process);
-            трекер.Finished -= ИграЗакрылась;
-            трекер.Finished += ИграЗакрылась;
-        }
-
-        private void ИграЗакрылась(TimeSpan время)
-        {
-            Dispatcher.Invoke(() =>
+            if (!string.IsNullOrWhiteSpace(поиск))
             {
-                if (аккаунт == null || время <= TimeSpan.Zero) return;
+                var найденные = видимые
+                    .Where(x => x.Название.Contains(поиск, StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(x => x.Название)
+                    .ToList();
 
-                GameSessionReportBridgeService.CreateRequest(аккаунт.Id, компьютерId, (long)время.TotalSeconds);
-            });
-        }
-
-        private void ПереключитьИзбранное(Игра игра)
-        {
-            if (настройкиИгрока.Избранное.Contains(игра.Id))
-                настройкиИгрока.Избранное.Remove(игра.Id);
-            else
-                настройкиИгрока.Избранное.Add(игра.Id);
-
-            сервисНастроек.Сохранить(настройкиИгрока);
-
-            ОбновитьСетку();
-        }
-
-        private void СкрытьИгру(Игра игра)
-        {
-            if (настройкиИгрока.Скрытые.Contains(игра.Id))
-               return;
-
-            настройкиИгрока.Скрытые.Add(игра.Id);
-
-            сервисНастроек.Сохранить(настройкиИгрока);
-
-            последняяСкрытаяИгра = игра;
-
-            ОбновитьСетку();
-
-            ПоказатьПлашкуОтмены($"«{игра.Название}» скрыта");
-        }
-
-        private void ОтменитьСкрытие_Click(object sender, RoutedEventArgs e)
-        {
-           if (последняяСкрытаяИгра == null)
+                ПоказатьСеткуКатегории($"Поиск: «{поиск}»", найденные, избранные);
                 return;
-
-           настройкиИгрока.Скрытые.Remove(последняяСкрытаяИгра.Id);
-
-            сервисНастроек.Сохранить(настройкиИгрока);
-
-           последняяСкрытаяИгра = null;
-
-            ОбновитьСетку();
-
-            СкрытьПлашкуОтмены();
-       }
-
-        private void ПоказатьПлашкуОтмены(string текст)
-        {
-    ТекстПлашкиОтмены.Text = текст;
-    ПлашкаОтменыСкрытия.Visibility = Visibility.Visible;
-    
-    таймерПлашкиОтмены?.Stop();
-    
-    таймерПлашкиОтмены = new DispatcherTimer
-                {
-        Interval = TimeSpan.FromSeconds(5)
-                    }
-    ;
-    
-    таймерПлашкиОтмены.Tick += (_, _) =>
-                {
-        таймерПлашкиОтмены?.Stop();
-        последняяСкрытаяИгра = null;
-        СкрытьПлашкуОтмены();
-                    }
-    ;
-    
-    таймерПлашкиОтмены.Start();
             }
 
-       private void СкрытьПлашкуОтмены()
+            if (выбраннаяКатегорияЦеликом != null)
+            {
+                var игрыКатегории = видимые
+                    .Where(x => x.Категория == выбраннаяКатегорияЦеликом)
+                    .OrderBy(x => x.Название)
+                    .ToList();
+
+                if (игрыКатегории.Count > 0)
+                {
+                    ПоказатьСеткуКатегории(выбраннаяКатегорияЦеликом, игрыКатегории, избранные);
+                    return;
+                }
+
+                выбраннаяКатегорияЦеликом = null;
+            }
+
+            ПоказатьОбзорПоКатегориям(видимые, категории, избранные);
+        }
+
+        // =====================================================
+        // КНОПКИ КАТЕГОРИЙ (слева)
+        // =====================================================
+
+        private void ПостроитьКнопкиКатегорий(List<string> категории, string поиск)
         {
-    ПлашкаОтменыСкрытия.Visibility = Visibility.Collapsed;
-           }
+            ПанельКнопокКатегорий.Children.Clear();
 
-private void ПоискИгр_TextChanged(object sender, TextChangedEventArgs e) => ОбновитьСетку();
+            ПанельКнопокКатегорий.Children.Add(
+                СоздатьКнопкуКатегории("Все категории", null, поиск));
 
-        private void Категории_SelectionChanged(object sender, SelectionChangedEventArgs e) => ОбновитьСетку();
+            foreach (var категория in категории)
+                ПанельКнопокКатегорий.Children.Add(
+                    СоздатьКнопкуКатегории(категория, категория, поиск));
+        }
+
+        private Button СоздатьКнопкуКатегории(string подпись, string? категория, string поиск)
+        {
+            bool идётПоиск = !string.IsNullOrWhiteSpace(поиск);
+
+            bool активна = !идётПоиск && категория == выбраннаяКатегорияЦеликом;
+
+            var кнопка = new Button
+            {
+                Content = подпись,
+                Height = 46,
+                Margin = new Thickness(0, 0, 0, 8),
+                Padding = new Thickness(14, 0, 14, 0),
+                HorizontalContentAlignment = HorizontalAlignment.Left,
+                Background = активна ? (Brush)FindResource("АкцентКрасный") : (Brush)FindResource("ФонКарточкиАльт"),
+                Foreground = Brushes.White,
+                BorderBrush = активна ? (Brush)FindResource("АкцентКрасный") : (Brush)FindResource("РамкаЦвет"),
+                FontWeight = активна ? FontWeights.Bold : FontWeights.Normal,
+                Cursor = Cursors.Hand
+            };
+
+            кнопка.Click += (_, _) =>
+            {
+                выбраннаяКатегорияЦеликом = категория;
+
+                if (ПоискИгр.Text.Length > 0)
+                    ПоискИгр.Text = string.Empty; // само вызовет ОбновитьСетку()
+                else
+                    ОбновитьСетку();
+            };
+
+            return кнопка;
+        }
+
+        // =====================================================
+        // ОБЗОР: КАРУСЕЛЬ НА КАЖДУЮ КАТЕГОРИЮ, ВНИЗ ПОДРЯД
+        // =====================================================
+
+        private void ПоказатьОбзорПоКатегориям(List<Игра> видимые, List<string> категории, HashSet<Guid> избранные)
+        {
+            ПанельОднойКатегории.Visibility = Visibility.Collapsed;
+            СкроллОбзораИгр.Visibility = Visibility.Visible;
+
+            ПанельСекцийКатегорий.Children.Clear();
+
+            foreach (var категория in категории)
+            {
+                var игрыКатегории = видимые
+                    .Where(x => x.Категория == категория)
+                    .OrderBy(x => x.Название)
+                    .ToList();
+
+                if (игрыКатегории.Count == 0)
+                    continue;
+
+                ПанельСекцийКатегорий.Children.Add(
+                    СоздатьСекциюКатегории(категория, игрыКатегории, избранные));
+            }
+
+            if (ПанельСекцийКатегорий.Children.Count == 0)
+            {
+                ПанельСекцийКатегорий.Children.Add(new TextBlock
+                {
+                    Text = "Игр не найдено.",
+                    Foreground = (Brush)FindResource("ТекстВторичный"),
+                    FontSize = 16,
+                    Margin = new Thickness(0, 40, 0, 0),
+                    HorizontalAlignment = HorizontalAlignment.Center
+                });
+            }
+        }
+
+        private UIElement СоздатьСекциюКатегории(string категория, List<Игра> игрыКатегории, HashSet<Guid> избранные)
+        {
+            var заголовок = new Button
+            {
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Padding = new Thickness(4, 0, 4, 10),
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                Cursor = Cursors.Hand,
+                Focusable = false
+            };
+
+            var строкаЗаголовка = new DockPanel();
+
+            строкаЗаголовка.Children.Add(new TextBlock
+            {
+                Text = категория,
+                FontSize = 20,
+                FontWeight = FontWeights.Bold,
+                Foreground = Brushes.White,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            var ссылкаВсе = new TextBlock
+            {
+                Text = $"Все ({игрыКатегории.Count})  →",
+                Foreground = (Brush)FindResource("ТекстВторичный"),
+                FontSize = 14,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            DockPanel.SetDock(ссылкаВсе, Dock.Right);
+            строкаЗаголовка.Children.Add(ссылкаВсе);
+
+            заголовок.Content = строкаЗаголовка;
+
+            заголовок.Click += (_, _) =>
+            {
+                выбраннаяКатегорияЦеликом = категория;
+                ОбновитьСетку();
+            };
+
+            var миниКарусель = new КарусельИгр
+            {
+                Height = 330,
+                Margin = new Thickness(0, 0, 0, 24)
+            };
+
+            миниКарусель.УстановитьМасштаб(0.62);
+            миниКарусель.ОтключитьПрокруткуКолесом();
+
+            миниКарусель.ИграЗапущена += ЗапускИгры;
+            миниКарусель.ИзбранноеИзменилось += ПереключитьИзбранное;
+            миниКарусель.ИграСкрыта += СкрытьИгру;
+
+            миниКарусель.Загрузить(игрыКатегории, избранные);
+
+            var секция = new StackPanel();
+            секция.Children.Add(заголовок);
+            секция.Children.Add(миниКарусель);
+
+            return секция;
+        }
+
+        // =====================================================
+        // РАЗВЁРНУТАЯ КАТЕГОРИЯ: ОБЫЧНАЯ СЕТКА, 5 В РЯД
+        // =====================================================
+
+        private void ПоказатьСеткуКатегории(string заголовок, List<Игра> игрыСписок, HashSet<Guid> избранные)
+        {
+            СкроллОбзораИгр.Visibility = Visibility.Collapsed;
+            ПанельОднойКатегории.Visibility = Visibility.Visible;
+
+            ЗаголовокОднойКатегории.Text = заголовок;
+
+            СеткаОднойКатегории.Children.Clear();
+
+            foreach (var игра in игрыСписок)
+            {
+                var карточка = new КарточкаИгрыКарусель
+                {
+                    Margin = new Thickness(0, 0, 18, 18),
+                    // Карточка сама фиксированного размера (360×480) —
+                    // LayoutTransform уменьшает её ЦЕЛИКОМ (и площадь,
+                    // которую она занимает в layout'е), не трогая
+                    // внутреннюю разметку/обрезку — безопаснее, чем
+                    // менять Width/Height напрямую.
+                    LayoutTransform = new ScaleTransform(0.7, 0.7)
+                };
+
+                карточка.Загрузить(игра, избранные.Contains(игра.Id));
+
+                карточка.ИграЗапущена += ЗапускИгры;
+                карточка.ИзбранноеИзменилось += ПереключитьИзбранное;
+                карточка.ИграСкрыта += СкрытьИгру;
+
+                СеткаОднойКатегории.Children.Add(карточка);
+            }
+
+            if (игрыСписок.Count == 0)
+            {
+                СеткаОднойКатегории.Children.Add(new TextBlock
+                {
+                    Text = "Ничего не найдено.",
+                    Foreground = (Brush)FindResource("ТекстВторичный"),
+                    FontSize = 16
+                });
+            }
+        }
+
+        private void НазадККатегориям_Click(object sender, RoutedEventArgs e)
+        {
+            выбраннаяКатегорияЦеликом = null;
+
+            if (ПоискИгр.Text.Length > 0)
+                ПоискИгр.Text = string.Empty;
+            else
+                ОбновитьСетку();
+        }
 
         // =====================================================
         // МАГАЗИН

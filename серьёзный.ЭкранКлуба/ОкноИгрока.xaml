@@ -130,51 +130,111 @@
                 </ScrollViewer>
 
                 <!-- ИГРЫ -->
+                
 
                 <Grid x:Name="СтраницаИгры" Visibility="Collapsed" Margin="28,28,28,0">
+                    
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="170"/>
+                        
+                        <ColumnDefinition Width="220"/>
+                        
                         <ColumnDefinition Width="20"/>
+                        
                         <ColumnDefinition Width="*"/>
+                        
                     </Grid.ColumnDefinitions>
+                    
 
-                    <!-- ВЕРТИКАЛЬНЫЙ СПИСОК КАТЕГОРИЙ, сдвинут правее боковой панели -->
-                    <Border Grid.Column="0" Background="{StaticResource ФонКарточкиАльт}" CornerRadius="14" Padding="10">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <ListBox x:Name="Категории"
-                     Background="Transparent"
-                     BorderThickness="0"
-                     SelectionChanged="Категории_SelectionChanged"/>
-                        </ScrollViewer>
+                    <!-- ЛЕВО: поиск + отдельная кнопка на каждую категорию -->
+                    
+                    <Border Grid.Column="0" Background="{StaticResource ФонКарточкиАльт}" CornerRadius="14" Padding="14">
+                        
+                        <DockPanel>
+                            
+                            <TextBox x:Name="ПоискИгр" DockPanel.Dock="Top" Margin="0,0,0,14"
+                                     TextChanged="ПоискИгр_TextChanged"/>
+                                
+
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    
+                                    <StackPanel x:Name="ПанельКнопокКатегорий"/>
+                                    
+                                </ScrollViewer>
+                                
+                        </DockPanel>
+                        
                     </Border>
+                    
 
                     <Grid Grid.Column="2">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
+                        
 
-                        <TextBox x:Name="ПоискИгр" Margin="0,0,0,10" TextChanged="ПоискИгр_TextChanged"/>
+                        <!-- ОБЗОР: по карусели на каждую категорию, вниз подряд -->
+                        
+                        <ScrollViewer x:Name="СкроллОбзораИгр" VerticalScrollBarVisibility="Auto">
+                            
+                            <StackPanel x:Name="ПанельСекцийКатегорий" Margin="0,0,0,20"/>
+                            
+                        </ScrollViewer>
+                        
 
-                        <Grid Grid.Row="1">
-                            <карусель:КарусельИгр x:Name="КарусельИгрЭлемент"/>
+                        <!-- РАЗВЁРНУТАЯ КАТЕГОРИЯ: сетка 5 в ряд, со скроллом -->
+                        
+                        <Grid x:Name="ПанельОднойКатегории" Visibility="Collapsed">
+                            
+                            <Grid.RowDefinitions>
+                                
+                                <RowDefinition Height="Auto"/>
+                                
+                                <RowDefinition Height="*"/>
+                                
+                            </Grid.RowDefinitions>
+                           
 
-                            <Border x:Name="ПлашкаОтменыСкрытия"
+                            <DockPanel Grid.Row="0" Margin="0,0,0,18">
+                                
+                                <Button DockPanel.Dock="Left" Width="110" Height="38"
+                                        Content="← Назад" Click="НазадККатегориям_Click"/>
+                                    
+
+                                    <TextBlock x:Name="ЗаголовокОднойКатегории"
+                                           FontSize="24" FontWeight="Bold" Foreground="White"
+                                          VerticalAlignment="Center" Margin="18,0,0,0"/>
+                            </DockPanel>
+                            
+
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                
+                                <WrapPanel x:Name="СеткаОднойКатегории"/>
+                                
+                            </ScrollViewer>
+                            
+                        </Grid>
+                        
+
+                        <Border x:Name="ПлашкаОтменыСкрытия"
                     Background="#EE1E1420" BorderBrush="#5C1826" BorderThickness="1.3"
                     CornerRadius="16" Padding="20,14"
                     HorizontalAlignment="Center" VerticalAlignment="Bottom"
                     Margin="0,0,0,26" Visibility="Collapsed">
-                                <Border.Effect>
-                                    <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.5"/>
-                                </Border.Effect>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock x:Name="ТекстПлашкиОтмены" Text="Игра скрыта" Foreground="White"
+                            
+                            <Border.Effect>
+                                
+                                <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.5"/>
+                                
+                            </Border.Effect>
+                            
+                            <StackPanel Orientation="Horizontal">
+                                
+                                <TextBlock x:Name="ТекстПлашкиОтмены" Text="Игра скрыта" Foreground="White"
                                VerticalAlignment="Center" Margin="0,0,18,0"/>
-                                    <Button Content="Отменить" Click="ОтменитьСкрытие_Click"/>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
+                               <Button Content="Отменить" Click="ОтменитьСкрытие_Click"/>
+                           </StackPanel>
+                            
+                        </Border>
+                        
                     </Grid>
+                    
                 </Grid>
 
                 <!-- МАГАЗИН -->

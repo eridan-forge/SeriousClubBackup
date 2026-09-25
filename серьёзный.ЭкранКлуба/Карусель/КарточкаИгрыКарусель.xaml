@@ -61,11 +61,11 @@
 
                             <Border x:Name="Фон"
                                     CornerRadius="16"
-                                    Background="#5AE86B"
-                                    BorderBrush="#B6FFC2"
+                                  Background="#3FBF52"
+                                  BorderBrush="#8FE0A0"
                                     BorderThickness="1.4">
                                 <Border.Effect>
-                                    <DropShadowEffect Color="#7CFF6B"
+                                    <DropShadowEffect Color="#5AE86B"
                                                        BlurRadius="26"
                                                        ShadowDepth="0"
                                                        Opacity="0.6"/>
@@ -92,10 +92,10 @@
 
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Фон" Property="Background" Value="#7CFF6B"/>
+                                <Setter TargetName="Фон" Property="Background" Value="#57D168"/>
                                 <Setter TargetName="Фон" Property="Effect">
                                     <Setter.Value>
-                                        <DropShadowEffect Color="#7CFF6B"
+                                        <DropShadowEffect Color="#57D168"
                                                           BlurRadius="40"
                                                           ShadowDepth="0"
                                                           Opacity="0.9"/>
