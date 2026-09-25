@@ -149,6 +149,119 @@ namespace серьёзный.ЭкранКлуба
             Dispatcher.Invoke(() => _ = ЗагрузитьКаталогИгр());
         }
 
+        // =====================================================
+        // ЗАПУСК / ИЗБРАННОЕ / СКРЫТИЕ ИГР
+        // =====================================================
+
+        private void ЗапускИгры(Игра игра)
+        {
+            if (окноЗакрывается || string.IsNullOrWhiteSpace(игра.Путь))
+                return;
+
+            try
+            {
+                if (игра.Путь.StartsWith("steam://", StringComparison.OrdinalIgnoreCase))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = игра.Путь,
+                        UseShellExecute = true
+                    });
+
+                    return;
+                }
+
+                if (!File.Exists(игра.Путь))
+                {
+                    MessageBox.Show("Файл игры не найден.");
+                    return;
+                }
+
+                var процесс = Process.Start(new ProcessStartInfo
+                {
+                    FileName = игра.Путь,
+                    WorkingDirectory = Path.GetDirectoryName(игра.Путь),
+                    UseShellExecute = true
+                });
+
+                трекер.Finished += прошло =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        GameSessionReportBridgeService.CreateRequest(
+                            аккаунтId,
+                            компьютерId,
+                            (long)прошло.TotalSeconds);
+                    });
+                };
+
+                трекер.Start(процесс);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        private void ПереключитьИзбранное(Игра игра)
+        {
+            if (настройкиИгрока.Избранное.Contains(игра.Id))
+                настройкиИгрока.Избранное.Remove(игра.Id);
+            else
+                настройкиИгрока.Избранное.Add(игра.Id);
+
+            сервисНастроек.Сохранить(настройкиИгрока);
+
+            ОбновитьСетку();
+        }
+
+        private void СкрытьИгру(Игра игра)
+        {
+            if (настройкиИгрока.Скрытые.Contains(игра.Id))
+                return;
+
+            настройкиИгрока.Скрытые.Add(игра.Id);
+            сервисНастроек.Сохранить(настройкиИгрока);
+
+            последняяСкрытаяИгра = игра;
+
+            ТекстПлашкиОтмены.Text = $"«{игра.Название}» скрыта";
+            ПлашкаОтменыСкрытия.Visibility = Visibility.Visible;
+
+            таймерПлашкиОтмены?.Stop();
+
+            таймерПлашкиОтмены = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(5)
+            };
+
+            таймерПлашкиОтмены.Tick += (_, _) =>
+            {
+                таймерПлашкиОтмены?.Stop();
+                ПлашкаОтменыСкрытия.Visibility = Visibility.Collapsed;
+            };
+
+            таймерПлашкиОтмены.Start();
+
+            ОбновитьСетку();
+        }
+
+        private void ОтменитьСкрытие_Click(object sender, RoutedEventArgs e)
+        {
+            таймерПлашкиОтмены?.Stop();
+            ПлашкаОтменыСкрытия.Visibility = Visibility.Collapsed;
+
+            if (последняяСкрытаяИгра == null)
+                return;
+
+            настройкиИгрока.Скрытые.Remove(последняяСкрытаяИгра.Id);
+            сервисНастроек.Сохранить(настройкиИгрока);
+
+            последняяСкрытаяИгра = null;
+
+            ОбновитьСетку();
+        }
+
         private void ПриЗакрытии(object? sender, EventArgs e)
         {
             окноЗакрывается = true;
