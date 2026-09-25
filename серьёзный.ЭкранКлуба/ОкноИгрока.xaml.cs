@@ -1071,19 +1071,33 @@ private void Таймер(object? sender, EventArgs e)
 
             try
             {
-                var requestId = GameCatalogBridgeService.CreateRequest(компьютерId);
+                GameCatalogDto? каталог;
+                
+                                if (аккаунтId == ТестовыйАккаунт.Id)
+                                    {
+                                        // Тестовый аккаунт работает в обход сервера/Патруля —
+                                        // сетевой запрос каталога никогда не получит ответ,
+                                       // поэтому сразу строим пустой каталог локально вместо
+                                        // 6 секунд бесполезного ожидания.
+                    каталог = new GameCatalogDto();
+                                    }
+                                else
+                                    {
+                    var requestId = GameCatalogBridgeService.CreateRequest(компьютерId);
+                    
+                   каталог = null;
+                    
+                                        for (int i = 0; i < 20; i++)
+                                            {
+                        await Task.Delay(300);
+                                                if (окноЗакрывается) return;
+                        каталог = GameCatalogBridgeService.GetResult(requestId);
+                                                if (каталог != null) break;
+                                            }
+                    
+                                       if (каталог == null) return;
+                                    }
 
-                GameCatalogDto? каталог = null;
-
-                for (int i = 0; i < 20; i++)
-                {
-                    await Task.Delay(300);
-                    if (окноЗакрывается) return;
-                    каталог = GameCatalogBridgeService.GetResult(requestId);
-                    if (каталог != null) break;
-                }
-
-                if (каталог == null) return;
 
 
 
