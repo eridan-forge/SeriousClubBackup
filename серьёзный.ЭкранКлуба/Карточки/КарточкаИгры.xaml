@@ -1,0 +1,68 @@
+﻿<UserControl x:Class="серьёзный.ЭкранКлуба.Карточки.КарточкаИгры"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="210"
+             Height="310">
+
+    <Border x:Name="Корень"
+            Background="#1E293B"
+            CornerRadius="18"
+            Margin="10"
+            Cursor="Hand">
+
+        <Grid>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="220"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Grid>
+
+                <Image x:Name="Обложка"
+                       Stretch="UniformToFill"/>
+
+                <Border Background="#70000000"/>
+
+                <Button x:Name="КнопкаИзбранное"
+                        Width="34"
+                        Height="34"
+                        Margin="8"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Content="★"
+                        Background="#90000000"
+                        Foreground="Gold"
+                        BorderThickness="0"/>
+
+            </Grid>
+
+            <StackPanel Grid.Row="1"
+                        Margin="12">
+
+                <TextBlock x:Name="Название"
+                           FontSize="16"
+                           FontWeight="Bold"
+                           Foreground="White"
+                           TextTrimming="CharacterEllipsis"/>
+
+                <TextBlock x:Name="Категория"
+                           Margin="0,6,0,0"
+                           Foreground="#94A3B8"
+                           FontSize="13"/>
+
+                <Button x:Name="Играть"
+                        Margin="0,12,0,0"
+                        Height="36"
+                        Background="#2563EB"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Content="Играть"/>
+
+            </StackPanel>
+
+        </Grid>
+
+    </Border>
+
+</UserControl>

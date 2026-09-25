@@ -1,0 +1,68 @@
+﻿<UserControl x:Class="серьёзный.ЭкранКлуба.Карусель.КарусельИгр"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="True">
+
+    <UserControl.Resources>
+        <Style x:Key="СтрелкаКарусели" TargetType="Button">
+            <Setter Property="Width" Value="56"/>
+            <Setter Property="Height" Value="56"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Ellipse Fill="#33FFFFFF" Stroke="#55FFFFFF" StrokeThickness="1.3">
+                                <Ellipse.Effect>
+                                    <DropShadowEffect Color="Black" BlurRadius="16" ShadowDepth="4" Opacity="0.45"/>
+                                </Ellipse.Effect>
+                            </Ellipse>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+
+        <Canvas x:Name="Сцена"
+                ClipToBounds="False"
+                SizeChanged="Сцена_SizeChanged"
+                MouseWheel="Карусель_MouseWheel"/>
+
+        <TextBlock x:Name="ТекстПусто"
+                   Text="Игр не найдено"
+                   Foreground="#8A8F9A"
+                   FontSize="18"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Visibility="Collapsed"/>
+
+        <Button x:Name="КнопкаНазад"
+                Style="{StaticResource СтрелкаКарусели}"
+                Content="‹"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                Margin="10,0,0,0"
+                Click="КнопкаНазад_Click"/>
+
+        <Button x:Name="КнопкаВперёд"
+                Style="{StaticResource СтрелкаКарусели}"
+                Content="›"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Margin="0,0,10,0"
+                Click="КнопкаВперёд_Click"/>
+
+    </Grid>
+
+</UserControl>

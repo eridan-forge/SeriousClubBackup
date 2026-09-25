@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="../серьёзный.Core/серьёзный.Core.csproj" />
+  <Project Path="../серьёзный.патруль/серьёзный.патруль.csproj" />
+  <Project Path="../серьёзный.ЭкранКлуба/серьёзный.ЭкранКлуба.csproj" />
+  <Project Path="серьёзный.csproj" />
+</Solution>

@@ -1,0 +1,58 @@
+﻿<Window x:Class="серьёзный.ЭкранКлуба.ОкноСменыОбоев"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="420"
+        Height="540"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        Background="Transparent"
+        Topmost="True">
+
+    <Border CornerRadius="20"
+            BorderBrush="#5C1826"
+            BorderThickness="1.4"
+            Background="#050505"
+            Padding="26"
+            Margin="30">
+
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="30" ShadowDepth="0" Opacity="0.6"/>
+        </Border.Effect>
+
+        <Grid>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Смена обоев"
+                       FontSize="22"
+                       FontWeight="Bold"
+                       Foreground="White"
+                       Margin="0,0,0,16"/>
+
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto">
+
+                <StackPanel x:Name="СписокТем"/>
+
+            </ScrollViewer>
+
+            <Button Grid.Row="2"
+                    Height="42"
+                    Margin="0,16,0,0"
+                    Content="Закрыть"
+                    Foreground="White"
+                    Background="#242429"
+                    BorderThickness="0"
+                    Click="Закрыть_Click"/>
+
+        </Grid>
+
+    </Border>
+
+</Window>

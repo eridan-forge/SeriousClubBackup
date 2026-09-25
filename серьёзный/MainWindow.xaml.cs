@@ -1,0 +1,5660 @@
+﻿using NAudio.Wave;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
+using System.Windows.Shapes;
+using серьёзный.Core.CoreChat;
+using серьёзный.Core.CoreComputers;
+using серьёзный.Core.CoreEconomy;
+using серьёзный.Core.CoreEvents;
+using серьёзный.Core.CoreShop;
+using серьёзный.Модели;
+using серьёзный.Окна;
+using серьёзный.Сервисы;
+using серьёзный.Сеть;
+using серьёзный.Core.CoreThemes;
+
+
+
+namespace серьёзный
+{
+    public partial class MainWindow : Window
+    {
+
+
+        private readonly PurchaseRewardService награды =
+     new();
+
+        private readonly СервисСгоранияВремени сгорание =
+             new();
+
+        private readonly ShopRequestService сервисЗаказов =
+    new();
+
+        private readonly серьёзный.Core.CoreBackup.DatabaseBackupService бэкапРучной =
+            new();
+
+        private readonly СервисРезервногоКопирования резервноеКопирование =
+            new();
+
+        private readonly CancellationTokenSource токенСервера =
+            new();
+
+        private readonly СерверСвязи серверСвязи;
+
+        private readonly СервисФона008 фон;
+
+        private readonly ChatService chat =
+    new();
+
+        private readonly Guid администраторId =
+    Guid.Empty;
+
+
+
+        private readonly СервисЧата сервисЧата;
+
+        private readonly МаякСервера маяк =
+            new();
+
+        private readonly Dictionary<
+            int,
+            ПодключениеПатруля> подключения =
+            new();
+
+        private readonly ConcurrentDictionary<
+    string,
+    TaskCompletionSource<СетевоеСообщение>> ожиданиеОтветовАдмина =
+    new ();
+
+        private readonly СервисСеансов сервисСеансов =
+            new();
+
+        private readonly СервисТриггеровДостижений триггерыДостижений =
+             new();
+
+        private readonly СервисПримененияИгровыхОтчётов отчётыСессий =
+            new();
+
+        private readonly Dictionary<
+            int,
+            КарточкаПК009> карточкиПК =
+            new();
+
+        private readonly Dictionary<
+            int,
+            List<ЗаписьЧата>> историяЧата =
+            new();
+
+        private int выбранныйКомпьютерId = 100;
+
+        private Окна.ОкноЧата? окноЧата;
+
+        private string имяАдминистратора =
+            "Администратор";
+
+        private bool разрешитьВыход;
+
+        private bool приложениеЗакрывается;
+
+
+        // =========================================================
+        // ГОЛОС
+        // =========================================================
+
+        private WaveIn? записьГолоса;
+
+        private MemoryStream? потокГолоса;
+
+        private WaveFileWriter? писательГолоса;
+
+        private bool записьГолосаИдёт;
+
+        private bool завершениеЗаписиГолосаВыполняется;
+
+        private int? компьютерГолосаId;
+
+
+        // =========================================================
+        // ЧАТ
+        // =========================================================
+
+        
+
+
+
+        private void ПолученоСообщениеЧата(
+            СообщениеЧата чат)
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            var активныйСеанс =
+                сервисСеансов
+                    .ПолучитьАктивные()
+                    .FirstOrDefault(
+                        x =>
+                            x.КомпьютерId ==
+                            чат.КомпьютерId);
+
+            var запись =
+                new ЗаписьЧата
+                {
+                    КомпьютерId =
+                        чат.КомпьютерId,
+
+                    Имя =
+                        чат.Имя,
+
+                    Текст =
+                        чат.Текст,
+
+                    Время =
+                        DateTime.Now,
+
+                    ОтАдминистратора =
+                        !чат.ОтИгрока,
+
+                    АккаунтGuid =
+                        активныйСеанс?.АккаунтGuid,
+
+                    Прочитано =
+                        окноЧата != null &&
+                        окноЧата.IsVisible
+                };
+
+            сервисЧата.Добавить(
+                запись);
+
+            if (окноЧата != null &&
+                окноЧата.IsVisible)
+            {
+                окноЧата.ДобавитьСообщение(
+                    запись);
+            }
+        }
+
+
+        
+
+        
+
+        private void Чат_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            if (ВыборПК.SelectedItem
+                is not ЗаписьПК пк)
+            {
+                return;
+            }
+
+            if (окноЧата == null)
+            {
+                окноЧата =
+                    new Окна.ОкноЧата();
+
+                окноЧата.СообщениеУдалить +=
+                    id =>
+                    {
+                        сервисЧата.Удалить(id);
+
+                        if (окноЧата == null)
+                        {
+                            return;
+                        }
+
+                        окноЧата.ОчиститьИсторию();
+
+                        if (ВыборПК.SelectedItem
+                            is not ЗаписьПК выбранный)
+                        {
+                            return;
+                        }
+
+                        foreach (
+                            var сообщение
+                            in сервисЧата.ПолучитьИсторию(
+                                выбранный.Id))
+                        {
+                            окноЧата.ДобавитьСообщение(
+                                сообщение);
+                        }
+                    };
+
+                окноЧата.Closed +=
+                    (_, _) =>
+                    {
+                        окноЧата = null;
+                    };
+            }
+
+            окноЧата.Owner =
+                this;
+
+            окноЧата.ИмяАдминистратора =
+                имяАдминистратора;
+
+            окноЧата.СообщениеОтправлено -=
+                ОтправитьСообщениеЧата;
+
+            окноЧата.СообщениеОтправлено +=
+                ОтправитьСообщениеЧата;
+
+            окноЧата.УстановитьКомпьютер(
+                пк.Название,
+                сервисЧата
+                    .ПолучитьНепрочитанные(
+                        пк.Id));
+
+            окноЧата.ОчиститьИсторию();
+
+            foreach (
+                var сообщение
+                in сервисЧата.ПолучитьИсторию(
+                    пк.Id))
+            {
+                окноЧата.ДобавитьСообщение(
+                    сообщение);
+            }
+
+            окноЧата.Show();
+            окноЧата.Activate();
+
+            сервисЧата.ОтметитьПрочитанными(
+                пк.Id);
+
+
+        }
+
+
+        private async void ОтправитьСообщениеЧата(
+            string имя,
+            string текст)
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            if (ВыборПК.SelectedItem
+                is not ЗаписьПК пк)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(текст))
+            {
+                return;
+            }
+
+            var активныйСеанс =
+                сервисСеансов
+                    .ПолучитьАктивные()
+                    .FirstOrDefault(
+                        x =>
+                            x.КомпьютерId ==
+                            пк.Id);
+
+            var запись =
+                new ЗаписьЧата
+                {
+                    КомпьютерId =
+                        пк.Id,
+
+                    Имя =
+                        имя,
+
+                    Текст =
+                        текст,
+
+                    Время =
+                        DateTime.Now,
+
+                    ОтАдминистратора =
+                        true,
+
+                    АккаунтGuid =
+                        активныйСеанс?.АккаунтGuid,
+
+                    Прочитано =
+                        true
+                };
+
+            сервисЧата.Добавить(
+                запись);
+
+            await ОтправитьКомандуAsync(
+                КомандаПК.СообщениеЧата,
+                текст,
+                компьютерId:
+                    пк.Id,
+                имяОтправителя:
+                    имя);
+        }
+
+
+        private void ИсторияЧатаИзменилась(
+            int компьютерId)
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            Dispatcher.Invoke(
+                () =>
+                {
+                    if (окноЧата == null ||
+                        !окноЧата.IsVisible)
+                    {
+                        return;
+                    }
+
+                    if (ВыборПК.SelectedItem
+                        is not ЗаписьПК пк)
+                    {
+                        return;
+                    }
+
+                    if (пк.Id !=
+                        компьютерId)
+                    {
+                        return;
+                    }
+
+                    окноЧата.УстановитьКомпьютер(
+                        пк.Название,
+                        сервисЧата
+                            .ПолучитьНепрочитанные(
+                                компьютерId));
+                });
+        }
+
+
+        // =========================================================
+        // CONSTRUCTOR
+        // =========================================================
+
+        public MainWindow()
+        {
+            new ИнициализацияБазы001()
+                .Создать();
+
+            InitializeComponent();
+
+            
+
+            ShopLiveEvents.RequestCreated += ЗаказСоздан;
+            ShopLiveEvents.RequestUpdated += ЗаказОбновлён;
+
+            ChatLiveEvents.MessageReceived += msg =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    ОбновитьБейдж(администраторId);
+                });
+            };
+
+            ОбновитьСчётчикЗаказов();
+
+            сервисЧата =
+                new СервисЧата();
+
+            фон =
+    new СервисФона008(
+        () =>
+        {
+            try
+            {
+                сервисСеансов
+                    .ПроверитьИстёкшиеСеансы();
+
+                if (Dispatcher.HasShutdownStarted ||
+                    Dispatcher.HasShutdownFinished)
+                {
+                    return;
+                }
+
+                Dispatcher.Invoke(
+                    () =>
+                    {
+                        if (!приложениеЗакрывается)
+                        {
+                            ПроверитьМёртвыеПК();
+                            ОбновитьВерхнююПанель();
+                        }
+                    });
+            }
+            catch
+            {
+            }
+        });
+
+            сервисЧата.ИсторияИзменилась +=
+                ИсторияЧатаИзменилась;
+
+            имяАдминистратора =
+                серьёзный.Сервисы.НастройкиЧата
+                    .ЗагрузитьИмяАдминистратора();
+
+            ВыборПК.ItemsSource =
+                КартаКомпьютеров.Все;
+
+            if (КартаКомпьютеров.Все.Count > 0)
+            {
+                ВыборПК.SelectedIndex = 0;
+            }
+
+            ВыборПК.SelectionChanged +=
+                (_, _) =>
+                {
+                    if (приложениеЗакрывается)
+                    {
+                        return;
+                    }
+
+                    if (ВыборПК.SelectedItem
+                        is ЗаписьПК пк)
+                    {
+                        выбранныйКомпьютерId =
+                            пк.Id;
+
+                        НазваниеПК.Text =
+                            пк.Название;
+
+                        ОбновитьИнформациюПК();
+
+                        ОбновитьОтображениеТекущегоСеанса();
+                    }
+                };
+
+            СоздатьКарточкиПК();
+
+            сервисСеансов.СеансОбновился +=
+                СеансОбновился;
+
+            сервисСеансов.Предупреждение15Минут +=
+                Предупреждение15Минут;
+
+            сервисСеансов.Предупреждение10Минут +=
+                Предупреждение10Минут;
+
+            сервисСеансов.Предупреждение5Минут +=
+                Предупреждение5Минут;
+
+            сервисСеансов.СеансЗавершился +=
+                СеансЗавершился;
+
+            триггерыДостижений.Инициализировать();
+
+            EventBus.Subscribe<AchievementUnlockedEvent>(
+                 ДостижениеРазблокировано);
+
+            сервисСеансов.СеансНачался +=
+сеанс => EventBus.Publish(
+new SessionStartedEvent(
+сеанс.КомпьютерId,
+сеанс.АккаунтGuid));
+
+            сервисСеансов.СеансЗавершился +=
+            сеанс => EventBus.Publish(
+            new SessionEndedEvent(
+            сеанс.КомпьютерId,
+            сеанс.АккаунтGuid));
+
+            серверСвязи =
+                new СерверСвязи(
+                    47821);
+            
+
+            серверСвязи.ПатрульПодключился +=
+                ПатрульПодключился;
+
+            серверСвязи.ПатрульОтключился +=
+                ПатрульОтключился;
+
+            серверСвязи.ПолученоСообщение +=
+                ПолученоСообщение;
+
+            Loaded +=
+    ПриЗагрузке;
+            ЗапуститьПереливАнимация();
+
+           
+
+           
+
+            Closed +=
+                ПриЗакрытии;
+
+            Closing +=
+                ГлавноеЗакрытие;
+        }
+
+
+
+        // =========================================================
+        // НАСТРОЙКА ПК / ОКНА
+        // =========================================================
+
+        private async void ДостижениеРазблокировано(
+    AchievementUnlockedEvent e)
+        {
+            try
+            {
+                var сеанс =
+                    сервисСеансов
+                        .ПолучитьАктивные()
+                        .FirstOrDefault(
+                            x =>
+                                x.АккаунтGuid ==
+                                e.PlayerId);
+
+                if (сеанс == null)
+                {
+                    // Игрок сейчас не за ПК — достижение уже сохранено в
+                    // базе и будет видно в профиле при следующем входе.
+                    return;
+                }
+
+                await ОтправитьКомандуAsync(
+                    КомандаПК.ДостижениеРазблокировано,
+                    текст: e.AchievementName,
+                    параметры: e.Description,
+                    компьютерId: сеанс.КомпьютерId,
+                    аккаунтId: e.PlayerId);
+            }
+            catch
+            {
+                // Уведомление о достижении не должно ронять сервер.
+            }
+        }
+
+        private void ОбновитьБейдж(Guid id)
+        {
+            var badge = FindName("ChatBadge") as Border;
+            var text = FindName("ChatCount") as TextBlock;
+
+            if (badge == null || text == null)
+                return;
+
+            var count = chat.Unread(id);
+
+            badge.Visibility =
+                count > 0
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+
+            text.Text = count.ToString();
+        }
+
+
+
+        private void НастройкаПК_Click(
+    object sender,
+    RoutedEventArgs e)
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            var панель = new Панели.ПанельНастройкиПК();
+
+            панель.Закрыть += ПоказатьГлавную;
+
+            панель.Изменено += () =>
+            {
+                var выбранныйId =
+                    (ВыборПК.SelectedItem as ЗаписьПК)?.Id;
+
+                ВыборПК.ItemsSource = null;
+                ВыборПК.ItemsSource = КартаКомпьютеров.Все;
+
+                var восстановить =
+                    ВыборПК.Items
+                        .OfType<ЗаписьПК>()
+                        .FirstOrDefault(x => x.Id == выбранныйId);
+
+                ВыборПК.SelectedItem =
+                    восстановить ??
+                    ВыборПК.Items.OfType<ЗаписьПК>().FirstOrDefault();
+
+                СеткаПК.Children.Clear();
+
+                карточкиПК.Clear();
+
+                СоздатьКарточкиПК();
+            };
+
+            ПоказатьПанель(панель);
+        }
+
+
+        private void Аккаунты_Click(
+    object sender,
+    RoutedEventArgs e)
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            var панель = new Панели.ПанельАккаунтов();
+
+            панель.Закрыть += ПоказатьГлавную;
+
+            ПоказатьПанель(панель);
+        }
+
+
+        private void История_Click(
+    object sender,
+    RoutedEventArgs e)
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            var панель = new Панели.ПанельИстории();
+
+            панель.Закрыть += ПоказатьГлавную;
+
+            ПоказатьПанель(панель);
+        }
+
+
+        private void Статистика_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            var панель =
+                new Панели.ПанельСтатистики(
+                    подключения.Count,
+                    КартаКомпьютеров.Все.Count);
+
+            панель.Закрыть += ПоказатьГлавную;
+
+            ПоказатьПанель(панель);
+        }
+
+
+        // =========================================================
+        // ТЕКСТ / ПАРОЛЬ
+        // =========================================================
+
+        private async void ИзменитьТекстЭкрана_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            var окно = new ОкноВвода("Текст экрана") { Owner = this };
+
+            if (окно.ShowDialog() != true)
+            {
+                return;
+            }
+
+            await ОтправитьКомандуAsync(
+                КомандаПК.ИзменитьЗаголовокЭкрана,
+                окно.Текст);
+        }
+
+
+        private async void СменитьПароль_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            var окно = new ОкноВвода("Новый пароль") { Owner = this };
+
+            if (окно.ShowDialog() != true)
+            {
+                return;
+            }
+
+            await ОтправитьКомандуAsync(
+                КомандаПК.СменитьПарольЭкрана,
+                окно.Текст);
+        }
+
+
+        private void ИмяАдминистратора_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            var окно = new ОкноВвода("Имя администратора в чате", имяАдминистратора) { Owner = this };
+
+            if (окно.ShowDialog() != true)
+            {
+                return;
+            }
+
+            var новоеИмя =
+                окно.Текст.Trim();
+
+            if (string.IsNullOrWhiteSpace(
+                    новоеИмя))
+            {
+                return;
+            }
+
+            имяАдминистратора =
+                новоеИмя;
+
+            серьёзный.Сервисы.НастройкиЧата
+                .СохранитьИмяАдминистратора(
+                    имяАдминистратора);
+
+            if (окноЧата != null)
+            {
+                окноЧата.ИмяАдминистратора =
+                    имяАдминистратора;
+            }
+
+            ТекстСостояния.Text =
+                $"Имя в чате изменено на «{имяАдминистратора}».";
+        }
+
+
+        // =========================================================
+        // STARTUP
+        // =========================================================
+
+        private void ПриЗагрузке(
+            object? sender,
+            RoutedEventArgs e)
+        {
+            try
+            {
+                _ =
+                    серверСвязи
+                        .ЗапуститьAsync(
+                            токенСервера.Token);
+
+                маяк.Запустить();
+
+                фон.Запустить();
+
+                сервисСеансов.Запустить();
+
+                резервноеКопирование.Запустить();
+
+                // Прогреваем кэш погоды заранее, чтобы первый запрос
+                                // с экрана клуба не ждал ответа метеослужбы.
+                _ = серьёзный.Core.CoreWeather.СервисПогодыСервера.ПолучитьAsync();
+
+                отчётыСессий.УдалитьСтарые(TimeSpan.FromDays(90));
+
+                var автозапуск =
+                    new СервисАвтозапуска010();
+
+                if (!автозапуск.Установлен())
+                {
+                    автозапуск.Установить();
+                }
+
+                ЗагрузитьСохранённыеСеансы();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ошибка)
+            {
+                MessageBox.Show(
+                    ошибка.ToString(),
+                    "Ошибка сервера",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+
+
+            }
+        }
+
+        private void Шапка_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            
+        }
+
+       
+
+
+        private QuickAccessBar? панельБыстрогоДоступа;
+
+        private readonly TranslateTransform переливОбщий = new();
+
+        private bool анимацияОкнаИдёт;
+
+        private void Свернуть_Click(object sender, RoutedEventArgs e)
+        {
+            if (анимацияОкнаИдёт)
+                return;
+
+            Hide();
+
+            ОстановитьФоновыеАнимации();
+
+            ПоказатьПанельБыстрогоДоступа();
+        }
+
+        private void ПоказатьПанельБыстрогоДоступа()
+        {
+            if (панельБыстрогоДоступа == null || !панельБыстрогоДоступа.IsLoaded)
+            {
+                панельБыстрогоДоступа = new QuickAccessBar();
+                панельБыстрогоДоступа.ВосстановитьЗапрошено += ВосстановитьИзПанели;
+            }
+
+            панельБыстрогоДоступа.Show();
+        }
+
+
+        private void ПоказатьГлавную()
+        {
+            ПанельСодержимого.Content = null;
+            ПанельСодержимого.Visibility = Visibility.Collapsed;
+            СкроллГлавная.Visibility = Visibility.Visible;
+        }
+
+        private void ПоказатьПанель(UIElement панель)
+        {
+            СкроллГлавная.Visibility = Visibility.Collapsed;
+            ПанельСодержимого.Content = панель;
+            ПанельСодержимого.Visibility = Visibility.Visible;
+        }
+
+
+
+        private void ВосстановитьИзПанели()
+        {
+            панельБыстрогоДоступа?.Close();
+            панельБыстрогоДоступа = null;
+
+            Show();
+
+            // Windows часто не даёт обычному Activate() забрать фокус у активного
+            // сейчас процесса. Короткое переключение Topmost выводит окно наверх
+            // в обход этой защиты, а сразу возвращаем false — иначе оно бы висело
+            // поверх всего постоянно и не пряталось бы за другими приложениями.
+            Topmost = true;
+            Topmost = false;
+            Activate();
+
+            ЗапуститьПереливАнимация();
+
+            var рост = new DoubleAnimation(0.02, 1, TimeSpan.FromMilliseconds(150))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+
+            МасштабОкна.BeginAnimation(ScaleTransform.ScaleXProperty, рост);
+            МасштабОкна.BeginAnimation(ScaleTransform.ScaleYProperty, рост);
+            РамкаОкна.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150)));
+        }
+
+
+        private bool окноВРежимеОкна;
+
+        private Rect границыПолногоЭкрана;
+
+        private void РазвернутьОкно_Click(object sender, RoutedEventArgs e)
+        {
+
+            if (анимацияОкнаИдёт)
+                return;
+
+            if (!окноВРежимеОкна)
+            {
+
+                границыПолногоЭкрана =
+                      WindowState == WindowState.Maximized
+                        ? new Rect(SystemParameters.WorkArea.Left, SystemParameters.WorkArea.Top,
+                         SystemParameters.WorkArea.Width, SystemParameters.WorkArea.Height)
+                        : new Rect(Left, Top, ActualWidth, ActualHeight);
+
+                WindowState = WindowState.Normal;
+                ResizeMode = ResizeMode.CanResize;
+
+                // Без анимации ставим границы туда, где окно и так уже было —
+                // иначе снятие Maximized даст видимый скачок перед анимацией.
+                Left = границыПолногоЭкрана.Left;
+                Top = границыПолногоЭкрана.Top;
+                Width = границыПолногоЭкрана.Width;
+                Height = границыПолногоЭкрана.Height;
+
+                var область = SystemParameters.WorkArea;
+                double целеваяШирина = область.Width / 2;
+                double целеваяВысота = область.Height / 2;
+
+                АнимироватьГраницы(
+                      область.Left + (область.Width - целеваяШирина) / 2,
+                      область.Top + (область.Height - целеваяВысота) / 2,
+        целеваяШирина, целеваяВысота);
+
+                РамкаОкна.BorderThickness = new Thickness(2);
+                РамкаОкна.Margin = new Thickness(-1);
+
+                окноВРежимеОкна = true;
+            }
+            else
+            {
+                ResizeMode = ResizeMode.NoResize;
+
+                АнимироватьГраницы(
+                     границыПолногоЭкрана.Left, границыПолногоЭкрана.Top,
+                       границыПолногоЭкрана.Width, границыПолногоЭкрана.Height,
+                          () =>
+                          {
+                              РамкаОкна.BorderThickness = new Thickness(0);
+                              РамкаОкна.Margin = new Thickness(0);
+
+                              // КРИТИЧНО: раньше WindowState тут не возвращался
+                              // в Maximized — окно оставалось Normal, просто
+                              // подогнанное под WorkArea (без учёта панели
+                              // задач). При обычном запуске Maximized + перехват
+                              // WM_GETMINMAXINFO разворачивает окно на весь
+                              // монитор и реально скрывает панель задач — этот
+                              // "ненастоящий полный" Normal её не перекрывал.
+                              // И именно он тянулся дальше через
+                              // Свернуть_Click/ВосстановитьИзПанели, потому что
+                              // Hide()/Show() не меняют WindowState — отсюда тот
+                              // же баг после крестика.
+                              WindowState = WindowState.Maximized;
+                          });
+                окноВРежимеОкна = false;
+            }
+        }
+
+
+
+        private void АнимироватьГраницы(
+    double left, double top, double width, double height,
+    Action? завершено = null)
+        {
+            анимацияОкнаИдёт = true;
+            РамкаОкна.IsHitTestVisible = false;
+
+            var стартLeft = Left;
+            var стартTop = Top;
+            var стартWidth = Width;
+            var стартHeight = Height;
+
+            Left = left;
+            Top = top;
+            Width = width;
+            Height = height;
+
+            var scale = new ScaleTransform(стартWidth / width, стартHeight / height);
+            var translate = new TranslateTransform(стартLeft - left, стартTop - top);
+
+            var group = new TransformGroup();
+            group.Children.Add(scale);
+            group.Children.Add(translate);
+
+            РамкаОкна.RenderTransformOrigin = new Point(0, 0);
+            РамкаОкна.RenderTransform = group;
+
+            // Было 100 мс — на перепаде "весь экран / половина" это
+            // читалось как рывок. 190 мс с тем же EaseOut уже видно
+            // именно как плавное изменение размера.
+            var длительность = TimeSpan.FromMilliseconds(190);
+            var сглаживание = new CubicEase { EasingMode = EasingMode.EaseOut };
+
+            var анимScaleX = new DoubleAnimation(scale.ScaleX, 1, длительность) { EasingFunction = сглаживание };
+            var анимScaleY = new DoubleAnimation(scale.ScaleY, 1, длительность) { EasingFunction = сглаживание };
+            var анимX = new DoubleAnimation(translate.X, 0, длительность) { EasingFunction = сглаживание };
+            var анимY = new DoubleAnimation(translate.Y, 0, длительность) { EasingFunction = сглаживание };
+
+            анимScaleX.Completed += (_, _) =>
+            {
+                // Возвращаем то состояние, которое ожидает Свернуть_Click.
+                РамкаОкна.RenderTransform = МасштабОкна;
+                РамкаОкна.RenderTransformOrigin = new Point(1, 1);
+
+                РамкаОкна.IsHitTestVisible = true;
+                анимацияОкнаИдёт = false;
+
+                завершено?.Invoke();
+            };
+
+            scale.BeginAnimation(ScaleTransform.ScaleXProperty, анимScaleX);
+            scale.BeginAnimation(ScaleTransform.ScaleYProperty, анимScaleY);
+            translate.BeginAnimation(TranslateTransform.XProperty, анимX);
+            translate.BeginAnimation(TranslateTransform.YProperty, анимY);
+        }
+
+
+
+        private void ЗапуститьПереливАнимация()
+        {
+            // РАНЬШЕ: 3 независимых TranslateTransform + 3 отдельные
+            // DoubleAnimation для трёх кистей (ЗаголовокКисть, ТаймерКисть,
+            // ScrollThumbShimmerBrush), хотя все три двигаются АБСОЛЮТНО
+            // одинаково (тот же From/To/Duration/Easing) — то есть WPF
+            // держал 3 работающих клока анимации вместо одного.
+            // ТЕПЕРЬ: один общий TranslateTransform, одна анимация, все
+            // три кисти просто ссылаются на него через RelativeTransform.
+            // Визуально — то же самое (даже точнее синхронно, чем раньше).
+
+            var сдвиг = new DoubleAnimation
+            {
+                From = -1,
+                To = 1,
+                Duration = TimeSpan.FromSeconds(3.2),
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever,
+                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+            };
+
+            переливОбщий.BeginAnimation(TranslateTransform.XProperty, сдвиг);
+
+            ПривязатьПереливККисти("ЗаголовокКисть");
+            ПривязатьПереливККисти("ТаймерКисть");
+            ПривязатьПереливКРесурсу("ScrollThumbShimmerBrush");
+
+            // Аналогично: обе колонки теперь светятся ОДНОЙ общей кистью
+            // (см. правку в MainWindow.xaml — Background колонок ссылается
+            // на общий ресурс "ФонКолонкиБраш" вместо двух x:Name-кистей),
+            // вместо двух независимых SolidColorBrush с двумя ColorAnimation.
+            ЗапуститьМедленноеСвечениеРесурс(
+                "ФонКолонкиБраш",
+                Color.FromRgb(0x0A, 0x0A, 0x0A),
+                Color.FromRgb(0x17, 0x0B, 0x10),
+                3.2);
+        }
+
+        private void ПривязатьПереливККисти(string имяКисти)
+       {
+          if (FindName(имяКисти) is LinearGradientBrush кисть)
+               кисть.RelativeTransform = переливОбщий;
+       }
+
+       private void ПривязатьПереливКРесурсу(string ключРесурса)
+       {
+           if (Resources[ключРесурса] is LinearGradientBrush кисть)
+               кисть.RelativeTransform = переливОбщий;
+       }
+
+       private void ЗапуститьМедленноеСвечениеРесурс(
+           string ключРесурса,
+           Color обычныйЦвет,
+           Color акцентныйЦвет,
+           double секунды)
+       {
+               if (Resources[ключРесурса] is not SolidColorBrush кисть)
+                       return;
+    
+    var анимация = new ColorAnimation
+               {
+        From = обычныйЦвет,
+To = акцентныйЦвет,
+Duration = TimeSpan.FromSeconds(секунды),
+AutoReverse = true,
+RepeatBehavior = RepeatBehavior.Forever
+           }
+    ;
+    
+    кисть.BeginAnimation(SolidColorBrush.ColorProperty, анимация);
+           }
+
+       // Полностью останавливает декоративный перелив/свечение — вызывается
+       // при сворачивании в QuickAccessBar. Бизнес-логика (фон/сервисСеансов
+       // и т.д.) НЕ трогается — здесь только чисто визуальные клоки, которые
+       // никому не нужны, пока окно скрыто.
+       private void ОстановитьФоновыеАнимации()
+       {
+    переливОбщий.BeginAnimation(TranslateTransform.XProperty, null);
+    
+               if (Resources["ФонКолонкиБраш"] is SolidColorBrush фонКисть)
+        фонКисть.BeginAnimation(SolidColorBrush.ColorProperty, null);
+           }
+
+
+// =========================================================
+// ФИКС ОКНА ПОД ПАНЕЛЬЮ ЗАДАЧ ПРИ MAXIMIZED
+// =========================================================
+
+protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+
+            if (PresentationSource.FromVisual(this) is HwndSource источник)
+            {
+                источник.AddHook(ОбработатьСообщениеОкна);
+            }
+        }
+
+        private static IntPtr ОбработатьСообщениеОкна(
+            IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            const int WM_GETMINMAXINFO = 0x0024;
+
+            if (msg == WM_GETMINMAXINFO)
+            {
+                ОбработатьGetMinMaxInfo(hwnd, lParam);
+                handled = true;
+            }
+
+            return IntPtr.Zero;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ТочкаWin32
+        {
+            public int X;
+            public int Y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MinMaxInfo
+        {
+            public ТочкаWin32 ptReserved;
+            public ТочкаWin32 ptMaxSize;
+            public ТочкаWin32 ptMaxPosition;
+            public ТочкаWin32 ptMinTrackSize;
+            public ТочкаWin32 ptMaxTrackSize;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Rect32
+        {
+            public int Left, Top, Right, Bottom;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MonitorInfo
+        {
+            public int cbSize;
+            public Rect32 rcMonitor;
+            public Rect32 rcWork;
+            public int dwFlags;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr handle, int flags);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MonitorInfo lpmi);
+
+        private static void ОбработатьGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
+        {
+            var minMaxInfo =
+                (MinMaxInfo)Marshal.PtrToStructure(lParam, typeof(MinMaxInfo))!;
+
+            const int MONITOR_DEFAULTTONEAREST = 2;
+
+            var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+
+            if (monitor != IntPtr.Zero)
+            {
+                var monitorInfo = new MonitorInfo();
+                monitorInfo.cbSize = Marshal.SizeOf(typeof(MonitorInfo));
+
+                GetMonitorInfo(monitor, ref monitorInfo);
+
+               
+                var rcMonitorArea = monitorInfo.rcMonitor;
+
+                minMaxInfo.ptMaxPosition.X = 0;
+                minMaxInfo.ptMaxPosition.Y = 0;
+                minMaxInfo.ptMaxSize.X = Math.Abs(rcMonitorArea.Right - rcMonitorArea.Left);
+                minMaxInfo.ptMaxSize.Y = Math.Abs(rcMonitorArea.Bottom - rcMonitorArea.Top);
+                minMaxInfo.ptMaxTrackSize.X = minMaxInfo.ptMaxSize.X;
+                minMaxInfo.ptMaxTrackSize.Y = minMaxInfo.ptMaxSize.Y;
+            }
+
+            Marshal.StructureToPtr(minMaxInfo, lParam, true);
+        }
+
+        // =========================================================
+        // КАСТОМНЫЙ КУРСОР
+        // =========================================================
+
+
+        // =========================================================
+        // ВОССТАНОВЛЕНИЕ
+        // =========================================================
+
+        private void ЗагрузитьСохранённыеСеансы()
+        {
+            var снимок =
+                new СервисАвтоСохранения001()
+                    .Загрузить();
+
+            if (снимок == null ||
+                снимок.Сеансы.Count == 0)
+            {
+                return;
+            }
+
+            var окно =
+                new Окна.ОкноВосстановления004(
+                    снимок)
+                {
+                    Owner = this
+                };
+
+            var архив =
+                new СервисАрхива005();
+
+            var снимокСервис =
+                new СервисАвтоСохранения001();
+
+
+            // -----------------------------------------------------
+            // ВОЗОБНОВИТЬ
+            // -----------------------------------------------------
+
+            окно.Возобновить +=
+                сеанс =>
+                {
+                    var id =
+                        ПолучитьIdИзСнимка(
+                            сеанс);
+
+                    var сохранённый =
+                        снимок.Сеансы
+                            .FirstOrDefault(
+                                x =>
+                                    ПолучитьIdИзСнимка(x) ==
+                                    id);
+
+                    if (сохранённый == null)
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        сервисСеансов
+                            .ВосстановитьСеанс(
+                                сохранённый);
+
+                        снимок.Сеансы.RemoveAll(
+                            x =>
+                                ПолучитьIdИзСнимка(x) ==
+                                id);
+
+                        снимокСервис.Сохранить(
+                            сервисСеансов
+                                .ПолучитьАктивные());
+
+                        ТекстСостояния.Text =
+                            $"Возобновлён {ПолучитьИмяИзСнимка(сеанс)}.";
+                    }
+                    catch (Exception ошибка)
+                    {
+                        MessageBox.Show(
+                            ошибка.Message,
+                            "Ошибка восстановления",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                    }
+                };
+
+
+            // -----------------------------------------------------
+            // ЗАВЕРШИТЬ ОДИН
+            // -----------------------------------------------------
+
+            окно.Завершить +=
+                сеанс =>
+                {
+                    try
+                    {
+                        var окончание =
+                            DateTime.Now;
+
+                        var начало =
+                            ПолучитьНачалоИзСнимка(
+                                сеанс);
+
+                        var пауза =
+                            ПолучитьВремяПаузыИзСнимка(
+                                сеанс);
+
+                        var сыграно =
+                            окончание -
+                            начало -
+                            пауза;
+
+                        if (сыграно < TimeSpan.Zero)
+                        {
+                            сыграно =
+                                TimeSpan.Zero;
+                        }
+
+                        var возвращено =
+                            ПолучитьОстатокНаАккаунтИзСнимка(
+                                сеанс);
+
+                        var аккаунтId =
+                            ПолучитьАккаунтИзСнимка(
+                                сеанс);
+
+                        if (аккаунтId.HasValue &&
+                            возвращено > TimeSpan.Zero)
+                        {
+                            var сервисАккаунтов =
+                                new СервисАккаунтов();
+
+                            сервисАккаунтов
+                                .ДобавитьВремя(
+                                    аккаунтId.Value,
+                                    возвращено);
+                        }
+
+                        архив.Добавить(
+                            new ЗаписьАварии005
+                            {
+                                КомпьютерId =
+                                    ПолучитьКомпьютерIdИзСнимка(
+                                        сеанс),
+
+                                Игрок =
+                                    ПолучитьИмяИзСнимка(
+                                        сеанс),
+
+                                АккаунтGuid =
+                                    аккаунтId,
+
+                                Начало =
+                                    начало,
+
+                                Отключение =
+                                    окончание,
+
+                                Сыграно =
+                                    сыграно,
+
+                                Возвращено =
+                                    возвращено,
+
+                                Стоимость =
+                                    ПолучитьСтоимостьИзСнимка(
+                                        сеанс),
+
+                                Причина =
+                                    "Завершено при восстановлении"
+                            });
+
+                        var id =
+                            ПолучитьIdИзСнимка(
+                                сеанс);
+
+                        снимок.Сеансы.RemoveAll(
+                            x =>
+                                ПолучитьIdИзСнимка(x) ==
+                                id);
+
+                        снимокСервис.Сохранить(
+                            сервисСеансов
+                                .ПолучитьАктивные());
+
+                        ТекстСостояния.Text =
+                            $"{ПолучитьИмяИзСнимка(сеанс)} завершён.";
+                    }
+                    catch (Exception ошибка)
+                    {
+                        MessageBox.Show(
+                            ошибка.Message,
+                            "Ошибка завершения",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                    }
+                };
+
+
+            // -----------------------------------------------------
+            // ЗАВЕРШИТЬ ВСЕ
+            // -----------------------------------------------------
+
+            окно.ЗавершитьВсе +=
+                () =>
+                {
+                    try
+                    {
+                        var аккаунты =
+                            new СервисАккаунтов();
+
+                        var окончание =
+                            DateTime.Now;
+
+                        foreach (
+                            var x
+                            in снимок.Сеансы.ToList())
+                        {
+                            var начало =
+                                ПолучитьНачалоИзСнимка(
+                                    x);
+
+                            var пауза =
+                                ПолучитьВремяПаузыИзСнимка(
+                                    x);
+
+                            var сыграно =
+                                окончание -
+                                начало -
+                                пауза;
+
+                            if (сыграно < TimeSpan.Zero)
+                            {
+                                сыграно =
+                                    TimeSpan.Zero;
+                            }
+
+                            var возвращено =
+                                ПолучитьОстатокНаАккаунтИзСнимка(
+                                    x);
+
+                            var аккаунтId =
+                                ПолучитьАккаунтИзСнимка(
+                                    x);
+
+                            if (аккаунтId.HasValue &&
+                                возвращено > TimeSpan.Zero)
+                            {
+                                аккаунты.ДобавитьВремя(
+                                    аккаунтId.Value,
+                                    возвращено);
+                            }
+
+                            архив.Добавить(
+                                new ЗаписьАварии005
+                                {
+                                    КомпьютерId =
+                                        ПолучитьКомпьютерIdИзСнимка(
+                                            x),
+
+                                    Игрок =
+                                        ПолучитьИмяИзСнимка(
+                                            x),
+
+                                    АккаунтGuid =
+                                        аккаунтId,
+
+                                    Начало =
+                                        начало,
+
+                                    Отключение =
+                                        окончание,
+
+                                    Сыграно =
+                                        сыграно,
+
+                                    Возвращено =
+                                        возвращено,
+
+                                    Стоимость =
+                                        ПолучитьСтоимостьИзСнимка(
+                                            x),
+
+                                    Причина =
+                                        "Все аварийные сеансы завершены"
+                                });
+                        }
+
+                        снимок.Сеансы.Clear();
+
+                        снимокСервис.Очистить();
+
+                        ТекстСостояния.Text =
+                            "Все аварийные сеансы завершены.";
+                    }
+                    catch (Exception ошибка)
+                    {
+                        MessageBox.Show(
+                            ошибка.Message,
+                            "Ошибка завершения",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                    }
+                };
+
+            окно.ShowDialog();
+        }
+
+
+        // =========================================================
+        // CLOSE
+        // =========================================================
+
+        private void ГлавноеЗакрытие(
+            object? sender,
+            System.ComponentModel.CancelEventArgs e)
+        {
+            if (разрешитьВыход)
+            {
+                return;
+            }
+
+            e.Cancel =
+                true;
+
+            Hide();
+        }
+
+
+        private void ПриЗакрытии(
+            object? sender,
+            EventArgs e)
+        {
+            приложениеЗакрывается =
+                true;
+
+            ShopLiveEvents.RequestCreated -= ЗаказСоздан;
+            ShopLiveEvents.RequestUpdated -= ЗаказОбновлён;
+
+            try
+            {
+                ОстановитьЗаписьГолосаПриЗакрытии();
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                токенСервера.Cancel();
+
+                серверСвязи.Остановить();
+
+                маяк.Остановить();
+
+                фон.Остановить();
+
+                сервисСеансов.Остановить();
+
+                резервноеКопирование.Остановить();
+
+                резервноеКопирование.Dispose();
+
+                фон.Dispose();
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                токенСервера.Dispose();
+            }
+            catch
+            {
+            }
+        }
+
+
+
+
+        public void РазрешитьПолныйВыход()
+        {
+            разрешитьВыход =
+                true;
+        }
+
+        private void ЗаказСоздан(ShopRequest _)
+        {
+            Dispatcher.Invoke(ОбновитьСчётчикЗаказов);
+        }
+
+        private void ЗаказОбновлён(ShopRequest request)
+        {
+            Dispatcher.Invoke(ОбновитьСчётчикЗаказов);
+
+            if (request.Status == ShopRequestStatus.Ready)
+            {
+                _ = ОтправитьКомандуAsync(
+                    КомандаПК.СтатусЗаказаМагазина,
+                    текст: request.ItemName,
+                    компьютерId: request.PcId);
+            }
+        }
+
+
+
+
+        // =========================================================
+        // CONNECTIONS
+        // =========================================================
+
+        private void ПатрульПодключился(
+            ПодключениеПатруля подключение)
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            Dispatcher.Invoke(
+                () =>
+                {
+                    if (!карточкиПК.ContainsKey(подключение.КомпьютерId))
+                    {
+                        // Новый ПК — авторегистрация уже создала запись в
+                        // КартаКомпьютеров, но список ComboBox/карточек
+                        // строился один раз в конструкторе. Перестраиваем
+                        // ровно так же, как это уже делает "⚙ Настройка ПК".
+                        var выбранныйId =
+                        (ВыборПК.SelectedItem as ЗаписьПК)?.Id;
+
+                        ВыборПК.ItemsSource = null;
+                        ВыборПК.ItemsSource = КартаКомпьютеров.Все;
+
+                        var восстановить =
+                         ВыборПК.Items
+                         .OfType<ЗаписьПК>()
+                          .FirstOrDefault(x => x.Id == выбранныйId);
+
+                        ВыборПК.SelectedItem =
+                         восстановить ??
+                           ВыборПК.Items.OfType<ЗаписьПК>().FirstOrDefault();
+
+                        СеткаПК.Children.Clear();
+                        карточкиПК.Clear();
+                        СоздатьКарточкиПК();
+                    }
+
+                    подключения[
+                        подключение.КомпьютерId] =
+                        подключение;
+
+                    ТекстСостояния.Text =
+                        $"Подключён ПК-{подключение.КомпьютерId}";
+
+                    ОбновитьКоличествоПК();
+
+                    ОбновитьИнформациюПК();
+
+                    ОбновитьОтображениеПоКомпьютеру(
+                        подключение.КомпьютерId);
+
+                    // Если админ назначал этому ПК тему, пока тот был
+                    // выключен/недоступен — досылаем её сейчас.
+                    var желаемаяТема = НазначенныеТемы.Получить(подключение.КомпьютерId);
+
+                    if (!string.IsNullOrWhiteSpace(желаемаяТема))
+                    {
+                        _ = ОтправитьКомандуAsync(
+                            КомандаПК.УстановитьТемуВхода,
+                            текст: желаемаяТема,
+                            компьютерId: подключение.КомпьютерId);
+                    }
+
+                });
+        }
+
+
+        private void ПатрульОтключился(
+            ПодключениеПатруля подключение)
+        {
+            Dispatcher.Invoke(
+                () =>
+                {
+                    if (подключения.TryGetValue(
+                            подключение.КомпьютерId,
+                            out var текущее) &&
+                        !ReferenceEquals(
+                            текущее,
+                            подключение))
+                    {
+                        return;
+                    }
+
+                    подключения.Remove(
+                        подключение.КомпьютерId);
+
+                    ТекстСостояния.Text =
+                        $"ПК-{подключение.КомпьютерId} отключён";
+
+                    ОбновитьКоличествоПК();
+
+                    ОбновитьИнформациюПК();
+
+                    ОбновитьКарточку(
+                        подключение.КомпьютерId,
+                        "Отключён",
+                           Color.FromRgb(58, 20, 28));
+                });
+        }
+
+
+        private void ПолученоСообщение(
+            ПодключениеПатруля подключение,
+            СетевоеСообщение сообщение)
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            подключение.ПоследнийСигнал =
+                DateTime.Now;
+
+            if (сообщение.Тип == ТипСообщения.ОтветНаКоманду &&
+    ожиданиеОтветовАдмина.TryRemove(
+        сообщение.ИдентификаторСообщения,
+        out var tcsОжидание))
+            {
+                tcsОжидание.TrySetResult(сообщение);
+
+                return;
+            }
+
+            if (сообщение.Тип == ТипСообщения.Команда)
+            {
+                var входныеДанные =
+                      сообщение.ПолучитьДанные<серьёзный.Сеть.КомандаПатрулю>();
+                if (входныеДанные?.Команда ==
+                        серьёзный.Сеть.КомандаПК.ЗапроситьВходВАккаунт)
+                {
+                    _ = ОбработатьЗапросВходаAsync(
+                          подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+                    серьёзный.Сеть.КомандаПК.ЗапроситьБаланс)
+                {
+                    _ = ОбработатьЗапросБалансаAsync(
+                         подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+                    серьёзный.Сеть.КомандаПК.ОтчётИгровойСессии)
+                {
+                    _ = ОбработатьОтчётИгровойСессииAsync(
+                           подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+                       серьёзный.Сеть.КомандаПК.ЗапроситьПокупку)
+                {
+                    _ = ОбработатьЗапросПокупкиAsync(
+                         подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+                      серьёзный.Сеть.КомандаПК.ЗапроситьМоиЗаказы)
+                {
+                    _ = ОбработатьЗапросМоихЗаказовAsync(
+                         подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+                     серьёзный.Сеть.КомандаПК.ЗапроситьИсториюЧата)
+                {
+                    _ = ОбработатьЗапросИсторииЧатаAsync(
+                          подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+серьёзный.Сеть.КомандаПК.ЗапроситьКаталогМагазина)
+                {
+                    _ = ОбработатьЗапросКаталогаМагазинаAsync(
+                         подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+                    серьёзный.Сеть.КомандаПК.ЗапроситьКаталогИгр)
+                {
+                    _ = ОбработатьЗапросКаталогаИгрAsync(
+                         подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+                    серьёзный.Сеть.КомандаПК.ЗапроситьЭкономику)
+                {
+                    _ = ОбработатьЗапросЭкономикиAsync(
+                           подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+                      серьёзный.Сеть.КомандаПК.ЗапроситьСоциальныйСтатус)
+                {
+                    _ = ОбработатьЗапросСоциальногоAsync(
+                          подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+  серьёзный.Сеть.КомандаПК.ОтправитьЛичноеСообщение)
+                {
+                    _ = ОбработатьЛичноеСообщениеAsync(
+                         подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+                    серьёзный.Сеть.КомандаПК.ЗапроситьИсториюЛичногоЧата)
+                {
+                    _ = ОбработатьЗапросИсторииЛичногоЧатаAsync(
+                          подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+                      серьёзный.Сеть.КомандаПК.ЗапроситьПрофильИгрока)
+                {
+                    _ = ОбработатьЗапросПрофиляИгрокаAsync(
+                        подключение, сообщение, входныеДанные);
+
+                    return;
+                }
+
+                if (входныеДанные?.Команда ==
+                     серьёзный.Сеть.КомандаПК.ЗапроситьПогоду)
+                {                
+                     _ = ОбработатьЗапросПогодыAsync(подключение, сообщение);
+                    
+                                        return;
+                }
+            }
+
+            Dispatcher.Invoke(
+                () =>
+                {
+                    if (сообщение.Тип ==
+                        ТипСообщения.Heartbeat)
+                    {
+                        return;
+                    }
+
+                    if (сообщение.Тип ==
+                        ТипСообщения.HeartbeatОтвет)
+                    {
+                        return;
+                    }
+
+                    if (сообщение.Тип ==
+                        ТипСообщения.ПриветствиеОтвет)
+                    {
+                        return;
+                    }
+
+                    if (сообщение.Тип ==
+                        ТипСообщения.Чат)
+                    {
+                        var чат =
+                            сообщение
+                                .ПолучитьДанные<
+                                    СообщениеЧата>();
+
+                        if (чат != null)
+                        {
+                            ПолученоСообщениеЧата(
+                                чат);
+                        }
+
+                        return;
+                    }
+
+                    if (сообщение.Тип ==
+                        ТипСообщения.ОтветНаКоманду)
+                    {
+                        ТекстСостояния.Text =
+                            сообщение.Успешно
+                                ? $"ПК-{подключение.КомпьютерId}: команда выполнена"
+                                : $"ПК-{подключение.КомпьютерId}: ошибка — {сообщение.Ошибка}";
+                    }
+
+                    ОбновитьИнформациюПК();
+                });
+        }
+
+
+        private void ОбновитьКоличествоПК()
+        {
+            ТекстПК.Text =
+                подключения.Count.ToString();
+        }
+
+
+        private static readonly TimeZoneInfo МосковскийПояс =
+    ПолучитьМосковскийПояс();
+
+        private static TimeZoneInfo ПолучитьМосковскийПояс()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById(
+                    "Russian Standard Time");
+            }
+            catch
+            {
+                try
+                {
+                    return TimeZoneInfo.FindSystemTimeZoneById(
+                        "Europe/Moscow");
+                }
+                catch
+                {
+                    return TimeZoneInfo.Local;
+                }
+            }
+        }
+
+        private void ОбновитьВерхнююПанель()
+        {
+            var московскоеВремя =
+                TimeZoneInfo.ConvertTime(
+                    DateTime.Now,
+                    МосковскийПояс);
+
+            ТекстЧасыАдмин.Text =
+                московскоеВремя.ToString("HH:mm:ss");
+
+            ТекстДатаАдмин.Text =
+                московскоеВремя.ToString(
+                    "d MMMM yyyy, dddd",
+                    new CultureInfo("ru-RU"));
+
+            ТекстАктивныеСеансы.Text =
+                сервисСеансов.АктивныхСеансов.ToString();
+
+            ТекстВыручкаСегодня.Text =
+                $"{сервисСеансов.ТекущаяВыручка:0.##} ₽";
+        }
+
+
+        private void ОбновитьИнформациюПК()
+        {
+            if (ВыборПК.SelectedIndex < 0)
+            {
+                return;
+            }
+
+            if (ВыборПК.SelectedItem
+                is not ЗаписьПК выбранный)
+            {
+                return;
+            }
+
+            var id =
+                выбранный.Id;
+
+            if (подключения.TryGetValue(
+                    id,
+                    out var подключение))
+            {
+                ИнформацияПК.Text =
+                    $"ПК-{id}\n" +
+                    $"Имя: {подключение.ИмяКомпьютера}\n" +
+                    $"IP: {подключение.IPАдрес}\n" +
+                    $"Статус: ПОДКЛЮЧЁН";
+            }
+            else
+            {
+                ИнформацияПК.Text =
+                    $"ПК-{id}\n" +
+                    $"Статус: НЕ ПОДКЛЮЧЁН";
+            }
+        }
+
+
+        private ПодключениеПатруля?
+            ПолучитьВыбранныйПК()
+        {
+            if (ВыборПК.SelectedItem
+                is not ЗаписьПК выбранный)
+            {
+                return null;
+            }
+
+            if (!подключения.TryGetValue(
+                    выбранный.Id,
+                    out var подключение))
+            {
+                MessageBox.Show(
+                    $"{выбранный.Название} сейчас не подключён.",
+                    "Серьёзный",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                return null;
+            }
+
+            return подключение;
+        }
+
+
+        // =========================================================
+        // SEND COMMAND
+        // =========================================================
+
+        private async Task<bool>
+    ОтправитьКомандуAsync(
+        КомандаПК команда,
+        string? текст = null,
+        string? файл = null,
+        int? компьютерId = null,
+        string? имяОтправителя = null,
+         string? аудиоBase64 = null,
+         Guid? аккаунтId = null,
+         string? имяАккаунта = null,
+          int? сеансId = null,
+           int? длительностьСекунд = null,
+           string? параметры = null)
+        {
+            if (приложениеЗакрывается)
+            {
+                return false;
+            }
+
+            ПодключениеПатруля? подключение;
+
+            if (компьютерId.HasValue)
+            {
+                подключения.TryGetValue(
+                    компьютерId.Value,
+                    out подключение);
+            }
+            else
+            {
+                подключение =
+                    ПолучитьВыбранныйПК();
+            }
+
+            if (подключение == null)
+            {
+                return false;
+            }
+
+            var данные =
+                new серьёзный.Сеть.КомандаПатрулю
+                {
+                    Команда =
+                        команда,
+
+                    Текст =
+                        текст,
+
+                    Файл =
+                        файл,
+
+                    ИмяОтправителя =
+                        имяОтправителя,
+
+                    АудиоBase64 =
+                    аудиоBase64,
+
+                    АккаунтId =
+                    аккаунтId,
+
+                    ИмяАккаунта =
+                    имяАккаунта,
+
+                    СеансId =
+                     сеансId,
+
+                    ДлительностьСекунд =
+                     длительностьСекунд,
+
+                    Параметры =
+                     параметры
+                };
+
+            var сообщение =
+                СетевоеСообщение.Создать(
+                    ТипСообщения.Команда);
+
+            сообщение.КомпьютерId =
+                подключение.КомпьютерId;
+
+            сообщение.УстановитьДанные(
+                данные);
+
+            var успешно =
+                await подключение
+                    .ОтправитьAsync(
+                        сообщение);
+
+            if (!успешно &&
+                !приложениеЗакрывается)
+            {
+                Dispatcher.Invoke(
+                    () =>
+                    {
+                        ТекстСостояния.Text =
+                            "Не удалось отправить команду.";
+                    });
+            }
+
+            return успешно;
+        }
+
+
+        private async Task<List<серьёзный.Core.CoreModels.GameEntry>?>
+    ЗапроситьСписокИгрAsync(int компьютерId)
+        {
+            if (!подключения.TryGetValue(компьютерId, out var подключение))
+                return null;
+
+            var сообщение =
+                СетевоеСообщение.Создать(ТипСообщения.Команда);
+
+            сообщение.КомпьютерId = компьютерId;
+
+            сообщение.УстановитьДанные(
+                new серьёзный.Сеть.КомандаПатрулю
+                {
+                    Команда = КомандаПК.ЗапроситьСписокИгр
+                });
+
+            var tcs =
+                new TaskCompletionSource<СетевоеСообщение>(
+                    TaskCreationOptions.RunContinuationsAsynchronously);
+
+            ожиданиеОтветовАдмина[сообщение.ИдентификаторСообщения] = tcs;
+
+            var отправлено = await подключение.ОтправитьAsync(сообщение);
+
+            if (!отправлено)
+            {
+                ожиданиеОтветовАдмина.TryRemove(
+                    сообщение.ИдентификаторСообщения, out _);
+
+                return null;
+            }
+
+            using var таймаут =
+                new CancellationTokenSource(TimeSpan.FromSeconds(25));
+
+            try
+            {
+                var ответ = await tcs.Task.WaitAsync(таймаут.Token);
+
+                if (!ответ.Успешно || string.IsNullOrWhiteSpace(ответ.Данные))
+                    return null;
+
+                var результат =
+    ответ.ПолучитьДанные<серьёзный.Core.CoreModels.GameScanResultDto>();
+
+                return результат?.Games ??
+                    new List<серьёзный.Core.CoreModels.GameEntry>();
+            }
+            catch (OperationCanceledException)
+            {
+                ожиданиеОтветовАдмина.TryRemove(
+                    сообщение.ИдентификаторСообщения, out _);
+
+                return null;
+            }
+        }
+
+
+        // =========================================================
+        // COMMANDS
+        // =========================================================
+
+        private async void ПолучитьСостояние_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            await ОтправитьКомандуAsync(
+                КомандаПК.ПолучитьСостояние);
+        }
+
+
+        private async void Заблокировать_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            await ОтправитьКомандуAsync(
+                КомандаПК.Заблокировать);
+        }
+
+
+        private async void Разблокировать_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            await ОтправитьКомандуAsync(
+                КомандаПК.Разблокировать);
+        }
+
+
+        private async void Перезагрузить_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            var ответ =
+                MessageBox.Show(
+                    "Перезагрузить выбранный ПК?",
+                    "Подтверждение",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+            if (ответ !=
+                MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            await ОтправитьКомандуAsync(
+                КомандаПК.Перезагрузить);
+        }
+
+
+        private async void Выключить_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            var ответ =
+                MessageBox.Show(
+                    "ВЫКЛЮЧИТЬ выбранный ПК?",
+                    "Подтверждение",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+            if (ответ !=
+                MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            await ОтправитьКомандуAsync(
+                КомандаПК.Выключить);
+        }
+
+
+        private async void ПоказатьСообщение_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            var окно =
+                new ОкноВвода(
+                    "Введите сообщение:");
+
+            if (окно.ShowDialog() != true)
+            {
+                return;
+            }
+
+            await ОтправитьКомандуAsync(
+                КомандаПК.ПоказатьУведомление,
+                окно.Текст);
+        }
+
+
+        // =========================================================
+        // ГОЛОС
+        // =========================================================
+
+
+        private void УстановитьТекстГолосовойКнопки(
+    string эмодзи,
+    string текст)
+        {
+            if (ИконкаГолос != null)
+            {
+                ИконкаГолос.Text = эмодзи;
+            }
+
+            if (ТекстГолос != null)
+            {
+                ТекстГолос.Text = текст;
+            }
+        }
+
+        private async void Голосовое_Click(
+    object sender,
+    RoutedEventArgs e)
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            if (завершениеЗаписиГолосаВыполняется)
+            {
+                return;
+            }
+
+            if (записьГолосаИдёт)
+            {
+                ОстановитьЗаписьГолоса();
+
+                return;
+            }
+
+            var подключение =
+                ПолучитьВыбранныйПК();
+
+            if (подключение == null)
+            {
+                return;
+            }
+
+            try
+            {
+                ОсвободитьОбъектыЗаписи();
+
+                компьютерГолосаId =
+                    подключение.КомпьютерId;
+
+                потокГолоса =
+                    new MemoryStream();
+
+                писательГолоса =
+                    new WaveFileWriter(
+                        потокГолоса,
+                        new WaveFormat(
+                            16000,
+                            16,
+                            1));
+
+                записьГолоса =
+                    new WaveIn
+                    {
+                        WaveFormat =
+                            new WaveFormat(
+                                16000,
+                                16,
+                                1),
+
+                        BufferMilliseconds =
+                            50
+                    };
+
+                записьГолоса.DataAvailable +=
+                    ЗаписьГолоса_DataAvailable;
+
+                записьГолоса.RecordingStopped +=
+                    ЗаписьГолоса_RecordingStopped;
+
+                записьГолосаИдёт =
+                    true;
+
+                УстановитьТекстГолосовойКнопки("⏹", "Остановить запись");
+
+                ТекстСостояния.Text =
+                    $"🎤 Идёт запись для ПК-{компьютерГолосаId}... Нажми ещё раз для отправки.";
+
+                записьГолоса.StartRecording();
+            }
+            catch (Exception ошибка)
+            {
+                записьГолосаИдёт =
+                    false;
+
+                компьютерГолосаId =
+                    null;
+
+                ОсвободитьОбъектыЗаписи();
+
+                УстановитьТекстГолосовойКнопки("🎤", "Записать голос");
+
+                ПоказатьОшибкаГолоса(
+                    ошибка);
+            }
+
+            await Task.CompletedTask;
+        }
+
+
+        private void ЗаписьГолоса_DataAvailable(
+            object? sender,
+            WaveInEventArgs args)
+        {
+            try
+            {
+                писательГолоса?.Write(
+                    args.Buffer,
+                    0,
+                    args.BytesRecorded);
+            }
+            catch (Exception ошибка)
+            {
+                if (!приложениеЗакрывается)
+                {
+                    Dispatcher.Invoke(
+                        () =>
+                        {
+                            ПоказатьОшибкаГолоса(
+                                ошибка);
+                        });
+                }
+            }
+        }
+
+
+        private async void ЗаписьГолоса_RecordingStopped(
+    object? sender,
+    StoppedEventArgs args)
+        {
+            if (завершениеЗаписиГолосаВыполняется)
+            {
+                return;
+            }
+
+            завершениеЗаписиГолосаВыполняется =
+                true;
+
+            записьГолосаИдёт =
+                false;
+
+            if (!приложениеЗакрывается)
+            {
+                Dispatcher.Invoke(
+                    () =>
+                    {
+                        УстановитьТекстГолосовойКнопки("🎤", "Обработка...");
+                    });
+            }
+
+            try
+            {
+                if (args.Exception != null)
+                {
+                    throw args.Exception;
+                }
+
+                писательГолоса?.Flush();
+
+                var audio =
+                    потокГолоса?.ToArray();
+
+                if (audio == null ||
+                    audio.Length == 0)
+                {
+                    if (!приложениеЗакрывается)
+                    {
+                        Dispatcher.Invoke(
+                            () =>
+                            {
+                                ТекстСостояния.Text =
+                                    "Голосовая запись пустая.";
+                            });
+                    }
+
+                    return;
+                }
+
+                if (приложениеЗакрывается)
+                {
+                    return;
+                }
+
+                var base64 =
+                    Convert.ToBase64String(
+                        audio);
+
+                var компьютерId =
+                    компьютерГолосаId;
+
+                if (!компьютерId.HasValue)
+                {
+                    Dispatcher.Invoke(
+                        () =>
+                        {
+                            ТекстСостояния.Text =
+                                "Не выбран ПК для голосового сообщения.";
+                        });
+
+                    return;
+                }
+
+                var успешно =
+                    await ОтправитьГолосовоеAsync(
+                        base64,
+                        компьютерId.Value);
+
+                if (!приложениеЗакрывается)
+                {
+                    Dispatcher.Invoke(
+                        () =>
+                        {
+                            ТекстСостояния.Text =
+                                успешно
+                                    ? $"🎤 Голосовое отправлено на ПК-{компьютерId.Value}."
+                                    : "Не удалось отправить голосовое.";
+                        });
+                }
+            }
+            catch (Exception ошибка)
+            {
+                if (!приложениеЗакрывается)
+                {
+                    Dispatcher.Invoke(
+                        () =>
+                        {
+                            ПоказатьОшибкаГолоса(
+                                ошибка);
+                        });
+                }
+            }
+            finally
+            {
+                ОсвободитьОбъектыЗаписи();
+
+                компьютерГолосаId =
+                    null;
+
+                завершениеЗаписиГолосаВыполняется =
+                    false;
+
+                if (!приложениеЗакрывается)
+                {
+                    Dispatcher.Invoke(
+                        () =>
+                        {
+                            УстановитьТекстГолосовойКнопки("🎤", "Записать голос");
+                        });
+                }
+            }
+        }
+
+
+        private void ОстановитьЗаписьГолоса()
+        {
+            try
+            {
+                if (!записьГолосаИдёт)
+                {
+                    return;
+                }
+
+                записьГолосаИдёт =
+                    false;
+
+                УстановитьТекстГолосовойКнопки("🎤", "Обработка...");
+
+                записьГолоса?.StopRecording();
+            }
+            catch (Exception ошибка)
+            {
+                ОсвободитьОбъектыЗаписи();
+
+                компьютерГолосаId =
+                    null;
+
+                завершениеЗаписиГолосаВыполняется =
+                    false;
+
+                УстановитьТекстГолосовойКнопки("🎤", "Записать голос");
+
+                ПоказатьОшибкаГолоса(
+                    ошибка);
+            }
+        }
+
+
+        private async Task<bool>
+            ОтправитьГолосовоеAsync(
+                string base64,
+                int компьютерId)
+        {
+            if (приложениеЗакрывается ||
+                string.IsNullOrWhiteSpace(base64))
+            {
+                return false;
+            }
+
+            if (!подключения.TryGetValue(
+                    компьютерId,
+                    out var подключение))
+            {
+                return false;
+            }
+
+            var данные =
+                new серьёзный.Сеть.КомандаПатрулю
+                {
+                    Команда =
+                        КомандаПК.ВоспроизвестиГолосовое,
+
+                    ИмяОтправителя =
+                        имяАдминистратора,
+
+                    АудиоBase64 =
+                        base64
+                };
+
+            var сообщение =
+                СетевоеСообщение.Создать(
+                    ТипСообщения.Команда);
+
+            сообщение.КомпьютерId =
+                подключение.КомпьютерId;
+
+            сообщение.УстановитьДанные(
+                данные);
+
+            return await подключение
+                .ОтправитьAsync(
+                    сообщение);
+        }
+
+
+        private void ОсвободитьОбъектыЗаписи()
+        {
+            try
+            {
+                записьГолоса?.Dispose();
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                писательГолоса?.Dispose();
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                потокГолоса?.Dispose();
+            }
+            catch
+            {
+            }
+
+            записьГолоса =
+                null;
+
+            писательГолоса =
+                null;
+
+            потокГолоса =
+                null;
+        }
+
+
+        private void ОстановитьЗаписьГолосаПриЗакрытии()
+        {
+            приложениеЗакрывается =
+                true;
+
+            try
+            {
+                if (записьГолоса != null &&
+                    записьГолосаИдёт)
+                {
+                    записьГолосаИдёт =
+                        false;
+
+                    записьГолоса.StopRecording();
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                записьГолоса?.Dispose();
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                писательГолоса?.Dispose();
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                потокГолоса?.Dispose();
+            }
+            catch
+            {
+            }
+
+            записьГолоса =
+                null;
+
+            писательГолоса =
+                null;
+
+            потокГолоса =
+                null;
+
+            компьютерГолосаId =
+                null;
+        }
+
+
+        private void ПоказатьОшибкаГолоса(
+            Exception ошибка)
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            ТекстСостояния.Text =
+                $"Ошибка записи голоса: {ошибка.Message}";
+        }
+
+
+        // =========================================================
+        // НАЧАЛО СЕАНСА
+        // =========================================================
+
+        private async void НачатьСеанс_Click(
+    object sender,
+    RoutedEventArgs e)
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            if (ВыборПК.SelectedItem
+                is not ЗаписьПК пк)
+            {
+                return;
+            }
+
+            if (!подключения.ContainsKey(
+                    пк.Id))
+            {
+                MessageBox.Show(
+                    $"ПК «{пк.Название}» сейчас не подключён к Серьёзному Патрулю.\n\n" +
+                    "Сначала запусти Патруль на этом ПК и дождись статуса «ПОДКЛЮЧЁН».",
+                    "ПК не подключён",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                return;
+            }
+
+            var ужеЕсть =
+                сервисСеансов
+                    .ПолучитьАктивные()
+                    .FirstOrDefault(
+                        x =>
+                            x.КомпьютерId ==
+                            пк.Id);
+
+            if (ужеЕсть != null)
+            {
+                MessageBox.Show(
+                    $"На {пк.Название} уже идёт сеанс.",
+                    "Сеанс уже запущен",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                return;
+            }
+
+            var окно =
+                new Окна.ОкноСеанса001(
+                    пк.Название)
+                {
+                    Owner = this
+                };
+
+            if (окно.ShowDialog() != true)
+            {
+                return;
+            }
+
+            var минут =
+                Math.Max(
+                    1,
+                    окно.Минуты);
+
+            var стоимость =
+                Math.Max(
+                    0m,
+                    окно.Стоимость);
+
+            var длительность =
+                TimeSpan.FromMinutes(
+                    минут);
+
+            Сеанс сеанс;
+
+            try
+            {
+                сеанс =
+                    сервисСеансов.НачатьСеанс(
+                        пк.Id,
+                        null,
+                        окно.Аккаунт?.ПолноеИмя ??
+                            "Аноним",
+                        длительность,
+                         стоимость,
+                         окно.Аккаунт?.Id);
+            }
+            catch (Exception ошибка)
+            {
+                MessageBox.Show(
+                    ошибка.Message,
+                    "Не удалось начать сеанс",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+
+                return;
+            }
+
+            if (окно.Аккаунт != null)
+            {
+                сеанс.АккаунтGuid =
+                    окно.Аккаунт.Id;
+
+                if (окно.ИспользоватьБалансАккаунта)
+                {
+                    var остаток =
+                        окно.Аккаунт.ОсталосьВремени;
+
+                    if (остаток < TimeSpan.Zero)
+                    {
+                        остаток = TimeSpan.Zero;
+                    }
+
+                    var доступныеМинуты =
+                        Math.Max(
+                            0,
+                            (int)Math.Floor(
+                                остаток.TotalMinutes));
+
+                    var минутПокупки =
+                        Math.Max(
+                            0,
+                            минут -
+                            доступныеМинуты);
+
+                    сеанс.КупленноеВремя =
+                        TimeSpan.FromMinutes(
+                            минутПокупки);
+
+                    сервисСеансов
+                        .ИспользоватьОстаток(
+                            пк.Id,
+                            окно.Аккаунт.Id,
+                            остаток,
+                            минутПокупки > 0);
+                }
+                else
+                {
+                    сеанс.УстановитьТолькоПокупное();
+
+                    сервисСеансов
+                        .ОбновитьВручную(
+                            сеанс);
+                }
+            }
+            else
+            {
+                сеанс.УстановитьТолькоПокупное();
+
+                сервисСеансов
+                    .ОбновитьВручную(
+                        сеанс);
+            }
+
+            if (окно.Аккаунт != null)
+            {
+                var результат =
+                     награды.AwardForTimePurchase(
+                           окно.Аккаунт.Id,
+                             минут,
+                               (long)окно.Аккаунт.ВсегоСыграно.TotalSeconds);
+
+                if (результат.BonusMinutes > 0)
+                {
+                    сеанс.ДобавитьВремя(
+                            TimeSpan.FromMinutes(результат.BonusMinutes));
+
+                    сервисСеансов.ОбновитьВручную(сеанс);
+                }
+
+                ТекстСостояния.Text =
+                      $"Начислено {результат.PointsAwarded} баллов " +
+                       $"(x{результат.MultiplierPercent / 100.0:0.00})" +
+                        (результат.BonusMinutes > 0
+                          ? $", бонус +{результат.BonusMinutes} мин."
+                            : "");
+            }
+
+            // -----------------------------------------------------
+            // ЗАПУСК СЕАНСА НА СТОРОНЕ ПАТРУЛЯ
+            //
+            // Отправляем именно КомандаПК.НачатьСеанс (а не просто
+            // Разблокировать), чтобы Патруль знал АккаунтId — тогда
+            // Экран Клуба сам откроет окно игрока нужного аккаунта.
+            // -----------------------------------------------------
+
+            var отправлено =
+                      await ОтправитьКомандуAsync(
+                              КомандаПК.НачатьСеанс,
+         компьютерId:
+              пк.Id,
+          сеансId:
+          сеанс.Id,
+               длительностьСекунд:
+               (int)длительность.TotalSeconds,
+                 аккаунтId:
+                  окно.Аккаунт?.Id,
+        имяАккаунта:
+         окно.Аккаунт?.ПолноеИмя);
+
+            if (!отправлено)
+            {
+                сервисСеансов
+                    .ЗавершитьПоКомпьютеру(
+                        пк.Id,
+                        "Не удалось разблокировать ПК после запуска сеанса");
+
+                return;
+            }
+
+            ОбновитьОтображениеТекущегоСеанса();
+        }
+
+
+
+        private async Task ОбработатьЗапросВходаAsync(
+ПодключениеПатруля подключение,
+СетевоеСообщение исходное,
+серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var сервисАккаунтов = new СервисАккаунтов();
+
+            // ЛогинАккаунта теперь несёт номер телефона — поле в
+            // КомандаПатрулю намеренно не переименовано, чтобы не
+            // трогать сетевой протокол и мосты Патруля.
+            var аккаунт = сервисАккаунтов.АвторизоватьПоТелефону(
+                данные.ЛогинАккаунта ?? "",
+                данные.ПарольАккаунта ?? "");
+
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (аккаунт == null)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Неверный номер телефона или пароль.";
+            }
+            else if (аккаунт.ОсталосьВремени <= TimeSpan.Zero)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "На аккаунте закончилось время.";
+            }
+            else if (сервисСеансов.АккаунтУжеИгра(аккаунт.Id, out var занятыйПК))
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = $"Этот аккаунт уже играет на ПК-{занятыйПК}. Выйдите оттуда сначала.";
+            }
+            else if (!исходное.КомпьютерId.HasValue)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Не удалось определить ПК запроса.";
+            }
+            else
+            {
+                // КРИТИЧНО: самостоятельный вход обязан создать реальный
+                // биллинговый сеанс. Accounts.RemainingSeconds уменьшается
+                // ТОЛЬКО у сеансов в режиме ТолькоБаланс/БалансПлюсПокупное
+                // (см. СервисСеансов.ПроверитьИстёкшиеСеансы) — без вызова
+                // НачатьСеанс + ИспользоватьОстаток такого сеанса просто
+                // не существовало, и время не списывалось никогда.
+                try
+                {
+                    var pcId = исходное.КомпьютерId.Value;
+
+                    сервисСеансов.НачатьСеанс(
+                        pcId,
+                        null,
+                        аккаунт.ПолноеИмя,
+                        аккаунт.ОсталосьВремени,
+                        0m,
+                        аккаунт.Id);
+
+                    сервисСеансов.ИспользоватьОстаток(
+                        pcId,
+                        аккаунт.Id,
+                        аккаунт.ОсталосьВремени,
+                        добавитьКПокупке: false);
+
+                    ответ.Успешно = true;
+
+                    ответ.УстановитьДанные(new серьёзный.Core.CoreModels.РезультатВходаDto
+                    {
+                        AccountId = аккаунт.Id,
+                        FullName = аккаунт.ПолноеИмя,
+                        RemainingSeconds = (long)аккаунт.ОсталосьВремени.TotalSeconds
+                    });
+                }
+                catch (InvalidOperationException ex)
+                {
+                    // Гонка с администратором: на этот ПК или на этот
+                    // аккаунт уже назначен сеанс в тот же момент.
+                    ответ.Успешно = false;
+                    ответ.Ошибка = ex.Message;
+                }
+            }
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        // =========================================================
+        // ПАУЗА / ПРОДОЛЖЕНИЕ
+        // =========================================================
+
+        private void Пауза_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (ВыборПК.SelectedItem
+                is not ЗаписьПК пк)
+            {
+                return;
+            }
+
+            var сеанс =
+                сервисСеансов
+                    .ПолучитьАктивные()
+                    .FirstOrDefault(
+                        x =>
+                            x.КомпьютерId ==
+                            пк.Id);
+
+            if (сеанс == null)
+            {
+                return;
+            }
+
+            сеанс.Пауза();
+
+            сервисСеансов
+                .ОбновитьВручную(
+                    сеанс);
+        }
+
+
+        private void Продолжить_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (ВыборПК.SelectedItem
+                is not ЗаписьПК пк)
+            {
+                return;
+            }
+
+            var сеанс =
+                сервисСеансов
+                    .ПолучитьАктивные()
+                    .FirstOrDefault(
+                        x =>
+                            x.КомпьютерId ==
+                            пк.Id);
+
+            if (сеанс == null)
+            {
+                return;
+            }
+
+            сеанс.Продолжить();
+
+            сервисСеансов
+                .ОбновитьВручную(
+                    сеанс);
+        }
+
+
+        // =========================================================
+        // ДОБАВЛЕНИЕ ВРЕМЕНИ
+        // =========================================================
+
+        private void ДобавитьВремя_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (ВыборПК.SelectedItem
+                is not ЗаписьПК пк)
+            {
+                return;
+            }
+
+            var окно = new ОкноВвода("Сколько минут добавить?") { Owner = this };
+
+            if (окно.ShowDialog() != true)
+            {
+                return;
+            }
+
+            if (!int.TryParse(
+                    окно.Текст,
+                    out var минуты) ||
+                минуты <= 0)
+            {
+                MessageBox.Show(
+                    "Введите положительное количество минут.",
+                    "Коррекция времени",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                return;
+            }
+
+            if (!сервисСеансов
+                    .ДобавитьВремяСеансу(
+                        пк.Id,
+                        TimeSpan.FromMinutes(
+                            минуты)))
+            {
+                ТекстСостояния.Text =
+                    "Нет активного или приостановленного сеанса.";
+
+                return;
+            }
+
+            ТекстСостояния.Text =
+                $"Добавлено {минуты} мин. к сеансу ПК-{пк.Id}.";
+        }
+
+
+        // =========================================================
+        // УБАВЛЕНИЕ ВРЕМЕНИ
+        // =========================================================
+
+        private async void УбавитьВремя_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (ВыборПК.SelectedItem
+                is not ЗаписьПК пк)
+            {
+                return;
+            }
+
+            var окно = new ОкноВвода("Сколько минут убрать?") { Owner = this };
+
+            if (окно.ShowDialog() != true)
+            {
+                return;
+            }
+
+            if (!int.TryParse(
+                    окно.Текст,
+                    out var минуты) ||
+                минуты <= 0)
+            {
+                MessageBox.Show(
+                    "Введите положительное количество минут.",
+                    "Коррекция времени",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                return;
+            }
+
+            var сеанс =
+                сервисСеансов
+                    .ПолучитьАктивные()
+                    .FirstOrDefault(
+                        x =>
+                            x.КомпьютерId ==
+                            пк.Id);
+
+            if (сеанс == null)
+            {
+                ТекстСостояния.Text =
+                    "Нет активного или приостановленного сеанса.";
+
+                return;
+            }
+
+            var вычесть =
+                TimeSpan.FromMinutes(
+                    минуты);
+
+            var осталось =
+                сеанс.ОсталосьВремени;
+
+            if (вычесть >=
+                осталось)
+            {
+                var подтверждение =
+                    new Окна.ОкноПодтверждениеЗавершения(
+                        осталось)
+                    {
+                        Owner = this
+                    };
+
+                if (подтверждение.ShowDialog() ==
+                        true &&
+                    подтверждение.Подтверждено)
+                {
+                    await ЗавершитьСеанс(
+                        пк.Id);
+                }
+
+                return;
+            }
+
+            if (!сервисСеансов
+                    .УбавитьВремяСеансу(
+                        пк.Id,
+                        вычесть))
+            {
+                ТекстСостояния.Text =
+                    "Не удалось уменьшить время.";
+
+                return;
+            }
+
+            ТекстСостояния.Text =
+                $"Убрано {минуты} мин. с сеанса ПК-{пк.Id}.";
+        }
+
+
+        // =========================================================
+        // ЗАВЕРШЕНИЕ СЕАНСА
+        // =========================================================
+
+        private async void ЗавершитьСеанс_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (ВыборПК.SelectedItem
+                is not ЗаписьПК пк)
+            {
+                return;
+            }
+
+            var сеанс =
+                сервисСеансов
+                    .ПолучитьАктивные()
+                    .FirstOrDefault(
+                        x =>
+                            x.КомпьютерId ==
+                            пк.Id);
+
+            if (сеанс == null)
+            {
+                ТекстСостояния.Text =
+                    $"На {пк.Название} нет активного сеанса.";
+
+                return;
+            }
+
+            var подтверждение =
+                new Окна.ОкноПодтверждениеЗавершения(
+                    сеанс.ОсталосьВремени)
+                {
+                    Owner = this
+                };
+
+            if (подтверждение.ShowDialog() !=
+                    true ||
+                !подтверждение.Подтверждено)
+            {
+                return;
+            }
+
+            await ЗавершитьСеанс(
+                пк.Id);
+        }
+
+
+        private async Task ЗавершитьСеанс(
+            int компьютерId)
+        {
+            var пк =
+                КартаКомпьютеров.Все
+                    .FirstOrDefault(
+                        x =>
+                            x.Id ==
+                            компьютерId);
+
+            var завершён =
+                сервисСеансов
+                    .ЗавершитьПоКомпьютеру(
+                        компьютерId,
+                        "Завершено администратором");
+
+            if (!завершён)
+            {
+                ТекстСостояния.Text =
+                    пк != null
+                        ? $"На {пк.Название} нет активного сеанса."
+                        : "Нет активного сеанса.";
+
+                return;
+            }
+
+            var отправлено =
+                await ОтправитьКомандуAsync(
+                    КомандаПК.ЗавершитьСеанс,
+                    компьютерId:
+                        компьютерId);
+
+            if (ВыборПК.SelectedItem
+                is ЗаписьПК выбранный &&
+                выбранный.Id ==
+                    компьютерId)
+            {
+                TекстТаймераБезопасно(
+                    "00:00:00");
+            }
+
+            ТекстСостояния.Text =
+                отправлено
+                    ? $"Сеанс ПК-{компьютерId} завершён."
+                    : $"Сеанс ПК-{компьютерId} завершён локально, но команда ПК не отправлена.";
+        }
+
+        
+        private async Task ОбработатьЗапросБалансаAsync(
+    ПодключениеПатруля подключение,
+    СетевоеСообщение исходное,
+    серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.АккаунтId.HasValue)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Не указан AccountId.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            var сервисАккаунтов = new СервисАккаунтов();
+
+            var аккаунт = сервисАккаунтов.ПеречитатьИзБазы(данные.АккаунтId.Value);
+
+            if (аккаунт == null)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Аккаунт не найден.";
+            }
+            else
+            {
+                ответ.Успешно = true;
+
+                ответ.УстановитьДанные(new серьёзный.Core.CoreModels.БалансDto
+                {
+                    RemainingSeconds = (long)аккаунт.ОсталосьВремени.TotalSeconds,
+                    PlayedSeconds = (long)аккаунт.ВсегоСыграно.TotalSeconds,
+                    SessionCount = аккаунт.ВсегоСеансов
+                });
+            }
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        private async Task ОбработатьОтчётИгровойСессииAsync(
+    ПодключениеПатруля подключение,
+    СетевоеСообщение исходное,
+    серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.АккаунтId.HasValue ||
+                !данные.СеансId.HasValue ||
+                !данные.ДлительностьСекунд.HasValue ||
+                данные.ДлительностьСекунд.Value <= 0 ||
+                !исходное.КомпьютерId.HasValue)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Некорректные данные отчёта о сессии.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            try
+            {
+                отчётыСессий.Применить(
+                    исходное.КомпьютерId.Value,
+                    данные.СеансId.Value,
+                    данные.АккаунтId.Value,
+                    данные.ДлительностьСекунд.Value);
+
+                ответ.Успешно = true;
+
+                EventBus.Publish(
+                    new GameSessionReportedEvent(
+                        данные.АккаунтId.Value,
+                        исходное.КомпьютерId.Value,
+                        данные.ДлительностьСекунд.Value));
+            }
+            catch (Exception ex)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = ex.Message;
+            }
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        private async Task ОбработатьЗапросПокупкиAsync(
+ПодключениеПатруля подключение,
+СетевоеСообщение исходное,
+серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.АккаунтId.HasValue || !данные.ItemId.HasValue || !данные.Delivery.HasValue)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Некорректные данные заказа.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            try
+            {
+                var сервисЗаказов = new серьёзный.Core.CoreShop.ShopRequestService();
+                var магазин = new серьёзный.Core.CoreShop.ShopService();
+
+                var товар = магазин.GetItems()
+                    .FirstOrDefault(x => x.Id == данные.ItemId.Value);
+
+                if (товар == null)
+                {
+                    ответ.Успешно = false;
+                    ответ.Ошибка = "Товар не найден.";
+
+                    await подключение.ОтправитьAsync(ответ);
+                    return;
+                }
+
+                var заказ = сервисЗаказов.Create(
+                    данные.АккаунтId.Value,
+                    исходное.КомпьютерId ?? 0,
+                    товар.Id,
+                    товар.Name,
+                    товар.Price,
+                    данные.Delivery.Value);
+
+                ответ.Успешно = true;
+
+                ответ.УстановитьДанные(new серьёзный.Core.CoreModels.ShopPurchaseResultDto
+                {
+                    Success = true,
+                    RequestId = заказ.Id
+                });
+            }
+            catch (Exception ex)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = ex.Message;
+            }
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        private async Task ОбработатьЗапросЭкономикиAsync(
+    ПодключениеПатруля подключение,
+    СетевоеСообщение исходное,
+    серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.АккаунтId.HasValue || string.IsNullOrWhiteSpace(данные.Параметры))
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Некорректный запрос экономики.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            try
+            {
+                var запрос =
+    System.Text.Json.JsonSerializer.Deserialize<
+        серьёзный.Core.CoreModels.EconomyRequestDto>(
+        данные.Параметры);
+
+                if (запрос == null)
+                    throw new InvalidOperationException("Пустой запрос.");
+
+                var результат = ВыполнитьЭкономику(
+данные.АккаунтId.Value,
+исходное.КомпьютерId ?? 0,
+запрос,
+подключение);
+
+                ответ.Успешно = true;
+                ответ.УстановитьДанные(результат);
+            }
+            catch (Exception ex)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = ex.Message;
+            }
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        private серьёзный.Core.CoreModels.EconomyResultDto ВыполнитьЭкономику(
+            Guid accountId,
+            int pcId,
+            серьёзный.Core.CoreModels.EconomyRequestDto запрос,
+            ПодключениеПатруля подключение)
+        {
+            var points = new PointsService();
+            var casino = new CasinoService();
+            var cases = new CaseService();
+            var inventory = new InventoryService();
+            var premium = new PremiumService();
+            var tariffs = new серьёзный.Core.CoreShop.SessionTariffService();
+            var видимость = new CurrencyVisibilityService();
+            var лог = new серьёзный.Core.CoreAudit.AdminActionLogService();
+
+            string? error = null;
+            bool win = false;
+            long payout = 0;
+            string? rewardLabel = null;
+            bool sessionEnded = false;
+            int extendedMinutes = 0;
+
+            switch (запрос.Action)
+            {
+                case серьёзный.Core.CoreModels.EconomyAction.PlayCasino:
+                    {
+                        var result = casino.Play(accountId, запрос.Bet, out error);
+                        win = result.Win;
+                        payout = result.Payout;
+                        break;
+                    }
+
+                case серьёзный.Core.CoreModels.EconomyAction.OpenCase:
+                    {
+                        var result = cases.Open(accountId, запрос.CaseId, out error);
+                        rewardLabel = result?.Label;
+                        break;
+                    }
+
+                case серьёзный.Core.CoreModels.EconomyAction.SetEquipped:
+                    {
+                        inventory.SetEquipped(accountId, запрос.ItemId, запрос.Equipped);
+                        break;
+                    }
+
+                case серьёзный.Core.CoreModels.EconomyAction.ReportIssue:
+                                        {
+                        var текст = string.IsNullOrWhiteSpace(запрос.IssueText)
+                                                    ? "Просит подойти администратора"
+                                                    : запрос.IssueText.Trim();
+                        
+                        var имя = new СервисАккаунтов().Получить(accountId)?.ПолноеИмя ?? "Игрок";
+                        
+                        лог.Log("Сигнал от игрока", $"ПК-{pcId} • {имя}: {текст}", "Игрок");
+                        
+                        Dispatcher.Invoke(() =>
+                                               {
+                            new серьёзный.Уведомления.ОкноПроблемыИгрока(pcId, имя, текст).Show();
+                                                    });
+                        
+                                               break;
+                                            }
+                    
+                                    case серьёзный.Core.CoreModels.EconomyAction.ExtendSession:
+                                        {
+                                                if (!сервисСеансов.ПродлитьИзБалансаАккаунта(
+                        pcId,
+                        TimeSpan.FromMinutes(Math.Max(1, запрос.ExtendMinutes)),
+                                                       out var добавлено,
+                                                        out var причина))
+                                                    {
+                            error = причина;
+                                                    }
+                                                else
+                                                    {
+                            extendedMinutes = (int)добавлено.TotalMinutes;
+                            
+                            лог.Log(
+                            "Игрок продлил сеанс",
+                            $"ПК-{pcId}: +{extendedMinutes} мин из баланса аккаунта",
+                            "Игрок");
+                                                   }
+                        
+                                               break;
+                                            }
+                    
+                                    case серьёзный.Core.CoreModels.EconomyAction.EndSession:
+                                        {
+                        var имя = new СервисАккаунтов().Получить(accountId)?.ПолноеИмя ?? "Игрок";
+                        
+                                                if (сервисСеансов.ЗавершитьПоКомпьютеру(pcId, "Завершено игроком"))
+                                                   {
+                            sessionEnded = true;
+                            
+                            лог.Log("Игрок завершил сеанс", $"ПК-{pcId} • {имя}", "Игрок");
+                            
+                            var командаЗавершения = СетевоеСообщение.Создать(ТипСообщения.Команда);
+                            
+                            командаЗавершения.КомпьютерId = pcId;
+                            
+                            командаЗавершения.УстановитьДанные(new серьёзный.Сеть.КомандаПатрулю
+                                                        {
+                                Команда = КомандаПК.ЗавершитьСеанс
+                                                           });
+                            
+                            _ = подключение.ОтправитьAsync(командаЗавершения);
+                                                    }
+                                                else
+                                                    {
+                            error = "Активный сеанс не найден.";
+                                                    }
+                        
+                                               break;
+                                           }
+
+                case серьёзный.Core.CoreModels.EconomyAction.GetSummary:
+                    break;
+            }
+
+            if (error != null)
+            {
+                return new серьёзный.Core.CoreModels.EconomyResultDto
+                {
+                    Success = false,
+                    Error = error
+                };
+            }
+
+            var owned = inventory.GetOwned(accountId);
+            var casinoConfig = casino.GetConfig();
+            var видимостьФлаги = видимость.Get();
+
+            var summary = new серьёзный.Core.CoreModels.EconomySummaryDto
+            {
+                Points = points.Get(accountId).Points,
+                Premium = premium.IsPremium(accountId),
+
+                Inventory = owned.Select(x => new серьёзный.Core.CoreModels.InventoryItemDto
+                {
+                    Id = x.Item.Id,
+                    Name = x.Item.Name,
+                    Icon = x.Item.Icon,
+                    PointsBonusPercent = x.Item.PointsBonusPercent,
+                    TimeBonusPercent = x.Item.TimeBonusPercent,
+                    PriceInPoints = x.Item.PriceInPoints,
+                    Owned = true,
+                    Equipped = x.Entry.Equipped
+                }).ToList(),
+
+                Cases = cases.GetAll()
+                    .Where(c => c.Enabled)
+                    .Select(c => new серьёзный.Core.CoreModels.CaseDto
+                    {
+                        Id = c.Id,
+                        Name = c.Name,
+                        Icon = c.Icon,
+                        PriceInPoints = c.PriceInPoints
+                    }).ToList(),
+
+                CasinoMinBet = casinoConfig.MinBet,
+                CasinoMaxBet = casinoConfig.MaxBet,
+                CasinoEnabled = casinoConfig.Enabled,
+                
+Tariffs = tariffs.GetAll()
+                    .Where(t => t.Enabled)
+                   .Select(t => new серьёзный.Core.CoreModels.TariffDto
+                    {
+                    Minutes = t.Minutes,
+                    Price = t.Price,
+                    Label = t.Label
+                    }).ToList(),
+                
+ShowPoints = видимостьФлаги.ShowPoints,
+                ShowSessionCost = видимостьФлаги.ShowSessionCost
+            };
+
+            return new серьёзный.Core.CoreModels.EconomyResultDto
+            {
+                Success = true,
+                Win = win,
+                Payout = payout,
+                RewardLabel = rewardLabel,
+                Summary = summary,
+                SessionEnded = sessionEnded,
+                ExtendedMinutes = extendedMinutes
+            };
+        }
+
+
+        private async Task ОбработатьЗапросСоциальногоAsync(
+    ПодключениеПатруля подключение,
+    СетевоеСообщение исходное,
+    серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.АккаунтId.HasValue)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Не указан AccountId.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            var me = данные.АккаунтId.Value;
+
+            try
+            {
+                var action = string.IsNullOrWhiteSpace(данные.Параметры)
+                    ? new серьёзный.Core.CoreModels.SocialActionDto
+                    {
+                        Action = серьёзный.Core.CoreModels.SocialAction.GetState
+                    }
+                    : System.Text.Json.JsonSerializer.Deserialize<
+                          серьёзный.Core.CoreModels.SocialActionDto>(
+                          данные.Параметры)
+                      ?? new серьёзный.Core.CoreModels.SocialActionDto
+                      {
+                          Action = серьёзный.Core.CoreModels.SocialAction.GetState
+                      };
+
+                var social = new серьёзный.Core.CoreSocial.SocialService();
+
+                switch (action.Action)
+                {
+                    case серьёзный.Core.CoreModels.SocialAction.SendFriendRequest:
+                        social.SendRequest(me, action.TargetId);
+                        break;
+
+                    case серьёзный.Core.CoreModels.SocialAction.AcceptFriendRequest:
+                        social.Accept(action.RequestId);
+                        break;
+
+                    case серьёзный.Core.CoreModels.SocialAction.RemoveFriend:
+                        social.Remove(me, action.TargetId);
+                        break;
+
+                    case серьёзный.Core.CoreModels.SocialAction.Block:
+                        social.Block(me, action.TargetId);
+                        break;
+
+                    case серьёзный.Core.CoreModels.SocialAction.Unblock:
+                        social.Unblock(me, action.TargetId);
+                        break;
+                }
+
+                ответ.Успешно = true;
+                ответ.УстановитьДанные(ПостроитьСоциальноеСостояние(me, social));
+            }
+            catch (Exception ex)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = ex.Message;
+            }
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        // Единственное место, где реально вычисляется "онлайн"/"в игре" —
+        // на основании активных сеансов сервера (сервисСеансов), а не по
+        // тому, что кто-то локально выставил флаг у себя на ПК.
+        private серьёзный.Core.CoreModels.SocialStateDto ПостроитьСоциальноеСостояние(
+            Guid me,
+            серьёзный.Core.CoreSocial.SocialService social)
+        {
+            var accounts = new СервисАккаунтов();
+
+            var активныеПоАккаунту =
+                сервисСеансов.ПолучитьАктивные()
+                    .Where(x => x.АккаунтGuid.HasValue)
+                    .ToDictionary(x => x.АккаунтGuid!.Value, x => x.КомпьютерId);
+
+            var друзья = social.GetFriendIds(me).ToHashSet();
+
+            var players = accounts.ПолучитьВсе()
+                .Where(x => x.Id != me)
+                .Where(x => !social.IsBlocked(me, x.Id))
+                .Select(x =>
+                {
+                    var онлайн = активныеПоАккаунту.TryGetValue(x.Id, out var pcId);
+
+                    return new серьёзный.Core.CoreModels.OnlinePlayerDto
+                    {
+                        AccountId = x.Id,
+                        FullName = x.ПолноеИмя,
+                        Online = онлайн,
+                        PcId = онлайн ? pcId : 0,
+                        CurrentGame = онлайн ? "В клубе" : null,
+                        IsFriend = друзья.Contains(x.Id),
+                        HasPendingOutgoing = social.HasPending(me, x.Id)
+                    };
+                })
+                .OrderByDescending(x => x.Online)
+                .ThenBy(x => x.FullName)
+                .ToList();
+
+            var incoming = social.Incoming(me)
+                .Select(x => new серьёзный.Core.CoreModels.IncomingFriendRequestDto
+                {
+                    RequestId = x.Id,
+                    FromAccountId = x.From,
+                    FromFullName = accounts.Получить(x.From)?.ПолноеИмя ?? "Игрок"
+                })
+                .ToList();
+
+            return new серьёзный.Core.CoreModels.SocialStateDto
+            {
+                Players = players,
+                Incoming = incoming
+            };
+        }
+
+        private async Task ОбработатьЛичноеСообщениеAsync(
+            ПодключениеПатруля подключение,
+            СетевоеСообщение исходное,
+            серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.АккаунтId.HasValue || !данные.ЦельАккаунтId.HasValue ||
+                string.IsNullOrWhiteSpace(данные.Текст))
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Некорректные данные личного сообщения.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            try
+            {
+                var social = new серьёзный.Core.CoreSocial.SocialService();
+
+
+                if (social.IsBlocked(данные.ЦельАккаунтId.Value, данные.АккаунтId.Value))
+                {
+                    ответ.Успешно = false;
+                    ответ.Ошибка = "Собеседник заблокировал вас.";
+
+                    await подключение.ОтправитьAsync(ответ);
+                    return;
+                }
+
+
+
+                chat.Send(данные.АккаунтId.Value, данные.ЦельАккаунтId.Value, данные.Текст);
+
+                ответ.Успешно = true;
+            }
+            catch (Exception ex)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = ex.Message;
+            }
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        private async Task ОбработатьЗапросИсторииЛичногоЧатаAsync(
+            ПодключениеПатруля подключение,
+            СетевоеСообщение исходное,
+            серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.АккаунтId.HasValue || !данные.ЦельАккаунтId.HasValue)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Не указаны участники диалога.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            var accounts = new СервисАккаунтов();
+            var me = данные.АккаунтId.Value;
+            var friend = данные.ЦельАккаунтId.Value;
+
+            var friendName = accounts.Получить(friend)?.ПолноеИмя ?? "Игрок";
+
+            var сообщения = chat.Get(me, friend)
+                .OrderBy(x => x.Time)
+                .TakeLast(200)
+                .Select(x => new серьёзный.Core.CoreModels.PlayerChatMessageDto
+                {
+                    From = x.From,
+                    To = x.To,
+                    FromName = x.From == me ? "Вы" : friendName,
+                    Text = x.Text,
+                    Time = x.Time
+                })
+                .ToList();
+
+            ответ.Успешно = true;
+
+            ответ.УстановитьДанные(new серьёзный.Core.CoreModels.PlayerChatHistoryDto
+            {
+                Messages = сообщения
+            });
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        private async Task ОбработатьЗапросПрофиляИгрокаAsync(
+            ПодключениеПатруля подключение,
+            СетевоеСообщение исходное,
+            серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.ЦельАккаунтId.HasValue)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Не указан игрок.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            var targetId = данные.ЦельАккаунтId.Value;
+
+            var accounts = new СервисАккаунтов();
+            var account = accounts.Получить(targetId);
+
+            if (account == null)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Аккаунт не найден.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            var points = new PointsService();
+            var levels = new LevelService();
+            var premium = new PremiumService();
+            var styles = new серьёзный.Core.CoreProfiles.ProfileStyleService();
+            var achievements = new серьёзный.Core.CoreProfiles.AchievementService();
+
+            var balance = points.Get(targetId);
+            var tier = levels.GetTierByPlayedSeconds((long)account.ВсегоСыграно.TotalSeconds);
+            var style = styles.Get(targetId);
+            var owned = styles.Owned(targetId).ToHashSet();
+
+            var profile = new серьёзный.Core.CoreModels.PlayerProfileDto
+            {
+                AccountId = targetId,
+                FullName = account.ПолноеИмя,
+                RemainingSeconds = (long)account.ОсталосьВремени.TotalSeconds,
+                PlayedSeconds = (long)account.ВсегоСыграно.TotalSeconds,
+                SessionCount = account.ВсегоСеансов,
+                Points = balance.Points,
+                LevelName = tier.Name,
+                LevelMultiplierPercent = tier.MultiplierPercent,
+                Premium = premium.IsPremium(targetId),
+                PremiumUntil = balance.PremiumUntil,
+                CurrentFrame = (int)style.Frame,
+
+                Frames = Enum.GetValues(typeof(серьёзный.Core.CoreProfiles.ProfileFrame))
+                    .Cast<серьёзный.Core.CoreProfiles.ProfileFrame>()
+                    .Select(f => new серьёзный.Core.CoreModels.PlayerProfileFrameDto
+                    {
+                        Frame = (int)f,
+                        Owned = owned.Contains(f)
+                    })
+                    .ToList(),
+
+                Achievements = achievements.ForProfile(targetId)
+                    .Select(x => new серьёзный.Core.CoreModels.PlayerAchievementDto
+                    {
+                        Name = x.Info.Name,
+                        Description = x.Info.Description,
+                        Unlocked = x.Unlocked,
+                        RewardFrame = x.Info.RewardFrame.HasValue
+                            ? (int)x.Info.RewardFrame.Value
+                            : null
+                    })
+                    .ToList()
+            };
+
+            ответ.Успешно = true;
+            ответ.УстановитьДанные(profile);
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        private async Task ОбработатьЗапросМоихЗаказовAsync(
+    ПодключениеПатруля подключение,
+    СетевоеСообщение исходное,
+    серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.АккаунтId.HasValue)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Не указан AccountId.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            var сервисЗаказов = new серьёзный.Core.CoreShop.ShopRequestService();
+
+            var заказы = сервисЗаказов.All
+                .Where(x => x.AccountId == данные.АккаунтId.Value)
+                .OrderByDescending(x => x.Time)
+                .Take(20)
+                .Select(x => new серьёзный.Core.CoreModels.ShopOrderDto
+                {
+                    Id = x.Id,
+                    ItemName = x.ItemName,
+                    Price = x.Price,
+                    Status = x.Status.ToString(),
+                    Delivery = x.Delivery.ToString(),
+                    Time = x.Time
+                })
+                .ToList();
+
+            ответ.Успешно = true;
+
+            ответ.УстановитьДанные(new серьёзный.Core.CoreModels.ShopOrdersDto
+            {
+                Orders = заказы
+            });
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        private async Task ОбработатьЗапросКаталогаМагазинаAsync(
+    ПодключениеПатруля подключение,
+    СетевоеСообщение исходное,
+    серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            var магазин = new серьёзный.Core.CoreShop.ShopService();
+
+            var settings = магазин.GetSettings();
+
+            var categories = магазин.GetCategories()
+                .Where(x => !x.Hidden)
+                .OrderBy(x => x.Order)
+                .Select(x => new серьёзный.Core.CoreModels.ShopCategoryDto
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    Order = x.Order
+                })
+                .ToList();
+
+            var items = магазин.GetItems()
+    .Where(x => !x.Hidden)
+    .Select(x =>
+    {
+        var (imgData, imgExt) =
+            серьёзный.Core.CoreServices.ImageEmbedHelper.TryEmbed(x.Image);
+
+        return new серьёзный.Core.CoreModels.ShopItemDto
+        {
+            Id = x.Id,
+            CategoryId = x.CategoryId,
+            Name = x.Name,
+            Description = x.Description,
+            Price = x.Price,
+            Image = x.Image,
+            ImageData = imgData,
+            ImageExtension = imgExt,
+            Featured = x.Featured,
+            IsNew = x.IsNew,
+            Stock = x.Stock
+        };
+    })
+    .ToList();
+
+            ответ.Успешно = true;
+
+            ответ.УстановитьДанные(new серьёзный.Core.CoreModels.ShopCatalogDto
+            {
+                Enabled = settings.Enabled,
+                Categories = categories,
+                Items = items
+            });
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        private async Task ОбработатьЗапросКаталогаИгрAsync(
+            ПодключениеПатруля подключение,
+            СетевоеСообщение исходное,
+            серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!исходное.КомпьютерId.HasValue)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Не указан ПК.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            var сервисИгрАдмина = new СервисИгр();
+
+            var игры = сервисИгрАдмина
+    .ПолучитьИгры(исходное.КомпьютерId.Value)
+    .Where(x => !x.Скрыта)
+    .OrderBy(x => x.Порядок)
+    .Select(x =>
+    {
+        var (обложкаData, обложкаExt) =
+            серьёзный.Core.CoreServices.ImageEmbedHelper.TryEmbed(x.Обложка);
+
+        return new серьёзный.Core.CoreModels.GameCatalogItemDto
+        {
+            Id = x.Id,
+            Название = x.Название,
+            Категория = x.Категория,
+            Описание = x.Описание,
+            Путь = x.Путь,
+            Обложка = x.Обложка,
+            ОбложкаData = обложкаData,
+            ОбложкаExtension = обложкаExt,
+            Порядок = x.Порядок,
+            AppId = x.AppId,
+            Launcher = x.Launcher
+        };
+    })
+    .ToList();
+
+            ответ.Успешно = true;
+
+            ответ.УстановитьДанные(new серьёзный.Core.CoreModels.GameCatalogDto
+            {
+                Games = игры
+            });
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        // Погода. Сервер отвечает из своего кэша (обновляется раз в
+        // 30 минут), поэтому 5 подключённых ПК = 0 дополнительных
+        // обращений в интернет.
+        private async Task ОбработатьЗапросПогодыAsync(
+            ПодключениеПатруля подключение,
+            СетевоеСообщение исходное)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            try
+            {
+                var погода =
+                    await серьёзный.Core.CoreWeather.СервисПогодыСервера.ПолучитьAsync();
+
+                ответ.Успешно = погода.Успешно;
+
+                if (погода.Успешно)
+                    ответ.УстановитьДанные(погода);
+                else
+                    ответ.Ошибка = "Погода пока недоступна.";
+            }
+            catch (Exception ex)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = ex.Message;
+            }
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+        private async Task ОбработатьЗапросИсторииЧатаAsync(
+    ПодключениеПатруля подключение,
+    СетевоеСообщение исходное,
+    серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!исходное.КомпьютерId.HasValue)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Не указан ПК.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            var история = сервисЧата
+                .ПолучитьИсторию(исходное.КомпьютерId.Value)
+                .OrderBy(x => x.Время)
+                .TakeLast(100)
+                .Select(x => new серьёзный.Core.CoreModels.ChatMessageDto
+                {
+                    Имя = x.Имя,
+                    Текст = x.Текст,
+                    Время = x.Время,
+                    ОтАдминистратора = x.ОтАдминистратора
+                })
+                .ToList();
+
+            ответ.Успешно = true;
+
+            ответ.УстановитьДанные(new серьёзный.Core.CoreModels.ChatHistoryDto
+            {
+                Сообщения = история
+            });
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
+
+        // =========================================================
+        // КАРТОЧКИ ПК
+        // =========================================================
+
+        private void СоздатьКарточкиПК()
+        {
+            foreach (var пк in КартаКомпьютеров.Все)
+            {
+                var статусТочка = new Ellipse
+                {
+                    Width = 10,
+                    Height = 10,
+                    Fill = Brushes.Gray,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 10, 0)
+                };
+
+                var название = new TextBlock
+                {
+                    Text = пк.Название,
+                    Foreground = Brushes.White,
+                    FontWeight = FontWeights.Bold,
+                    FontSize = 15
+                };
+
+                var время = new TextBlock
+                {
+                    Text = "--:--:--",
+                    Foreground = Brushes.LightBlue,
+                    FontSize = 15,
+                    FontWeight = FontWeights.Bold,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                };
+
+                var верхняяСтрока = new Grid();
+
+                верхняяСтрока.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                верхняяСтрока.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                Grid.SetColumn(название, 0);
+                Grid.SetColumn(время, 1);
+
+                верхняяСтрока.Children.Add(название);
+                верхняяСтрока.Children.Add(время);
+
+                var игрок = new TextBlock
+                {
+                    Text = "Свободно",
+                    Foreground = Brushes.LightGray,
+                    FontSize = 12,
+                    Margin = new Thickness(0, 4, 0, 0),
+                    TextTrimming = TextTrimming.CharacterEllipsis
+                };
+
+                var статус = new TextBlock
+                {
+                    Text = "Свободен",
+                    Foreground = Brushes.Gray,
+                    FontSize = 11,
+                    Margin = new Thickness(0, 2, 0, 0)
+                };
+
+                var текстоваяКолонка = new StackPanel();
+
+                текстоваяКолонка.Children.Add(верхняяСтрока);
+                текстоваяКолонка.Children.Add(игрок);
+                текстоваяКолонка.Children.Add(статус);
+
+                var содержимое = new Grid();
+
+                содержимое.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                содержимое.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                Grid.SetColumn(статусТочка, 0);
+                Grid.SetColumn(текстоваяКолонка, 1);
+
+                содержимое.Children.Add(статусТочка);
+                содержимое.Children.Add(текстоваяКолонка);
+
+                
+
+                var корневаяСеткаКарточки = new Grid();
+
+                корневаяСеткаКарточки.Children.Add(содержимое);
+               
+
+                var фонКисть = new SolidColorBrush(Color.FromRgb(10, 10, 10));
+                var рамкаКисть = new SolidColorBrush(Color.FromRgb(36, 36, 36));
+
+                var карточка = new Border
+                {
+                    Padding = new Thickness(14),
+                    Margin = new Thickness(0, 0, 0, 10),
+                    CornerRadius = new CornerRadius(14),
+
+                    Background = фонКисть,
+                    BorderBrush = рамкаКисть,
+                    BorderThickness = new Thickness(1.2),
+
+                   
+
+                    Child = корневаяСеткаКарточки
+                };
+
+                карточка.MouseEnter += (_, _) =>
+                {
+
+
+                    АнимироватьЦвет(рамкаКисть, Color.FromRgb(169, 30, 77), 0);
+                };
+
+                карточка.MouseLeave += (_, _) =>
+                {
+                    bool выбрана = выбранныйКомпьютерId == пк.Id;
+
+                   
+
+                    АнимироватьЦвет(рамкаКисть,
+                        выбрана ? Color.FromRgb(216, 52, 104) : Color.FromRgb(36, 36, 36), 220);
+                };
+
+                карточка.MouseLeftButtonUp += (_, _) =>
+                {
+                    if (приложениеЗакрывается)
+                        return;
+
+                    выбранныйКомпьютерId = пк.Id;
+
+                    var элемент = ВыборПК.Items
+                        .OfType<ЗаписьПК>()
+                        .FirstOrDefault(x => x.Id == пк.Id);
+
+                    if (элемент != null)
+                        ВыборПК.SelectedItem = элемент;
+                };
+
+                var меню = new ContextMenu();
+
+                var включить = new MenuItem { Header = "⚡ Включить" };
+
+                включить.Click += async (_, _) =>
+                {
+                    await СервисWakeOnLan.ВключитьAsync(пк.MAC);
+                };
+
+                var перезагрузка = new MenuItem { Header = "🔄 Перезагрузить" };
+
+                перезагрузка.Click += async (_, _) =>
+                {
+                    выбранныйКомпьютерId = пк.Id;
+                    ВыборПК.SelectedItem = пк;
+                    await ОтправитьКомандуAsync(КомандаПК.Перезагрузить);
+                };
+
+                var блокировка = new MenuItem { Header = "🔒 Заблокировать" };
+
+                блокировка.Click += async (_, _) =>
+                {
+                    выбранныйКомпьютерId = пк.Id;
+                    ВыборПК.SelectedItem = пк;
+                    await ОтправитьКомандуAsync(КомандаПК.Заблокировать);
+                };
+
+                var сообщение = new MenuItem { Header = "💬 Сообщение" };
+
+                сообщение.Click += (_, _) =>
+                {
+                    выбранныйКомпьютерId = пк.Id;
+                    ВыборПК.SelectedItem = пк;
+                    ПоказатьСообщение_Click(карточка, new RoutedEventArgs());
+                };
+
+                меню.Items.Add(включить);
+                меню.Items.Add(new Separator());
+                меню.Items.Add(перезагрузка);
+                меню.Items.Add(блокировка);
+                меню.Items.Add(сообщение);
+
+                карточка.ContextMenu = меню;
+
+                карточкиПК[пк.Id] = new КарточкаПК009
+                {
+                    Контейнер = карточка,
+                    Название = название,
+                    Игрок = игрок,
+                    Таймер = время,
+                    Статус = статус
+                };
+
+                СеткаПК.Children.Add(карточка);
+            }
+        }
+
+        private void ТемаВхода_Click(
+    object sender,
+    RoutedEventArgs e)
+        {
+            if (приложениеЗакрывается)
+                return;
+
+            var панель = new Панели.ПанельТемВхода(
+                () => (ВыборПК.SelectedItem as ЗаписьПК)?.Id,
+                (pcId, themeId) => ОтправитьКомандуAsync(
+                    КомандаПК.УстановитьТемуВхода,
+                    текст: themeId,
+                    компьютерId: pcId));
+
+            панель.Закрыть += ПоказатьГлавную;
+
+            ПоказатьПанель(панель);
+        }
+
+
+        // =========================================================
+        // ПРЕДУПРЕЖДЕНИЯ
+        // =========================================================
+
+        private void Предупреждение15Минут(
+            Сеанс сеанс)
+        {
+            Dispatcher.Invoke(
+                () =>
+                {
+                    ТекстСостояния.Text =
+                        $"⚠ ПК-{сеанс.КомпьютерId}: осталось 15 минут.";
+                });
+
+            ОтправитьСообщениеНаПК(
+                сеанс.КомпьютерId,
+                "⚠ До окончания сеанса осталось 15 минут.");
+        }
+
+
+        private void Предупреждение10Минут(
+            Сеанс сеанс)
+        {
+            Dispatcher.Invoke(
+                () =>
+                {
+                    ТекстСостояния.Text =
+                        $"⚠ ПК-{сеанс.КомпьютерId}: осталось 10 минут.";
+                });
+
+            ОтправитьСообщениеНаПК(
+                сеанс.КомпьютерId,
+                "⚠ До окончания сеанса осталось 10 минут.");
+        }
+
+
+        private void Предупреждение5Минут(
+            Сеанс сеанс)
+        {
+            Dispatcher.Invoke(
+                () =>
+                {
+                    ТекстСостояния.Text =
+                        $"⚠ ПК-{сеанс.КомпьютерId}: осталось 5 минут.";
+                });
+
+            ОтправитьСообщениеНаПК(
+                сеанс.КомпьютерId,
+                "⚠ До окончания сеанса осталось 5 минут.");
+        }
+
+
+        // =========================================================
+        // СЕАНС ОБНОВИЛСЯ
+        // =========================================================
+
+        private void СеансОбновился(
+            Сеанс сеанс)
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            Dispatcher.Invoke(
+                () =>
+                {
+                    ОбновитьОтображениеСеанса(
+                        сеанс);
+                });
+        }
+
+
+        private void ОбновитьОтображениеТекущегоСеанса()
+        {
+            if (ВыборПК.SelectedItem
+                is not ЗаписьПК пк)
+            {
+                return;
+            }
+
+            ОбновитьОтображениеПоКомпьютеру(
+                пк.Id);
+        }
+
+
+        private void ОбновитьОтображениеПоКомпьютеру(
+            int компьютерId)
+        {
+            var сеанс =
+                сервисСеансов
+                    .ПолучитьАктивные()
+                    .FirstOrDefault(
+                        x =>
+                            x.КомпьютерId ==
+                            компьютерId);
+
+            if (сеанс != null)
+            {
+                ОбновитьОтображениеСеанса(
+                    сеанс);
+
+                return;
+            }
+
+            if (карточкиПК.ContainsKey(
+                    компьютерId))
+            {
+                if (подключения.ContainsKey(
+                        компьютерId))
+                {
+                    ОбновитьКарточку(
+                        компьютерId,
+                        "Подключён",
+                          Color.FromRgb(20, 60, 40));
+                }
+                else
+                {
+                    ОбновитьКарточку(
+                        компьютерId,
+                        "Отключён",
+                         Color.FromRgb(58, 20, 28));
+                }
+            }
+
+            if (ВыборПК.SelectedItem
+                    is ЗаписьПК выбранный &&
+                выбранный.Id ==
+                    компьютерId)
+            {
+                ТекстТаймера.Text =
+                    "00:00:00";
+
+                ТекстСостояния.Text =
+                    подключения.ContainsKey(
+                        компьютерId)
+                        ? "ПК свободен"
+                        : "ПК не подключён";
+            }
+        }
+
+
+        private void ОбновитьОтображениеСеанса(
+            Сеанс сеанс)
+        {
+            if (ВыборПК.SelectedItem
+                    is ЗаписьПК выбранный &&
+                выбранный.Id ==
+                    сеанс.КомпьютерId)
+            {
+                ТекстТаймера.Text =
+                    сеанс.ОсталосьВремени
+                        .ToString(
+                            @"hh\:mm\:ss");
+
+                ТекстСостояния.Text =
+                    подключения.ContainsKey(
+                        сеанс.КомпьютерId)
+                        ? сеанс.Статус.ToString()
+                        : $"{сеанс.Статус}: Патруль отключён";
+            }
+
+            if (!карточкиПК.TryGetValue(
+                    сеанс.КомпьютерId,
+                    out var карточка))
+            {
+                return;
+            }
+
+            if (сеанс.Статус ==
+                    СтатусСеанса.Завершён ||
+                сеанс.Статус ==
+                    СтатусСеанса.Отменён)
+            {
+                ОбновитьКарточку(
+                    сеанс.КомпьютерId,
+                    подключения.ContainsKey(
+                        сеанс.КомпьютерId)
+                        ? "Подключён"
+                        : "Отключён",
+                    подключения.ContainsKey(
+                        сеанс.КомпьютерId)
+                        ? Color.FromRgb(
+                            22,
+                            101,
+                            52)
+                        : Color.FromRgb(
+                            127,
+                            29,
+                            29));
+
+                if (ВыборПК.SelectedItem
+                    is ЗаписьПК выбранныйПК &&
+                    выбранныйПК.Id ==
+                        сеанс.КомпьютерId)
+                {
+                    ТекстТаймера.Text =
+                        "00:00:00";
+                }
+
+                return;
+            }
+
+            карточка.Игрок.Text =
+                СеансБезОшибки(
+                    сеанс);
+
+            карточка.Таймер.Text =
+                сеанс.ОсталосьВремени
+                    .ToString(
+                        @"hh\:mm\:ss");
+
+            switch (сеанс.Статус)
+            {
+                case СтатусСеанса.Активен:
+
+                    карточка.Статус.Text =
+                        "🟢 Играет";
+
+                    карточка.Контейнер.Background =
+                        new SolidColorBrush(
+                            Color.FromRgb(
+                                30,
+                                64,
+                                175));
+
+                    break;
+
+                case СтатусСеанса.НаПаузе:
+
+                    карточка.Статус.Text =
+                        "🟡 Пауза";
+
+                    карточка.Контейнер.Background =
+                        new SolidColorBrush(
+                            Color.FromRgb(
+                                120,
+                                53,
+                                15));
+
+                    break;
+            }
+        }
+
+
+        private static string СеансБезОшибки(
+            Сеанс сеанс)
+        {
+            return string.IsNullOrWhiteSpace(
+                    сеанс.ИмяКлиента)
+                ? "Игрок"
+                : сеанс.ИмяКлиента;
+        }
+
+        private void КнопкаИгры_Click(object sender, RoutedEventArgs e)
+        {
+            new ОкноНастройкиИгр(выбранныйКомпьютерId, ЗапроситьСписокИгрAsync)
+            {
+                Owner = this
+            }.ShowDialog();
+        }
+
+
+        // =========================================================
+        // ЗАВЕРШЕНИЕ СЕАНСА
+        // =========================================================
+
+        private void СеансЗавершился(
+            Сеанс сеанс)
+        {
+            Dispatcher.Invoke(
+                () =>
+                {
+                    if (ВыборПК.SelectedItem
+                            is ЗаписьПК выбранный &&
+                        выбранный.Id ==
+                            сеанс.КомпьютерId)
+                    {
+                        ТекстТаймера.Text =
+                            "00:00:00";
+
+                        ТекстСостояния.Text =
+                            $"⏹ Сеанс ПК-{сеанс.КомпьютерId} завершён.";
+                    }
+
+                    var подключен =
+                        подключения.ContainsKey(
+                            сеанс.КомпьютерId);
+
+                    ОбновитьКарточку(
+                        сеанс.КомпьютерId,
+                        подключен
+                            ? "Подключён"
+                            : "Отключён",
+                        подключен
+                            ? Color.FromRgb(
+                                20,
+                                60,
+                                40)
+                            : Color.FromRgb(
+                                58,
+                                20,
+                                28));
+                });
+
+            if (подключения.ContainsKey(
+                    сеанс.КомпьютерId))
+            {
+                ЗаблокироватьПК(
+                    сеанс.КомпьютерId);
+            }
+        }
+
+
+        private void ОбновитьКарточку(
+            int компьютерId,
+            string статус,
+            Color цвет)
+        {
+            if (!карточкиПК.TryGetValue(
+                    компьютерId,
+                    out var карточка))
+            {
+                return;
+            }
+
+            карточка.Статус.Text =
+                статус;
+
+            карточка.Контейнер.Background =
+                new SolidColorBrush(
+                    цвет);
+
+            if (статус ==
+                "Подключён")
+            {
+                карточка.Игрок.Text =
+                    "Свободно";
+
+                карточка.Таймер.Text =
+                    "ОНЛАЙН";
+            }
+            else if (статус ==
+                     "Отключён")
+            {
+                карточка.Игрок.Text =
+                    string.Empty;
+
+                карточка.Таймер.Text =
+                    "ОФЛАЙН";
+            }
+        }
+
+
+        // =========================================================
+        // УВЕДОМЛЕНИЕ / БЛОКИРОВКА
+        // =========================================================
+
+        private async void ОтправитьСообщениеНаПК(
+            int компьютерId,
+            string текст)
+        {
+            await ОтправитьКомандуAsync(
+                КомандаПК.ПоказатьУведомление,
+                текст,
+                компьютерId:
+                    компьютерId);
+        }
+
+
+        private async void ЗаблокироватьПК(
+            int компьютерId)
+        {
+            await ОтправитьКомандуAsync(
+                КомандаПК.Заблокировать,
+                компьютерId:
+                    компьютерId);
+        }
+
+
+        // =========================================================
+        // WAKE ON LAN
+        // =========================================================
+
+        public static async Task<bool>
+            ВключитьAsync(
+                string mac)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(
+                        mac))
+                {
+                    return false;
+                }
+
+                byte[] macBytes =
+                    mac
+                        .Split(
+                            '-',
+                            ':')
+                        .Where(
+                            x =>
+                                !string.IsNullOrWhiteSpace(
+                                    x))
+                        .Select(
+                            x =>
+                                Convert.ToByte(
+                                    x,
+                                    16))
+                        .ToArray();
+
+                if (macBytes.Length != 6)
+                {
+                    return false;
+                }
+
+                byte[] packet =
+                    new byte[102];
+
+                for (int i = 0; i < 6; i++)
+                {
+                    packet[i] =
+                        0xFF;
+                }
+
+                for (int i = 0; i < 16; i++)
+                {
+                    Buffer.BlockCopy(
+                        macBytes,
+                        0,
+                        packet,
+                        6 + i * 6,
+                        6);
+                }
+
+                var nic =
+                    NetworkInterface
+                        .GetAllNetworkInterfaces()
+                        .FirstOrDefault(
+                            x =>
+                                x.NetworkInterfaceType ==
+                                    NetworkInterfaceType.Ethernet &&
+                                x.OperationalStatus ==
+                                    OperationalStatus.Up);
+
+                if (nic == null)
+                {
+                    return false;
+                }
+
+                var ip =
+                    nic.GetIPProperties()
+                        .UnicastAddresses
+                        .FirstOrDefault(
+                            x =>
+                                x.Address.AddressFamily ==
+                                AddressFamily.InterNetwork);
+
+                if (ip == null)
+                {
+                    return false;
+                }
+
+                using var udp =
+                    new UdpClient(
+                        new IPEndPoint(
+                            ip.Address,
+                            0));
+
+                udp.EnableBroadcast =
+                    true;
+
+                var broadcast =
+                    new IPEndPoint(
+                        IPAddress.Broadcast,
+                        9);
+
+                for (int i = 0; i < 5; i++)
+                {
+                    await udp.SendAsync(
+                        packet,
+                        packet.Length,
+                        broadcast);
+
+                    await Task.Delay(
+                        60);
+                }
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private void ВыборПК_SelectionChanged(
+object sender,
+SelectionChangedEventArgs e)
+        {
+            if (ВыборПК.SelectedItem is not ЗаписьПК пк)
+                return;
+
+            НазваниеПК.Text = пк.Название;
+
+            ОбновитьОтображениеТекущегоСеанса();
+
+            ПодсветитьВыбраннуюКарточку(пк.Id);
+        }
+
+        private void ПодсветитьВыбраннуюКарточку(int компьютерId)
+        {
+            foreach (var пара in карточкиПК)
+            {
+                if (пара.Value.Контейнер.BorderBrush is SolidColorBrush рамка)
+                {
+                    АнимироватьЦвет(рамка,
+                          пара.Key == компьютерId
+  ? Color.FromRgb(216, 52, 104)
+  : Color.FromRgb(36, 36, 36), 180);
+
+                }
+
+                пара.Value.Контейнер.BorderThickness =
+                    пара.Key == компьютерId
+                        ? new Thickness(2)
+                        : new Thickness(1.2);
+            }
+        }
+
+        private static void АнимироватьЦвет(SolidColorBrush кисть, Color цель, int миллисекунд)
+        {
+            var анимация = new ColorAnimation(цель, TimeSpan.FromMilliseconds(миллисекунд))
+            {
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+            };
+
+            кисть.BeginAnimation(SolidColorBrush.ColorProperty, анимация);
+        }
+
+        private async void ВключитьПК_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (ВыборПК.SelectedItem
+                is not ЗаписьПК компьютер)
+            {
+                return;
+            }
+
+          
+
+            var успешно =
+                await СервисWakeOnLan
+                    .ВключитьAsync(
+                        компьютер.MAC);
+
+            if (!успешно)
+            {
+                MessageBox.Show(
+                    $"Не удалось отправить Wake-on-LAN для {компьютер.Название}.",
+                    "Ошибка",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+
+        // =========================================================
+        // МЁРТВЫЕ ПК
+        // =========================================================
+
+        private void ПроверитьМёртвыеПК()
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            foreach (
+                var запись
+                in подключения.Values.ToList())
+            {
+                if (DateTime.Now -
+                    запись.ПоследнийСигнал <
+                    TimeSpan.FromSeconds(5))
+                {
+                    continue;
+                }
+
+                if (!подключения.TryGetValue(
+                        запись.КомпьютерId,
+                        out var текущее) ||
+                    !ReferenceEquals(
+                        текущее,
+                        запись))
+                {
+                    continue;
+                }
+
+                подключения.Remove(
+                    запись.КомпьютерId);
+
+                ОбновитьКарточку(
+                    запись.КомпьютерId,
+                    "Отключён",
+                    Color.FromRgb(
+                        127,
+                        29,
+                        29));
+
+                TекстСостоянияБезопасно(
+                    $"ПК-{запись.КомпьютерId} потерян.");
+
+                var сеанс =
+                    сервисСеансов
+                        .ПолучитьАктивные()
+                        .FirstOrDefault(
+                            x =>
+                                x.КомпьютерId ==
+                                запись.КомпьютерId);
+
+                if (сеанс != null)
+                {
+                    new СервисАвтоСохранения001()
+                        .Сохранить(
+                            сервисСеансов
+                                .ПолучитьАктивные());
+                }
+            }
+
+            ОбновитьКоличествоПК();
+        }
+
+
+        // =========================================================
+        // СОВМЕСТИМОСТЬ С АВТОСОХРАНЕНИЕМ
+        // =========================================================
+
+        private static TimeSpan
+            ПолучитьВремяПаузыИзСнимка(
+                object снимок)
+        {
+            if (снимок == null)
+            {
+                return TimeSpan.Zero;
+            }
+
+            var свойство =
+                снимок.GetType()
+                    .GetProperty(
+                        "ВремяПаузы");
+
+            if (свойство == null)
+            {
+                return TimeSpan.Zero;
+            }
+
+            var значение =
+                свойство.GetValue(
+                    снимок);
+
+            return значение is TimeSpan время
+                ? время
+                : TimeSpan.Zero;
+        }
+
+
+        private static TimeSpan
+            ПолучитьОстатокНаАккаунтИзСнимка(
+                object снимок)
+        {
+            if (снимок == null)
+            {
+                return TimeSpan.Zero;
+            }
+
+            var свойство =
+                снимок.GetType()
+                    .GetProperty(
+                        "ВремяАккаунта");
+
+            if (свойство != null)
+            {
+                var значение =
+                    свойство.GetValue(
+                        снимок);
+
+                if (значение is TimeSpan время &&
+                    время > TimeSpan.Zero)
+                {
+                    return время;
+                }
+            }
+
+            var свойствоОсталось =
+                снимок.GetType()
+                    .GetProperty(
+                        "Осталось");
+
+            if (свойствоОсталось != null)
+            {
+                var значение =
+                    свойствоОсталось.GetValue(
+                        снимок);
+
+                if (значение is TimeSpan остаток &&
+                    остаток > TimeSpan.Zero)
+                {
+                    return остаток;
+                }
+            }
+
+            return TimeSpan.Zero;
+        }
+
+
+        private static TimeSpan
+            ПолучитьКупленноеВремяИзСнимка(
+                object снимок)
+        {
+            if (снимок == null)
+            {
+                return TimeSpan.Zero;
+            }
+
+            var свойство =
+                снимок.GetType()
+                    .GetProperty(
+                        "КупленноеВремя");
+
+            if (свойство == null)
+            {
+                return TimeSpan.Zero;
+            }
+
+            var значение =
+                свойство.GetValue(
+                    снимок);
+
+            return значение is TimeSpan время
+                ? время
+                : TimeSpan.Zero;
+        }
+
+
+        private static string
+            ПолучитьИмяИзСнимка(
+                object снимок)
+        {
+            if (снимок == null)
+            {
+                return "Аноним";
+            }
+
+            var свойство =
+                снимок.GetType()
+                    .GetProperty(
+                        "ИмяКлиента");
+
+            if (свойство != null &&
+                свойство.GetValue(
+                    снимок) is string имя &&
+                !string.IsNullOrWhiteSpace(
+                    имя))
+            {
+                return имя;
+            }
+
+            var свойствоИгрок =
+                снимок.GetType()
+                    .GetProperty(
+                        "Игрок");
+
+            if (свойствоИгрок != null &&
+                свойствоИгрок.GetValue(
+                    снимок) is string игрок &&
+                !string.IsNullOrWhiteSpace(
+                    игрок))
+            {
+                return игрок;
+            }
+
+            return "Аноним";
+        }
+
+
+        private static decimal
+            ПолучитьСтоимостьИзСнимка(
+                object снимок)
+        {
+            if (снимок == null)
+            {
+                return 0m;
+            }
+
+            var свойство =
+                снимок.GetType()
+                    .GetProperty(
+                        "Стоимость");
+
+            if (свойство == null)
+            {
+                return 0m;
+            }
+
+            var значение =
+                свойство.GetValue(
+                    снимок);
+
+            return значение switch
+            {
+                decimal сумма =>
+                    сумма,
+
+                double сумма =>
+                    (decimal)сумма,
+
+                float сумма =>
+                    (decimal)сумма,
+
+                int сумма =>
+                    сумма,
+
+                long сумма =>
+                    сумма,
+
+                _ =>
+                    0m
+            };
+        }
+
+
+        private static int
+            ПолучитьКомпьютерIdИзСнимка(
+                object снимок)
+        {
+            if (снимок == null)
+            {
+                return 0;
+            }
+
+            var свойство =
+                снимок.GetType()
+                    .GetProperty(
+                        "КомпьютерId");
+
+            if (свойство == null)
+            {
+                return 0;
+            }
+
+            var значение =
+                свойство.GetValue(
+                    снимок);
+
+            return значение switch
+            {
+                int id =>
+                    id,
+
+                long id =>
+                    (int)id,
+
+                _ =>
+                    0
+            };
+        }
+
+
+        private static Guid?
+            ПолучитьАккаунтИзСнимка(
+                object снимок)
+        {
+            if (снимок == null)
+            {
+                return null;
+            }
+
+            var свойство =
+                снимок.GetType()
+                    .GetProperty(
+                        "АккаунтGuid");
+
+            if (свойство == null)
+            {
+                return null;
+            }
+
+            var значение =
+                свойство.GetValue(
+                    снимок);
+
+            if (значение is Guid guid)
+            {
+                return guid;
+            }
+
+            if (значение is string строка &&
+                Guid.TryParse(
+                    строка,
+                    out var parsed))
+            {
+                return parsed;
+            }
+
+            return null;
+        }
+
+
+        private static DateTime
+            ПолучитьНачалоИзСнимка(
+                object снимок)
+        {
+            if (снимок == null)
+            {
+                return DateTime.Now;
+            }
+
+            var свойство =
+                снимок.GetType()
+                    .GetProperty(
+                        "Начало");
+
+            if (свойство == null)
+            {
+                return DateTime.Now;
+            }
+
+            var значение =
+                свойство.GetValue(
+                    снимок);
+
+            return значение is DateTime время
+                ? время
+                : DateTime.Now;
+        }
+
+
+        private static int
+            ПолучитьIdИзСнимка(
+                object снимок)
+        {
+            if (снимок == null)
+            {
+                return 0;
+            }
+
+            var свойство =
+                снимок.GetType()
+                    .GetProperty(
+                        "Id");
+
+            if (свойство == null)
+            {
+                return 0;
+            }
+
+            var значение =
+                свойство.GetValue(
+                    снимок);
+
+            return значение switch
+            {
+                int id =>
+                    id,
+
+                long id =>
+                    (int)id,
+
+                _ =>
+                    0
+            };
+        }
+
+
+        // =========================================================
+        // БЕЗОПАСНОЕ ОБНОВЛЕНИЕ UI
+        // =========================================================
+
+        private void TекстСостоянияБезопасно(
+            string текст)
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            try
+            {
+                ТекстСостояния.Text =
+                    текст;
+            }
+            catch
+            {
+            }
+        }
+
+
+        private void TекстТаймераБезопасно(
+            string текст)
+        {
+            if (приложениеЗакрывается)
+            {
+                return;
+            }
+
+            try
+            {
+                ТекстТаймера.Text =
+                    текст;
+            }
+            catch
+            {
+            }
+        }
+
+        private void ОбновитьСчётчикЗаказов()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                var count =
+                    сервисЗаказов.All.Count(
+                        x =>
+                            x.Status == ShopRequestStatus.Pending);
+
+                if (BadgeЗаказов == null || BadgeText == null)
+                    return;
+
+                BadgeЗаказов.Visibility =
+                    count > 0
+                        ? Visibility.Visible
+                        : Visibility.Collapsed;
+
+                BadgeText.Text =
+                    count.ToString();
+            });
+        }
+
+
+        private void Магазин_Click(
+    object sender,
+    RoutedEventArgs e)
+        {
+            var панель = new Панели.ПанельНастройкиМагазина();
+
+            панель.Закрыть += ПоказатьГлавную;
+
+            ПоказатьПанель(панель);
+        }
+
+        private void СжечьВремя_Click(object sender, RoutedEventArgs e)
+        {
+            var ответ = MessageBox.Show(
+                "Обнулить остаток времени у ВСЕХ аккаунтов (кроме премиум)?",
+                "Подтверждение",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (ответ != MessageBoxResult.Yes)
+                return;
+
+            var сожжено = сгорание.СжечьВсем(имяАдминистратора);
+
+            MessageBox.Show($"Обнулено аккаунтов: {сожжено}", "Готово");
+        }
+
+        private void КнопкаРазвлечения_Click(object sender, RoutedEventArgs e)
+        {
+            var панель = new Панели.ПанельРазвлеченияАдмин(имяАдминистратора);
+
+            панель.Закрыть += ПоказатьГлавную;
+
+            ПоказатьПанель(панель);
+        }
+
+        private void РезервнаяКопия_Click(object sender, RoutedEventArgs e)
+        {
+            var файл = бэкапРучной.СоздатьРезервнуюКопию();
+
+            if (файл == null)
+            {
+                MessageBox.Show(
+                    "Не удалось создать резервную копию. Подробности — в логе сервера.",
+                    "Резервное копирование",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+
+                return;
+            }
+
+            MessageBox.Show(
+                $"Резервная копия создана:\n{файл}",
+                "Резервное копирование",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+
+    }
+
+
+
+
+
+
+
+
+}

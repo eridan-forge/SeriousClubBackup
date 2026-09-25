@@ -1,0 +1,85 @@
+﻿<Window x:Class="серьёзный.Окна.ОкноПоискИгр"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Найденные игры"
+        Width="560"
+        Height="620"
+        WindowStartupLocation="CenterOwner"
+        Background="#0F172A">
+
+    <Grid Margin="20">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Отметьте игры для добавления"
+                   FontSize="18"
+                   FontWeight="Bold"
+                   Foreground="White"
+                   Margin="0,0,0,14"/>
+
+        <ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto">
+
+            <ItemsControl x:Name="Список">
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="#1E293B"
+                                CornerRadius="10"
+                                Padding="12"
+                                Margin="0,0,0,8">
+
+                            <StackPanel>
+
+                                <CheckBox Content="{Binding Name}"
+                                          IsChecked="{Binding Выбрана}"
+                                          Foreground="White"
+                                          FontWeight="Bold"
+                                          FontSize="15"/>
+
+                                <TextBlock Text="{Binding Category}"
+                                           Foreground="#94A3B8"
+                                           FontSize="12"
+                                           Margin="24,4,0,0"/>
+
+                                <TextBlock Text="{Binding Path}"
+                                           Foreground="#64748B"
+                                           FontSize="11"
+                                           TextTrimming="CharacterEllipsis"
+                                           Margin="24,2,0,0"/>
+
+                            </StackPanel>
+
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+
+            </ItemsControl>
+
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,14,0,0">
+
+            <Button Content="Отмена"
+                    Width="110"
+                    Height="38"
+                    Margin="0,0,10,0"
+                    Click="Отмена_Click"/>
+
+            <Button Content="➕ Добавить выбранные"
+                    Width="200"
+                    Height="38"
+                    Click="Добавить_Click"/>
+
+        </StackPanel>
+
+    </Grid>
+
+</Window>

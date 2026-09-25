@@ -1,0 +1,43 @@
+﻿<UserControl x:Class="серьёзный.КарточкаПК"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Height="150"
+             Width="220">
+
+    <Border
+        x:Name="Карточка"
+        Background="#1F2937"
+        CornerRadius="14"
+        BorderBrush="#374151"
+        BorderThickness="1"
+        Padding="12"
+        Margin="8">
+
+        <StackPanel>
+
+            <TextBlock
+                x:Name="Название"
+                Text="PC-01"
+                Foreground="White"
+                FontSize="20"
+                FontWeight="Bold"/>
+
+            <TextBlock
+                x:Name="Таймер"
+                Text="00:00:00"
+                Foreground="#60A5FA"
+                FontSize="28"
+                FontWeight="Bold"
+                Margin="0,10,0,0"/>
+
+            <TextBlock
+                x:Name="Статус"
+                Text="Свободен"
+                Foreground="#9CA3AF"
+                Margin="0,10,0,0"/>
+
+        </StackPanel>
+
+    </Border>
+
+</UserControl>
