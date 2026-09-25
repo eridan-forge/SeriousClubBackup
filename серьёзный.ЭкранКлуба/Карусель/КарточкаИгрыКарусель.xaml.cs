@@ -2,6 +2,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using серьёзный.Модели;
@@ -22,9 +23,13 @@ public partial class КарточкаИгрыКарусель : UserControl
     public event Action<Игра>? ИзбранноеИзменилось;
     public event Action<Игра>? ИграСкрыта;
 
+    // Клик по телу карточки (не по одной из кнопок) — открыть карточку.
+    // Отдельно от ИграЗапущена, которая теперь запускает игру напрямую.
+    public event Action<Игра>? КарточкаНажата;
     public КарточкаИгрыКарусель()
     {
         InitializeComponent();
+        Корень.PreviewMouseLeftButtonDown += Корень_PreviewMouseLeftButtonDown;
     }
 
     public void Загрузить(Игра игра, bool избранное)
@@ -119,5 +124,29 @@ public partial class КарточкаИгрыКарусель : UserControl
     {
         if (Игра != null)
             ИграСкрыта?.Invoke(Игра);
+    }
+
+    private void Корень_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (Игра == null)
+            return;
+
+        if (НайтиПредкаТипа<Button>(e.OriginalSource as DependencyObject) != null)
+            return; // клик по кнопке — её обработает свой Click
+
+        КарточкаНажата?.Invoke(Игра);
+    }
+
+    private static T? НайтиПредкаТипа<T>(DependencyObject? узел) where T : DependencyObject
+    {
+        while (узел != null)
+        {
+            if (узел is T найден)
+                return найден;
+
+            узел = VisualTreeHelper.GetParent(узел);
+        }
+
+        return null;
     }
 }

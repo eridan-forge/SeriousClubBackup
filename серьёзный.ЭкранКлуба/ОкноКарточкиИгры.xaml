@@ -5,8 +5,8 @@
         AllowsTransparency="True"
         Background="Transparent"
         ResizeMode="NoResize"
-        WindowStartupLocation="CenterOwner"
-        Width="480" Height="720"
+         WindowStartupLocation="Manual"
+        Width="340" Height="500"
         Topmost="True">
 
     <Window.Resources>
