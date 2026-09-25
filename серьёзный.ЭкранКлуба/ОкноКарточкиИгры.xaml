@@ -1,0 +1,59 @@
+﻿<Window x:Class="серьёзный.ЭкранКлуба.ОкноКарточкиИгры"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        Width="480" Height="720"
+        Topmost="True">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Стили/СтильИгрока.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border CornerRadius="24" Background="{StaticResource ФонКарточки}"
+            BorderBrush="{StaticResource РамкаЦвет}" BorderThickness="1.4">
+
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="40" ShadowDepth="0" Opacity="0.6"/>
+        </Border.Effect>
+
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Button Grid.Row="0" Content="✕" Style="{StaticResource КруглаяКнопкаЗакрытия}"
+                    HorizontalAlignment="Right" Click="Закрыть_Click"/>
+
+            <Border Grid.Row="1" CornerRadius="18" ClipToBounds="True" Margin="0,0,0,18">
+                <Grid>
+                    <Image x:Name="Обложка" Stretch="UniformToFill"/>
+                    <Grid x:Name="Заглушка" Visibility="Collapsed" Background="{StaticResource ФонКарточкиАльт}">
+                        <TextBlock Text="🎮" FontSize="80" Opacity="0.3"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <StackPanel Grid.Row="2" Margin="0,0,0,20">
+                <TextBlock x:Name="Название" FontSize="26" FontWeight="Bold" Foreground="White" TextWrapping="Wrap"/>
+                <TextBlock x:Name="Категория" FontSize="14" Foreground="{StaticResource ТекстВторичный}" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <Button Grid.Row="3" Content="▶  ИГРАТЬ"
+                    Style="{StaticResource БольшаяКнопкаДействияВажная}"
+                    HorizontalAlignment="Stretch"
+                    Click="Играть_Click"/>
+        </Grid>
+    </Border>
+</Window>

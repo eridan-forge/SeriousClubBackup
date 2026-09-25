@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using серьёзный.Модели;
 
@@ -23,8 +24,8 @@ public partial class КарусельИгр : UserControl
     private const double ШиринаКарточкиБаза = 360;
     private const double ВысотаКарточкиБаза = 480;
 
-    private const double УголНаШаг = 24;            // градусов между соседними карточками
-    private double РадиусДугиБаза = 620;            // виртуальный радиус окружности карусели
+    private const double УголНаШаг = 30;            // увеличено — при больших карточках нужен больший шаг
+    private double РадиусДугиБаза = 680;            // виртуальный радиус окружности карусели
     private double ГлубинаВыступаБаза = 130;        // насколько боковые карточки выступают к зрителю
 
     private double базовыйМасштаб = 1.0;
@@ -156,7 +157,16 @@ public partial class КарусельИгр : UserControl
                 {
                     ПодкрутитьК(индексКарточки);
                     ev.Handled = true;
+                    return;
                 }
+
+                // Уже по центру — клик по обложке/названию (не по одной
+                                // из кнопок карточки) открывает превью игры.
+                               if (карточка.Игра != null &&
+                НайтиПредкаТипа<Button>(ev.OriginalSource as DependencyObject) == null)
+                                   {
+                    ИграЗапущена?.Invoke(карточка.Игра);
+                                    }
             };
 
             карточки.Add(карточка);
@@ -181,6 +191,21 @@ public partial class КарусельИгр : UserControl
         поколениеАнимации++;
         BeginAnimation(ТекущийИндексProperty, null);
         ТекущийИндекс = новыйЦентральныйИндекс;
+
+
+    }
+
+    private static T? НайтиПредкаТипа<T>(DependencyObject? узел) where T : DependencyObject
+    {
+        while (узел != null)
+        {
+            if (узел is T найден)
+                return найден;
+
+            узел = VisualTreeHelper.GetParent(узел);
+        }
+
+        return null;
     }
 
     // =====================================================
