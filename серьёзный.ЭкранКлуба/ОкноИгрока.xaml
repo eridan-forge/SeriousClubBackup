@@ -130,41 +130,68 @@
                 </ScrollViewer>
 
                 <!-- ИГРЫ -->
-                
+
 
                 <Grid x:Name="СтраницаИгры" Visibility="Collapsed" Margin="28,28,28,0">
-                    
-                    <Grid.ColumnDefinitions>
-                        
-                        <ColumnDefinition Width="220"/>
-                        
-                        <ColumnDefinition Width="20"/>
-                        
-                        <ColumnDefinition Width="*"/>
-                        
-                    </Grid.ColumnDefinitions>
-                    
 
-                    <!-- ЛЕВО: поиск + отдельная кнопка на каждую категорию -->
-                    
-                    <Border Grid.Column="0" Background="{StaticResource ФонКарточкиАльт}" CornerRadius="14" Padding="14">
-                        
-                        <DockPanel>
-                            
-                            <TextBox x:Name="ПоискИгр" DockPanel.Dock="Top" Margin="0,0,0,14"
-                                     TextChanged="ПоискИгр_TextChanged"/>
-                                
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="40"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- ЛЕВО: поиск + отдельная кнопка на каждую категорию (стекло) -->
+
+                    <Border x:Name="ПанельКатегорий"
+                            Grid.Column="0"
+                            Width="220"
+                            ClipToBounds="True"
+                            CornerRadius="18"
+                            Padding="14"
+                            BorderThickness="1"
+                            BorderBrush="#26FFFFFF"
+                            Background="{StaticResource ФонПанелиКатегорий}">
+
+                        <Border.Effect>
+                            <DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="6" Opacity="0.35"/>
+                        </Border.Effect>
+
+                        <Grid>
+
+                            <!-- стеклянный блик у верхнего края -->
+                            <Border VerticalAlignment="Top" Height="90" IsHitTestVisible="False">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                        <GradientStop Color="#26FFFFFF" Offset="0"/>
+                                        <GradientStop Color="#00FFFFFF" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                            </Border>
+
+                            <DockPanel>
+
+                                <TextBox x:Name="ПоискИгр" DockPanel.Dock="Top" Margin="0,0,0,14"
+                                         TextChanged="ПоискИгр_TextChanged"/>
 
                                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                    
                                     <StackPanel x:Name="ПанельКнопокКатегорий"/>
-                                    
                                 </ScrollViewer>
-                                
-                        </DockPanel>
-                        
+
+                            </DockPanel>
+
+                        </Grid>
+
                     </Border>
-                    
+
+                    <Button x:Name="КнопкаСвернутьКатегории"
+                            Grid.Column="1"
+                            Style="{StaticResource КруглаяКнопкаЗакрытия}"
+                            Content="◀"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center"
+                            ToolTip="Скрыть категории"
+                            Click="ПереключитьКатегории_Click"/>
+
 
                     <Grid Grid.Column="2">
                         

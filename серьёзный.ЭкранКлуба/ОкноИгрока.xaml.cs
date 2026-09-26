@@ -48,6 +48,8 @@ namespace серьёзный.ЭкранКлуба
         private List<Игра> игры = new();
         private string? выбраннаяКатегорияЦеликом;
 
+        private bool панельКатегорийОткрыта = true;
+
         private EconomySummaryDto? сводкаЭкономики;
         private PlayerProfileDto? профильДанные;
         private SocialStateDto? социальноеСостояние;
@@ -331,7 +333,30 @@ namespace серьёзный.ЭкранКлуба
             WindowState = WindowState.Minimized;
         }
 
-private async Task<АккаунтИгрока?> ЗапроситьАккаунтЧерезСерверAsync()
+        private void ПереключитьКатегории_Click(object sender, RoutedEventArgs e)
+        {
+            панельКатегорийОткрыта = !панельКатегорийОткрыта;
+
+            double целеваяШирина = панельКатегорийОткрыта ? 220 : 0;
+
+            if (панельКатегорийОткрыта)
+                ПанельКатегорий.Visibility = Visibility.Visible;
+
+            var анимация = new DoubleAnimation(ПанельКатегорий.Width, целеваяШирина, TimeSpan.FromMilliseconds(220))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+
+            if (!панельКатегорийОткрыта)
+                анимация.Completed += (_, _) => ПанельКатегорий.Visibility = Visibility.Collapsed;
+
+            ПанельКатегорий.BeginAnimation(FrameworkElement.WidthProperty, анимация);
+
+            КнопкаСвернутьКатегории.Content = панельКатегорийОткрыта ? "◀" : "▶";
+            КнопкаСвернутьКатегории.ToolTip = панельКатегорийОткрыта ? "Скрыть категории" : "Показать категории";
+        }
+
+        private async Task<АккаунтИгрока?> ЗапроситьАккаунтЧерезСерверAsync()
         {
 
             // Тестовый аккаунт — единственный захардкоженный, вводится на
@@ -1380,21 +1405,13 @@ Launcher = x.Launcher
         private Button СоздатьКнопкуКатегории(string подпись, string? категория, string поиск)
         {
             bool идётПоиск = !string.IsNullOrWhiteSpace(поиск);
-
             bool активна = !идётПоиск && категория == выбраннаяКатегорияЦеликом;
 
             var кнопка = new Button
             {
                 Content = подпись,
-                Height = 46,
-                Margin = new Thickness(0, 0, 0, 8),
-                Padding = new Thickness(14, 0, 14, 0),
-                HorizontalContentAlignment = HorizontalAlignment.Left,
-                Background = активна ? (Brush)FindResource("АкцентКрасный") : (Brush)FindResource("ФонКарточкиАльт"),
-                Foreground = Brushes.White,
-                BorderBrush = активна ? (Brush)FindResource("АкцентКрасный") : (Brush)FindResource("РамкаЦвет"),
-                FontWeight = активна ? FontWeights.Bold : FontWeights.Normal,
-                Cursor = Cursors.Hand
+                Style = (Style)FindResource("КатегорияКнопкаСтекло"),
+                Tag = активна ? "Активна" : null
             };
 
             кнопка.Click += (_, _) =>

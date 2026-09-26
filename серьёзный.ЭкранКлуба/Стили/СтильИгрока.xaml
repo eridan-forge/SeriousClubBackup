@@ -16,6 +16,13 @@
     <SolidColorBrush x:Key="Предупреждение" Color="#FB923C"/>
     <SolidColorBrush x:Key="Золото" Color="#FBBF24"/>
 
+    <!-- Фон панели категорий: стеклянный градиент вместо плоской заливки -->
+    <LinearGradientBrush x:Key="ФонПанелиКатегорий" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#59241419" Offset="0"/>
+        <GradientStop Color="#40161119" Offset="0.55"/>
+        <GradientStop Color="#26000000" Offset="1"/>
+    </LinearGradientBrush>
+
     <Style x:Key="Карточка" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource ФонКарточки}"/>
         <Setter Property="CornerRadius" Value="18"/>
@@ -183,6 +190,51 @@
                 <Setter Property="BorderBrush" Value="{StaticResource АкцентКрасный}"/>
             </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <Style x:Key="КатегорияКнопкаСтекло" TargetType="Button">
+        <Setter Property="Height" Value="46"/>
+        <Setter Property="Margin" Value="0,0,0,8"/>
+        <Setter Property="Padding" Value="14,0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="Фон" CornerRadius="12"
+                                Background="#22FFFFFF"
+                                BorderBrush="#26FFFFFF"
+                                BorderThickness="1"/>
+                        <Border x:Name="Полоска" Width="3" HorizontalAlignment="Left"
+                                CornerRadius="2" Background="{StaticResource АкцентКрасный}"
+                                Opacity="0" Margin="0,8"/>
+                        <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"
+                                          Margin="{TemplateBinding Padding}"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Фон" Property="Background" Value="#30FFFFFF"/>
+                            <Setter TargetName="Фон" Property="BorderBrush" Value="#40FFFFFF"/>
+                        </Trigger>
+                        <Trigger Property="Tag" Value="Активна">
+                            <Setter TargetName="Фон" Property="Background">
+                                <Setter.Value>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Color="#66E5142F" Offset="0"/>
+                                        <GradientStop Color="#33E5142F" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter TargetName="Фон" Property="BorderBrush" Value="#80E5142F"/>
+                            <Setter TargetName="Полоска" Property="Opacity" Value="1"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <Style x:Key="КруглаяКнопкаЗакрытия" TargetType="Button">
