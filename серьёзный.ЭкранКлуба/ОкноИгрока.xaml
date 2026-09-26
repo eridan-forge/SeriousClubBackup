@@ -312,7 +312,7 @@
                     </StackPanel>
 
                     <ScrollViewer x:Name="СкроллКаталог" Grid.Row="1">
-                        <WrapPanel x:Name="ПанельМагазина"/>
+                        <StackPanel x:Name="ПанельМагазина"/>
                     </ScrollViewer>
 
                     <ScrollViewer x:Name="СкроллЗаказы" Grid.Row="1" Visibility="Collapsed">

@@ -186,6 +186,8 @@ namespace серьёзный.ЭкранКлуба
             }
         }
 
+
+
         private static T? НайтиВизуальногоРодителя<T>(DependencyObject узел) where T : DependencyObject
         {
             while (узел != null)
@@ -1921,19 +1923,31 @@ Cursor = Cursors.Hand
 
             try
             {
-                var requestId = ShopCatalogBridgeService.CreateRequest();
+                ShopCatalogDto? каталог;
 
-                ShopCatalogDto? каталог = null;
-
-                for (int i = 0; i < 20; i++)
+                if (аккаунтId == ТестовыйАккаунт.Id)
                 {
-                    await Task.Delay(300);
-                    if (окноЗакрывается) return;
-                    каталог = ShopCatalogBridgeService.GetResult(requestId);
-                    if (каталог != null) break;
+                    // Тестовый аккаунт работает в обход сервера/Патруля — сетевой
+                    // запрос всё равно не получит ответ (тот же принцип, что и
+                    // у ТестовыйКаталогИгр для страницы "Игры").
+                    каталог = ТестовыйКаталогМагазина.Сгенерировать();
                 }
+                else
+                {
+                    var requestId = ShopCatalogBridgeService.CreateRequest();
 
-                if (каталог == null) return;
+                    каталог = null;
+
+                    for (int i = 0; i < 20; i++)
+                    {
+                        await Task.Delay(300);
+                        if (окноЗакрывается) return;
+                        каталог = ShopCatalogBridgeService.GetResult(requestId);
+                        if (каталог != null) break;
+                    }
+
+                    if (каталог == null) return;
+                }
 
                 ОтобразитьКаталог(каталог);
             }
@@ -1965,9 +1979,56 @@ Cursor = Cursors.Hand
 
             if (!каталог.Enabled) return;
 
-            foreach (var itemDto in каталог.Items)
+            // Разделы — по тому же принципу, что и в "Играх": заголовок раздела,
+            // под ним сетка карточек. Раньше товары рисовались одним плоским
+            // WrapPanel, а Categories из ответа сервера просто не использовались.
+            var категорииПоПорядку = каталог.Categories
+                .OrderBy(x => x.Order)
+                .ToList();
+
+            foreach (var категория in категорииПоПорядку)
             {
-                var локальноеФото = ImageCacheService.SaveIfNeeded($"shop-{itemDto.Id}", itemDto.ImageData, itemDto.ImageExtension) ?? itemDto.Image;
+                var товарыКатегории = каталог.Items
+                    .Where(x => x.CategoryId == категория.Id)
+                    .ToList();
+
+                if (товарыКатегории.Count == 0)
+                    continue; // пустой раздел (все товары скрыты/удалены) не рисуем
+
+                ПанельМагазина.Children.Add(СоздатьРазделМагазина(категория.Name, товарыКатегории));
+            }
+
+            // Товары без раздела (например, раздел удалили, а товар остался) —
+            // не теряем, показываем отдельным блоком.
+            var известныеId = категорииПоПорядку.Select(x => x.Id).ToHashSet();
+
+            var безРаздела = каталог.Items
+                .Where(x => !известныеId.Contains(x.CategoryId))
+                .ToList();
+
+            if (безРаздела.Count > 0)
+                ПанельМагазина.Children.Add(СоздатьРазделМагазина("Другое", безРаздела));
+        }
+
+        private UIElement СоздатьРазделМагазина(string название, List<ShopItemDto> товары)
+        {
+            var секция = new StackPanel { Margin = new Thickness(0, 0, 0, 28) };
+
+            секция.Children.Add(new TextBlock
+            {
+                Text = название,
+                FontSize = 19,
+                FontWeight = FontWeights.Bold,
+                Foreground = Brushes.White,
+                Margin = new Thickness(0, 0, 0, 12)
+            });
+
+            var сетка = new WrapPanel();
+
+            foreach (var itemDto in товары)
+            {
+                var локальноеФото = ImageCacheService.SaveIfNeeded(
+                    $"shop-{itemDto.Id}", itemDto.ImageData, itemDto.ImageExtension) ?? itemDto.Image;
 
                 var item = new ShopItem
                 {
@@ -1982,11 +2043,15 @@ Cursor = Cursors.Hand
                     Stock = itemDto.Stock
                 };
 
-                var card = new КарточкаМагазина(item);
-                card.BuyRequested += КупитьТовар;
+                var карточка = new КарточкаМагазина(item);
+                карточка.BuyRequested += КупитьТовар;
 
-                ПанельМагазина.Children.Add(card);
+                сетка.Children.Add(карточка);
             }
+
+            секция.Children.Add(сетка);
+
+            return секция;
         }
 
         private void КупитьТовар(ShopItem item)
@@ -1996,6 +2061,19 @@ Cursor = Cursors.Hand
             var win = new ОкноВыбораПолучения { Owner = this };
 
             if (win.ShowDialog() != true) return;
+
+            if (аккаунтId == ТестовыйАккаунт.Id)
+            {
+                // Тестовый аккаунт не создаёт реальный заказ на сервере — просто
+                // показываем тот же положительный ответ, что видел бы игрок.
+                MessageBox.Show(
+                    win.Result == ShopDeliveryType.BringToPc
+                        ? "Администратор получил запрос и принесёт заказ."
+                        : "Подойдите к администратору за заказом.",
+                    "Заказ отправлен");
+
+                return;
+            }
 
             var requestId = ShopPurchaseBridgeService.CreateRequest(аккаунтId, компьютерId, item.Id, win.Result);
 
@@ -2032,6 +2110,15 @@ Cursor = Cursors.Hand
             if (аккаунт == null) return;
 
             ПанельЗаказов.Children.Clear();
+
+            if (аккаунтId == ТестовыйАккаунт.Id)
+            {
+                foreach (var заказ in ТестовыйКаталогМагазина.СгенерироватьЗаказы())
+                    ПанельЗаказов.Children.Add(СоздатьКарточкуЗаказа(заказ));
+
+                return;
+            }
+
             ПанельЗаказов.Children.Add(new TextBlock { Text = "Загрузка...", Foreground = (Brush)FindResource("ТекстВторичный") });
 
             var requestId = ShopOrdersBridgeService.CreateRequest(аккаунтId);
@@ -2121,5 +2208,10 @@ Cursor = Cursors.Hand
             if (время.TotalHours >= 100) return $"{(int)время.TotalHours}:{время.Minutes:00}";
             return время.ToString(@"hh\:mm");
         }
+
+
     }
+
+
+
 }
