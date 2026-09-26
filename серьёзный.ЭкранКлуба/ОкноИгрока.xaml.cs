@@ -23,7 +23,6 @@ using серьёзный.Окна;
 using серьёзный.ЭкранКлуба.Карусель;
 using серьёзный.ЭкранКлуба.Модели;
 using серьёзный.ЭкранКлуба.Сервисы;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace серьёзный.ЭкранКлуба
 {
