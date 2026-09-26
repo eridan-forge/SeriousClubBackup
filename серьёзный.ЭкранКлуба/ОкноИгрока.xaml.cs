@@ -17,12 +17,13 @@ using серьёзный.Core.CoreModels;
 using серьёзный.Core.CoreProfiles;
 using серьёзный.Core.CoreServices;
 using серьёзный.Core.CoreShop;
-using серьёзный.ЭкранКлуба.Карусель;
 using серьёзный.Карточки;
 using серьёзный.Модели;
 using серьёзный.Окна;
+using серьёзный.ЭкранКлуба.Карусель;
 using серьёзный.ЭкранКлуба.Модели;
 using серьёзный.ЭкранКлуба.Сервисы;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace серьёзный.ЭкранКлуба
 {
@@ -211,16 +212,31 @@ namespace серьёзный.ЭкранКлуба
             }
         }
 
+        private ОкноКарточкиИгры? окноПревью;
+
         private void ПоказатьПревьюИгры(Игра игра)
         {
-            var окно = new ОкноКарточкиИгры(игра)
-            {
+            var избранное = настройкиИгрока.Избранное.Contains(игра.Id);
+            
+                if (окноПревью != null && окноПревью.IsLoaded)
+                    {
+                окноПревью.ПоказатьДругую(игра, избранное);
+                        return;
+                    }
+            
+            окноПревью = new ОкноКарточкиИгры(игра, избранное)
+                {
                 Owner = this
-            };
-
-            окно.Играть += ЗапускИгры;
-
-            окно.ShowDialog();
+                    }
+            ;
+            
+            окноПревью.Играть += ЗапускИгры;
+            окноПревью.ИзбранноеПереключено += ПереключитьИзбранное;
+            окноПревью.ИграСкрыта += СкрытьИгру;
+            
+            окноПревью.Closed += (_, _) => окноПревью = null;
+            
+            окноПревью.Show();
         }
 
         private void ПереключитьИзбранное(Игра игра)
@@ -380,7 +396,13 @@ private void Таймер(object? sender, EventArgs e)
         {
             if (окноЗакрывается) return;
 
-           
+            if (аккаунт != null)
+                    {
+                var осталось = аккаунт.ОсталосьВремени - TimeSpan.FromSeconds(1);
+                аккаунт.ОсталосьВремени = осталось < TimeSpan.Zero ? TimeSpan.Zero : осталось;
+                    }
+
+
             ОбновитьИнформацию();
             ПроверитьДостижения();
 
@@ -1441,7 +1463,7 @@ Launcher = x.Launcher
             {
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
-                Padding = new Thickness(4, 0, 4, 10),
+                Padding = new Thickness(4, 0, 4, 6),
                 HorizontalContentAlignment = HorizontalAlignment.Stretch,
                 Cursor = Cursors.Hand,
                 Focusable = false
@@ -1452,18 +1474,26 @@ Launcher = x.Launcher
             строкаЗаголовка.Children.Add(new TextBlock
             {
                 Text = категория,
-                FontSize = 20,
+                FontSize = 26,
                 FontWeight = FontWeights.Bold,
                 Foreground = Brushes.White,
                 VerticalAlignment = VerticalAlignment.Center
             });
 
-            var ссылкаВсе = new TextBlock
+            var ссылкаВсе = new Border
             {
-                Text = $"Все ({игрыКатегории.Count})  →",
-                Foreground = (Brush)FindResource("ТекстВторичный"),
-                FontSize = 14,
-                VerticalAlignment = VerticalAlignment.Center
+                Background = (Brush)FindResource("ФонКарточкиАльт"),
+                CornerRadius = new CornerRadius(20),
+                Padding = new Thickness(14, 6, 14, 6),
+                Margin = new Thickness(0, 0, 6, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Child = new TextBlock
+    {
+                    Text = $"Все ({игрыКатегории.Count})  →",
+                    Foreground = (Brush)FindResource("ТекстВторичный"),
+                    FontSize = 14,
+                    FontWeight = FontWeights.SemiBold
+    }
             };
 
             DockPanel.SetDock(ссылкаВсе, Dock.Right);
