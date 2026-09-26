@@ -91,6 +91,8 @@ namespace серьёзный.ЭкранКлуба
 
             MouseLeftButtonDown += ПеретаскиваниеОкна;
 
+            PreviewMouseWheel += Окно_УскоренноеКолесо;
+
             Loaded += ПриЗагрузке;
             Closed += ПриЗакрытии;
 
@@ -160,6 +162,35 @@ namespace серьёзный.ЭкранКлуба
             Dispatcher.Invoke(() => _ = ЗагрузитьКаталогИгр());
         }
 
+        private void Окно_УскоренноеКолесо(object sender, MouseWheelEventArgs e)
+        {
+            if (e.OriginalSource is not DependencyObject исходник)
+                return;
+
+            // Над каруселью игр не вмешиваемся — у неё своя обработка колеса.
+            if (НайтиВизуальногоРодителя<КарусельИгр>(исходник) != null)
+                return;
+
+            if (НайтиВизуальногоРодителя<ScrollViewer>(исходник) is ScrollViewer скролл)
+            {
+                скролл.ScrollToVerticalOffset(скролл.VerticalOffset - e.Delta * 1.8);
+                e.Handled = true;
+            }
+        }
+
+        private static T? НайтиВизуальногоРодителя<T>(DependencyObject узел) where T : DependencyObject
+        {
+            while (узел != null)
+            {
+                if (узел is T найден)
+                    return найден;
+
+                узел = VisualTreeHelper.GetParent(узел);
+            }
+
+            return null;
+        }
+
         // =====================================================
         // ЗАПУСК / ИЗБРАННОЕ / СКРЫТИЕ ИГР
         // =====================================================
@@ -225,7 +256,9 @@ namespace серьёзный.ЭкранКлуба
                 окноПревью.ПоказатьДругую(игра, избранное);
                         return;
                     }
-            
+
+            ЗатемнениеПревью.Visibility = Visibility.Visible;
+
             окноПревью = new ОкноКарточкиИгры(игра, избранное)
                 {
                 Owner = this
@@ -235,9 +268,14 @@ namespace серьёзный.ЭкранКлуба
             окноПревью.Играть += ЗапускИгры;
             окноПревью.ИзбранноеПереключено += ПереключитьИзбранное;
             окноПревью.ИграСкрыта += СкрытьИгру;
-            
-            окноПревью.Closed += (_, _) => окноПревью = null;
-            
+
+            окноПревью.Closed += (_, _) =>
+       {
+                окноПревью = null;
+                ЗатемнениеПревью.Visibility = Visibility.Collapsed;
+                        }
+            ;
+
             окноПревью.Show();
         }
 
@@ -1489,29 +1527,26 @@ Launcher = x.Launcher
             var строкаЗаголовка = new DockPanel();
 
             строкаЗаголовка.Children.Add(new TextBlock
-            {
+        {
                 Text = категория,
-                FontSize = 26,
-                FontWeight = FontWeights.Bold,
-                Foreground = Brushes.White,
-                VerticalAlignment = VerticalAlignment.Center
-            });
-
-            var ссылкаВсе = new Border
-            {
-                Background = (Brush)FindResource("ФонКарточкиАльт"),
-                CornerRadius = new CornerRadius(20),
-                Padding = new Thickness(14, 6, 14, 6),
-                Margin = new Thickness(0, 0, 6, 0),
-                VerticalAlignment = VerticalAlignment.Center,
-                Child = new TextBlock
-    {
-                    Text = $"Все ({игрыКатегории.Count})  →",
-                    Foreground = (Brush)FindResource("ТекстВторичный"),
-                    FontSize = 14,
-                    FontWeight = FontWeights.SemiBold
-    }
-            };
+FontSize = 18,
+FontWeight = FontWeights.SemiBold,
+Foreground = (Brush)FindResource("ТекстВторичный"),
+VerticalAlignment = VerticalAlignment.Center,
+Margin = new Thickness(0, 6, 0, 0)
+        });
+            
+            var ссылкаВсе = new TextBlock
+                    {
+                Text = $"Все ({игрыКатегории.Count})  →",
+Foreground = (Brush)FindResource("ТекстВторичный"),
+FontSize = 13,
+FontWeight = FontWeights.SemiBold,
+VerticalAlignment = VerticalAlignment.Center,
+Margin = new Thickness(24, 0, 6, 0),
+Cursor = Cursors.Hand
+        }
+            ;
 
             DockPanel.SetDock(ссылкаВсе, Dock.Right);
             строкаЗаголовка.Children.Add(ссылкаВсе);
@@ -1529,7 +1564,7 @@ Launcher = x.Launcher
                 миниКарусель = new КарусельИгр
                 {
                     Height = 560,
-                    Margin = new Thickness(0, 0, 0, 30)
+                    Margin = new Thickness(0, 0, 0, 90)
                 };
 
                 миниКарусель.УстановитьМасштаб(1.05);

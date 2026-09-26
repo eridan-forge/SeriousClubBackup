@@ -61,7 +61,7 @@
 
                             <Border x:Name="Фон"
                                     CornerRadius="16"
-                                   Background="#33FFFFFF"
+                                   Background="Transparent"
                             BorderBrush="#66FFFFFF"
                            BorderThickness="1.4">
                                 <Border.Effect>
@@ -249,12 +249,35 @@
                         Click="КнопкаИзбранное_Click"
                         Panel.ZIndex="5"/>
 
+                <!-- Блюр обложки виден только в границах кнопки "Играть" —
+                     сама кнопка выше полностью прозрачна (Фон="Transparent"),
+                     поэтому "стекло" даёт именно этот слой. Числа 24/452/312/54 —
+                     точный прямоугольник кнопки в системе координат карточки
+                     360×540 (Margin 24 слева/справа, Height 54, отступ снизу 34:
+                     y = 540-34-54 = 452). Если размер карточки или кнопки
+                     поменяется — пересчитать эти четыре числа так же. -->
+                
+                <Border Height="54"
+                        Margin="24,0,24,34"
+                       VerticalAlignment="Bottom"
+                       CornerRadius="16">
+                    
+                    <Border.Background>
+                        
+                        <VisualBrush Visual="{Binding ElementName=ОбложкаРазмытая}"
+                                     Viewbox="24,452,312,54" ViewboxUnits="Absolute"
+                                     Stretch="None"/>
+                            
+                    </Border.Background>
+                    
+                </Border>
+
                 <!-- КНОПКА "ИГРАТЬ" — чуть ниже середины карточки, стеклянная, во всю ширину с отступами -->
                 <Button x:Name="КнопкаИграть"
                         Style="{StaticResource СтеклоКнопкаИграть}"
                         Content="▶  ИГРАТЬ"
-                        VerticalAlignment="Center"
-                        Margin="24,240,24,0"
+                        VerticalAlignment="Bottom"
+                       Margin="24,0,24,34"
                         Click="КнопкаИграть_Click"/>
 
             </Grid>

@@ -259,7 +259,7 @@
     </Style>
 
     <Style x:Key="ТонкийСкроллбар" TargetType="ScrollBar">
-        <Setter Property="Width" Value="6"/>
+        <Setter Property="Width" Value="4"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -269,7 +269,7 @@
                             <Thumb>
                                 <Thumb.Template>
                                     <ControlTemplate TargetType="Thumb">
-                                        <Border Background="#5C1826" CornerRadius="3" Margin="1,0"/>
+                                        <Border Background="#4DAAAAAA" CornerRadius="2" Margin="0.5,0"/>
                                     </ControlTemplate>
                                 </Thumb.Template>
                             </Thumb>

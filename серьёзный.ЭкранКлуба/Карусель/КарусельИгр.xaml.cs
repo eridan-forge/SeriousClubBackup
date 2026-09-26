@@ -198,10 +198,7 @@ public partial class КарусельИгр : UserControl
 
         e.Handled = true;
 
-        if (DateTime.Now - последнийШагКолеса < ЗадержкаКолеса)
-            return;
-
-        последнийШагКолеса = DateTime.Now;
+      
 
         ПодкрутитьК(целевойИндекс + (e.Delta < 0 ? 1 : -1));
     }
@@ -290,7 +287,7 @@ public partial class КарусельИгр : UserControl
         if (карточки.Count == 0)
             return;
 
-        double центрX = Сцена.ActualWidth / 2 - 18 * базовыйМасштаб;
+        double центрX = Сцена.ActualWidth / 2 - 70 * базовыйМасштаб;
         double центрY = Сцена.ActualHeight / 2;
 
         int количество = карточки.Count;

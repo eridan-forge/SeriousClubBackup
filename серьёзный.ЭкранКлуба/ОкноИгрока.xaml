@@ -397,64 +397,86 @@
             </Grid>
         </Grid>
 
+        <!-- Затемнение при открытой карточке игры -->
+        <Border x:Name="ЗатемнениеПревью"
+        Grid.Row="0" Grid.ColumnSpan="2"
+        Background="#B3000000"
+        Visibility="Collapsed"/>
+
         <!-- ===================== НИЖНЯЯ ПАНЕЛЬ ДЕЙСТВИЙ ===================== -->
-        <Border Grid.Row="1" Grid.ColumnSpan="2"
-                Background="{StaticResource ФонБоковойПанели}"
-                BorderBrush="{StaticResource РамкаЦвет}" BorderThickness="0,1,0,0">
+        <Grid Grid.Row="1" Grid.ColumnSpan="2">
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Border Height="46" VerticalAlignment="Top" Margin="0,-46,0,0" IsHitTestVisible="False">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#000F0B0D" Offset="0"/>
+                        <GradientStop Color="#8A0F0B0D" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+            </Border>
 
-                <Button Width="190" Height="74" Margin="10,0,10,0"
+            <Border Background="{StaticResource ФонБоковойПанели}">
+                <Border Margin="24,14"
+                CornerRadius="30"
+                Background="{StaticResource ФонКарточкиАльт}"
+                BorderBrush="{StaticResource РамкаЦвет}"
+                BorderThickness="1">
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+
+                        <Button Width="190" Height="74" Margin="10,0,10,0"
                         Style="{StaticResource БольшаяКнопкаДействия}"
                         Click="ВернутьсяКРабочемуСтолу_Click">
-                    <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="🖥" FontSize="24" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Вернуться к рабочему столу" FontSize="12" Margin="0,6,0,0"
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="🖥" FontSize="24" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Вернуться к рабочему столу" FontSize="12" Margin="0,6,0,0"
                                    HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
-                    </StackPanel>
-                </Button>
+                            </StackPanel>
+                        </Button>
 
-                <Button Width="190" Height="74" Margin="10,0,10,0"
+                        <Button Width="190" Height="74" Margin="10,0,10,0"
                         Style="{StaticResource БольшаяКнопкаДействия}"
                         Click="ВыбратьИгру_Click">
-                    <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="🎮" FontSize="24" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Выбрать игру" FontSize="12" Margin="0,6,0,0" HorizontalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="🎮" FontSize="24" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Выбрать игру" FontSize="12" Margin="0,6,0,0" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
 
-                <Button Width="190" Height="74" Margin="10,0,10,0"
+                        <Button Width="190" Height="74" Margin="10,0,10,0"
                         Style="{StaticResource БольшаяКнопкаДействияПредупреждение}"
                         Click="СообщитьОбОшибке_Click">
-                    <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="🆘" FontSize="24" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Сообщить об ошибке" FontSize="12" Margin="0,6,0,0"
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="🆘" FontSize="24" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Сообщить об ошибке" FontSize="12" Margin="0,6,0,0"
                                    HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
-                    </StackPanel>
-                </Button>
+                            </StackPanel>
+                        </Button>
 
-                <Button Width="190" Height="74" Margin="10,0,10,0"
+                        <Button Width="190" Height="74" Margin="10,0,10,0"
                         Style="{StaticResource БольшаяКнопкаДействияВажная}"
                         Click="Продлить_Click">
-                    <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="⏱" FontSize="24" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Продлить сеанс" FontSize="12" Margin="0,6,0,0" HorizontalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="⏱" FontSize="24" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Продлить сеанс" FontSize="12" Margin="0,6,0,0" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
 
-                <Button Width="190" Height="74" Margin="40,0,10,0"
+                        <Button Width="190" Height="74" Margin="40,0,10,0"
                         Style="{StaticResource БольшаяКнопкаДействия}"
                         Click="ЗавершитьСеанс_Click">
-                    <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="🚪" FontSize="24" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Выйти из аккаунта" FontSize="12" Margin="0,6,0,0"
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="🚪" FontSize="24" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Выйти из аккаунта" FontSize="12" Margin="0,6,0,0"
                                    HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
                     </StackPanel>
-                </Button>
+                </Border>
+            </Border>
 
-            </StackPanel>
-
-        </Border>
+        </Grid>
 
     </Grid>
 </Window>
