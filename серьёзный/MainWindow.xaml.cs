@@ -1897,6 +1897,14 @@ protected override void OnSourceInitialized(EventArgs e)
                     
                                         return;
                 }
+
+                if (входныеДанные?.Команда ==
+серьёзный.Сеть.КомандаПК.ЗапроситьСообществоИгры)
+                                    {
+                    _ = ОбработатьЗапросСообществаИгрыAsync(подключение, сообщение, входныеДанные);
+                    
+                                        return;
+                                    }
             }
 
             Dispatcher.Invoke(
@@ -3597,6 +3605,104 @@ protected override void OnSourceInitialized(EventArgs e)
             await подключение.ОтправитьAsync(ответ);
         }
 
+        private async Task ОбработатьЗапросСообществаИгрыAsync(
+    ПодключениеПатруля подключение,
+    СетевоеСообщение исходное,
+    серьёзный.Сеть.КомандаПатрулю данные)
+        {
+            var ответ = СетевоеСообщение.Создать(ТипСообщения.ОтветНаКоманду);
+
+            ответ.ИдентификаторСообщения = исходное.ИдентификаторСообщения;
+            ответ.КомпьютерId = исходное.КомпьютерId;
+
+            if (!данные.АккаунтId.HasValue || string.IsNullOrWhiteSpace(данные.Параметры))
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = "Некорректный запрос сообщества игр.";
+
+                await подключение.ОтправитьAsync(ответ);
+                return;
+            }
+
+            try
+            {
+                var запрос =
+                    System.Text.Json.JsonSerializer.Deserialize<
+                        серьёзный.Core.CoreModels.GameCommunityRequestDto > (данные.Параметры);
+
+                if (запрос == null || string.IsNullOrWhiteSpace(запрос.GameName))
+                    throw new InvalidOperationException("Не указано название игры.");
+
+                var сервис = new серьёзный.Core.CoreCommunity.GameCommunityService();
+                var accounts = new СервисАккаунтов();
+
+                var accountId = данные.АккаунтId.Value;
+                var playerName = accounts.Получить(accountId)?.ПолноеИмя ?? "Игрок";
+
+                switch (запрос.Action)
+                {
+                    case серьёзный.Core.CoreModels.GameCommunityAction.RateGame:
+                        сервис.SetRating(запрос.GameName, accountId, запрос.Stars);
+                        break;
+
+                    case серьёзный.Core.CoreModels.GameCommunityAction.AddReview:
+                        {
+                            var текущийРейтинг = сервис.GetRating(запрос.GameName, accountId);
+                            сервис.AddReview(запрос.GameName, accountId, playerName, запрос.ReviewText, текущийРейтинг.MyRating);
+                            break;
+                        }
+
+                    case серьёзный.Core.CoreModels.GameCommunityAction.AskQuestion:
+                        сервис.AskQuestion(запрос.GameName, accountId, playerName, запрос.QuestionText);
+                        break;
+                }
+
+                var рейтинг = сервис.GetRating(запрос.GameName, accountId);
+                var (отзывы, всегоОтзывов) = сервис.GetReviews(запрос.GameName);
+                var помощь = сервис.GetHelp(запрос.GameName);
+
+                ответ.Успешно = true;
+
+                ответ.УстановитьДанные(new серьёзный.Core.CoreModels.GameCommunityResultDto
+                {
+                    Success = true,
+                    Details = new серьёзный.Core.CoreModels.GameCommunityDetailsDto
+                    {
+                        GameName = запрос.GameName,
+                        AverageRating = рейтинг.Average,
+                        RatingCount = рейтинг.Count,
+                        MyRating = рейтинг.MyRating,
+                        ReviewCount = всегоОтзывов,
+
+                        Reviews = отзывы.Select(x => new серьёзный.Core.CoreModels.GameReviewDto
+                        {
+                            PlayerName = x.PlayerName,
+                            Stars = x.Stars,
+                            Text = x.Text,
+                            Time = x.Time
+                        }).ToList(),
+
+                        Help = помощь.Select(x => new серьёзный.Core.CoreModels.GameHelpQuestionDto
+                        {
+                            Id = x.Id,
+                            Question = x.Question,
+                            Answer = x.Answer,
+                            Answered = x.Answered,
+                            AskedBy = x.AskedBy,
+                            Time = x.Time
+                        }).ToList()
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                ответ.Успешно = false;
+                ответ.Ошибка = ex.Message;
+            }
+
+            await подключение.ОтправитьAsync(ответ);
+        }
+
         private серьёзный.Core.CoreModels.EconomyResultDto ВыполнитьЭкономику(
             Guid accountId,
             int pcId,
@@ -4809,6 +4915,18 @@ ShowPoints = видимостьФлаги.ShowPoints,
             {
                 Owner = this
             }.ShowDialog();
+        }
+
+        private void ВопросыИгр_Click(object sender, RoutedEventArgs e)
+        {
+            if (приложениеЗакрывается)
+                return;
+
+            var панель = new Панели.ПанельВопросовИгр();
+
+            панель.Закрыть += ПоказатьГлавную;
+
+            ПоказатьПанель(панель);
         }
 
 

@@ -322,6 +322,11 @@ new WeatherBridgeWorker(клиент, конфигурация);
             
             _ = weatherBridge.ЗапуститьAsync(токен);
 
+            var gameCommunityBridge =
+new GameCommunityBridgeWorker(клиент, конфигурация);
+            
+            _ = gameCommunityBridge.ЗапуститьAsync(токен);
+
 
             try
             {

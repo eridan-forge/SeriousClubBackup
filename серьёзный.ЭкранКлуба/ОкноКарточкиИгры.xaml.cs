@@ -13,6 +13,8 @@ public partial class ОкноКарточкиИгры : Window
     public event Action<Игра>? ИзбранноеПереключено;
     public event Action<Игра>? ИграСкрыта;
 
+    public event Action<Игра>? ПодробнееЗапрошено;
+
     private Игра игра;
 
     public ОкноКарточкиИгры(Игра игра, bool избранное)
@@ -119,6 +121,12 @@ public partial class ОкноКарточкиИгры : Window
     private void Скрыть_Click(object sender, RoutedEventArgs e)
     {
         ИграСкрыта?.Invoke(игра);
+        Закрыть_Click(sender, e);
+    }
+
+    private void Подробнее_Click(object sender, RoutedEventArgs e)
+    {
+        ПодробнееЗапрошено?.Invoke(игра);
         Закрыть_Click(sender, e);
     }
 }

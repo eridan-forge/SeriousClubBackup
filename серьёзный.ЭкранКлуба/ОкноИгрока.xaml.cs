@@ -38,7 +38,11 @@ namespace серьёзный.ЭкранКлуба
         private readonly GameSessionTracker трекер = new();
         private readonly СервисНастроекИгрока сервисНастроек = new();
 
-        
+        private List<Игра> текущийСписокКатегории = new();
+        private HashSet<Guid> текущиеИзбранные = new();
+        private Игра? выбраннаяБольшая;
+
+
 
         private readonly Guid аккаунтId;
         private readonly int компьютерId;
@@ -166,10 +170,15 @@ namespace серьёзный.ЭкранКлуба
         {
             if (e.OriginalSource is not DependencyObject исходник)
                 return;
-
-            // Над каруселью игр не вмешиваемся — у неё своя обработка колеса.
-            if (НайтиВизуальногоРодителя<КарусельИгр>(исходник) != null)
-                return;
+            // Раньше здесь прокрутка страницы пропускалась, если колесо
+                        // крутили над мини-каруселью — оставляя это её "собственной"
+                        // обработке. Но каждая мини-карусель в обзоре категорий уже
+                       // вызывает ОтключитьПрокруткуКолесом() и сама колесо не
+                        // обрабатывает — из-за этого над каруселями страница просто
+                        // ползла со стандартной, гораздо более медленной скоростью
+                        // ScrollViewer вместо ускоренной, как везде на странице.
+                        // Теперь ускорение работает одинаково по всему экрану, в
+                        // том числе над каруселями.
 
             if (НайтиВизуальногоРодителя<ScrollViewer>(исходник) is ScrollViewer скролл)
             {
@@ -247,6 +256,17 @@ namespace серьёзный.ЭкранКлуба
 
         private ОкноКарточкиИгры? окноПревью;
 
+        private void ПоказатьПодробностиИгры(Игра игра)
+        {
+            if (аккаунт == null)
+                return;
+
+            var окно = new ОкноПодробностейИгры(аккаунтId, аккаунт.ПолноеИмя, игра) { Owner = this };
+
+            окно.Играть += ЗапускИгры;
+            окно.Show();
+        }
+
         private void ПоказатьПревьюИгры(Игра игра)
         {
             var избранное = настройкиИгрока.Избранное.Contains(игра.Id);
@@ -268,6 +288,8 @@ namespace серьёзный.ЭкранКлуба
             окноПревью.Играть += ЗапускИгры;
             окноПревью.ИзбранноеПереключено += ПереключитьИзбранное;
             окноПревью.ИграСкрыта += СкрытьИгру;
+
+            окноПревью.ПодробнееЗапрошено += ПоказатьПодробностиИгры;
 
             окноПревью.Closed += (_, _) =>
        {
@@ -1610,39 +1632,253 @@ Cursor = Cursors.Hand
 
             ЗаголовокОднойКатегории.Text = заголовок;
 
-            СеткаОднойКатегории.Children.Clear();
+            текущийСписокКатегории = игрыСписок;
+            текущиеИзбранные = избранные;
 
-            foreach (var игра in игрыСписок)
+            ВыбратьБольшуюКарточку(игрыСписок.Count > 0 ? игрыСписок[0] : null);
+        }
+
+        private void ВыбратьБольшуюКарточку(Игра? игра)
+        {
+            выбраннаяБольшая = игра;
+
+            if (игра == null)
             {
-                var карточка = new КарточкаИгрыКарусель
-                {
-                    Margin = new Thickness(0, 0, 18, 18),
-                    // Карточка сама фиксированного размера (360×480) —
-                    // LayoutTransform уменьшает её ЦЕЛИКОМ (и площадь,
-                    // которую она занимает в layout'е), не трогая
-                    // внутреннюю разметку/обрезку — безопаснее, чем
-                    // менять Width/Height напрямую.
-                    LayoutTransform = new ScaleTransform(0.7, 0.7)
-                };
-
-                карточка.Загрузить(игра, избранные.Contains(игра.Id));
-
-                карточка.ИграЗапущена += ЗапускИгры;
-                карточка.КарточкаНажата += ПоказатьПревьюИгры;
-                карточка.ИзбранноеИзменилось += ПереключитьИзбранное;
-                карточка.ИграСкрыта += СкрытьИгру;
-
-                СеткаОднойКатегории.Children.Add(карточка);
+                БольшоеНазвание.Text = "Ничего не найдено";
+                БольшаяКатегория.Text = "";
+                БольшоеОписание.Text = "";
+                БольшаяОбложка.Source = null;
+                БольшаяЗаглушка.Visibility = Visibility.Visible;
+                ПанельЗвёздБольшой.Children.Clear();
+                ТекстРейтингЧисло.Text = "";
+                ТекстОтзывыКратко.Text = "";
+                ПостроитьСписокОстальных();
+                return;
             }
 
-            if (игрыСписок.Count == 0)
+            БольшоеНазвание.Text = игра.Название;
+            БольшаяКатегория.Text = игра.Категория;
+
+            if (!string.IsNullOrWhiteSpace(игра.Обложка) && File.Exists(игра.Обложка))
             {
-                СеткаОднойКатегории.Children.Add(new TextBlock
+                var картинка = new BitmapImage();
+                картинка.BeginInit();
+                картинка.CacheOption = BitmapCacheOption.OnLoad;
+                картинка.UriSource = new Uri(игра.Обложка);
+                картинка.EndInit();
+                картинка.Freeze();
+
+                БольшаяОбложка.Source = картинка;
+                БольшаяЗаглушка.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                БольшаяОбложка.Source = null;
+                БольшаяЗаглушка.Visibility = Visibility.Visible;
+            }
+
+            БольшоеОписание.Text = string.IsNullOrWhiteSpace(игра.Описание)
+                ? "Описание пока не добавлено."
+                : игра.Описание;
+
+            ПостроитьСписокОстальных();
+
+            _ = ЗагрузитьСводкуСообществаAsync(игра);
+        }
+
+        private async Task ЗагрузитьСводкуСообществаAsync(Игра игра)
+        {
+            var requestId = GameCommunityBridgeService.CreateRequest(
+                аккаунтId,
+                new GameCommunityRequestDto { Action = GameCommunityAction.GetDetails, GameName = игра.Название });
+
+            GameCommunityResultDto? результат = null;
+
+            for (int i = 0; i < 20; i++)
+            {
+                await Task.Delay(200);
+
+                if (окноЗакрывается || выбраннаяБольшая == null || выбраннаяБольшая.Название != игра.Название)
+                    return; // пользователь уже выбрал другую игру — не подменяем данные устаревшим ответом
+
+                результат = GameCommunityBridgeService.GetResult(requestId);
+                if (результат != null) break;
+            }
+
+            if (результат == null || !результат.Success || результат.Details == null)
+                return;
+
+            var d = результат.Details;
+
+            ПостроитьЗвёзды(ПанельЗвёздБольшой, (int)Math.Round(d.AverageRating), звезда =>
+            {
+                _ = ОтправитьРейтингAsync(игра.Название, звезда);
+            });
+
+            ТекстРейтингЧисло.Text = d.RatingCount == 0
+                ? "Оценок пока нет"
+                : $"{d.AverageRating:0.0} из 5 • {d.RatingCount} оценок";
+
+            ТекстОтзывыКратко.Text = $"💬 {d.ReviewCount} отзывов";
+        }
+
+        private async Task ОтправитьРейтингAsync(string gameName, int stars)
+        {
+            var requestId = GameCommunityBridgeService.CreateRequest(
+                аккаунтId,
+                new GameCommunityRequestDto { Action = GameCommunityAction.RateGame, GameName = gameName, Stars = stars });
+
+            for (int i = 0; i < 15; i++)
+            {
+                await Task.Delay(200);
+                if (GameCommunityBridgeService.GetResult(requestId) != null) break;
+            }
+
+            if (выбраннаяБольшая != null && выбраннаяБольшая.Название == gameName)
+                _ = ЗагрузитьСводкуСообществаAsync(выбраннаяБольшая);
+        }
+
+        private void ПостроитьСписокОстальных()
+        {
+            СписокОднойКатегории.Children.Clear();
+
+            foreach (var игра in текущийСписокКатегории)
+            {
+                if (игра == выбраннаяБольшая)
+                    continue;
+
+                СписокОднойКатегории.Children.Add(СоздатьСтрокуИгры(игра));
+            }
+
+            if (текущийСписокКатегории.Count <= 1)
+            {
+                СписокОднойКатегории.Children.Add(new TextBlock
                 {
-                    Text = "Ничего не найдено.",
-                    Foreground = (Brush)FindResource("ТекстВторичный"),
-                    FontSize = 16
+                    Text = "Больше игр в этой категории нет.",
+                    Foreground = (Brush)FindResource("ТекстВторичный")
                 });
+            }
+        }
+
+        private UIElement СоздатьСтрокуИгры(Игра игра)
+        {
+            var миниОбложка = new Border
+            {
+                Width = 90,
+                Height = 60,
+                CornerRadius = new CornerRadius(10),
+                Background = (Brush)FindResource("ФонКарточкиАльт"),
+                ClipToBounds = true,
+                Margin = new Thickness(0, 0, 16, 0)
+            };
+
+            if (!string.IsNullOrWhiteSpace(игра.Обложка) && File.Exists(игра.Обложка))
+            {
+                var картинка = new BitmapImage();
+                картинка.BeginInit();
+                картинка.CacheOption = BitmapCacheOption.OnLoad;
+                картинка.UriSource = new Uri(игра.Обложка);
+                картинка.EndInit();
+                картинка.Freeze();
+
+                миниОбложка.Child = new Image { Source = картинка, Stretch = Stretch.UniformToFill };
+            }
+            else
+            {
+                миниОбложка.Child = new TextBlock
+                {
+                    Text = "🎮",
+                    FontSize = 24,
+                    Opacity = 0.35,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+            }
+
+            var текстБлок = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+
+            текстБлок.Children.Add(new TextBlock
+            {
+                Text = игра.Название,
+                Foreground = Brushes.White,
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 16
+            });
+
+            текстБлок.Children.Add(new TextBlock
+            {
+                Text = string.IsNullOrWhiteSpace(игра.Описание) ? игра.Категория : игра.Описание,
+                Foreground = (Brush)FindResource("ТекстВторичный"),
+                FontSize = 12,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                Margin = new Thickness(0, 4, 0, 0)
+            });
+
+            var избранное = new TextBlock
+            {
+                Text = текущиеИзбранные.Contains(игра.Id) ? "★" : "☆",
+                Foreground = текущиеИзбранные.Contains(игра.Id) ? (Brush)FindResource("Золото") : Brushes.Gray,
+                FontSize = 20,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(14, 0, 0, 0)
+            };
+
+            var строка = new DockPanel();
+
+            DockPanel.SetDock(избранное, Dock.Right);
+            строка.Children.Add(миниОбложка);
+            строка.Children.Add(текстБлок);
+            строка.Children.Add(избранное);
+
+            var карточкаСтроки = new Border
+            {
+                Style = (Style)FindResource("КарточкаМалая"),
+                Cursor = Cursors.Hand,
+                Margin = new Thickness(0, 0, 0, 10),
+                Child = строка
+            };
+
+            карточкаСтроки.MouseLeftButtonUp += (_, _) => ВыбратьБольшуюКарточку(игра);
+
+            return карточкаСтроки;
+        }
+
+        private void ИгратьБольшая_Click(object sender, RoutedEventArgs e)
+        {
+            if (выбраннаяБольшая != null)
+                ЗапускИгры(выбраннаяБольшая);
+        }
+
+        private void ПодробнееБольшая_Click(object sender, RoutedEventArgs e)
+        {
+            if (выбраннаяБольшая == null)
+                return;
+
+            ПоказатьПодробностиИгры(выбраннаяБольшая);
+        }
+
+        private void ПостроитьЗвёзды(StackPanel панель, int заполнено, Action<int> приКлике)
+        {
+            панель.Children.Clear();
+
+            for (int i = 1; i <= 5; i++)
+            {
+                var номер = i;
+
+                var звезда = new TextBlock
+                {
+                    Text = номер <= заполнено ? "★" : "☆",
+                    FontSize = 26,
+                    Foreground = номер <= заполнено
+                        ? (Brush)FindResource("Золото")
+                        : (Brush)FindResource("ТекстПриглушённый"),
+                    Cursor = Cursors.Hand,
+                    Margin = new Thickness(0, 0, 4, 0)
+                };
+
+                звезда.MouseLeftButtonUp += (_, _) => приКлике(номер);
+
+                панель.Children.Add(звезда);
             }
         }
 

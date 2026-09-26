@@ -206,38 +206,73 @@
                         
 
                         <!-- РАЗВЁРНУТАЯ КАТЕГОРИЯ: сетка 5 в ряд, со скроллом -->
-                        
+
                         <Grid x:Name="ПанельОднойКатегории" Visibility="Collapsed">
-                            
                             <Grid.RowDefinitions>
-                                
                                 <RowDefinition Height="Auto"/>
-                                
                                 <RowDefinition Height="*"/>
-                                
                             </Grid.RowDefinitions>
-                           
 
                             <DockPanel Grid.Row="0" Margin="0,0,0,18">
-                                
                                 <Button DockPanel.Dock="Left" Width="110" Height="38"
-                                        Content="← Назад" Click="НазадККатегориям_Click"/>
-                                    
-
-                                    <TextBlock x:Name="ЗаголовокОднойКатегории"
-                                           FontSize="24" FontWeight="Bold" Foreground="White"
-                                          VerticalAlignment="Center" Margin="18,0,0,0"/>
+                Content="← Назад" Click="НазадККатегориям_Click"/>
+                                <TextBlock x:Name="ЗаголовокОднойКатегории"
+                   FontSize="24" FontWeight="Bold" Foreground="White"
+                   VerticalAlignment="Center" Margin="18,0,0,0"/>
                             </DockPanel>
-                            
 
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                
-                                <WrapPanel x:Name="СеткаОднойКатегории"/>
-                                
+                                <StackPanel>
+
+                                    <!-- БОЛЬШАЯ КАРТОЧКА + ИНФОРМАЦИЯ О ВЫБРАННОЙ ИГРЕ -->
+                                    <Grid Margin="0,0,0,28">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="360"/>
+                                            <ColumnDefinition Width="28"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <Border Grid.Column="0" Style="{StaticResource Карточка}" Padding="0" ClipToBounds="True" Height="500">
+                                            <Grid>
+                                                <Image x:Name="БольшаяОбложка" Stretch="UniformToFill"/>
+                                                <Grid x:Name="БольшаяЗаглушка" Background="{StaticResource ФонКарточкиАльт}">
+                                                    <TextBlock Text="🎮" FontSize="100" Opacity="0.3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
+
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock x:Name="БольшоеНазвание" FontSize="26" FontWeight="Bold" Foreground="White" TextWrapping="Wrap"/>
+                                            <TextBlock x:Name="БольшаяКатегория" FontSize="13" Foreground="{StaticResource ТекстВторичный}" Margin="0,4,0,0"/>
+
+                                            <StackPanel x:Name="ПанельЗвёздБольшой" Orientation="Horizontal" Margin="0,16,0,0"/>
+                                            <TextBlock x:Name="ТекстРейтингЧисло" Foreground="{StaticResource ТекстВторичный}" Margin="0,8,0,0"/>
+
+                                            <TextBlock Text="Описание" FontSize="15" FontWeight="Bold" Foreground="White" Margin="0,22,0,8"/>
+                                            <TextBlock x:Name="БольшоеОписание" Foreground="{StaticResource ТекстВторичный}"
+                               TextWrapping="Wrap" MaxHeight="150" TextTrimming="CharacterEllipsis"/>
+
+                                            <TextBlock x:Name="ТекстОтзывыКратко" Foreground="{StaticResource ТекстВторичный}" Margin="0,14,0,0"/>
+
+                                            <StackPanel Orientation="Horizontal" Margin="0,24,0,0">
+                                                <Button x:Name="КнопкаИгратьБольшая" Style="{StaticResource БольшаяКнопкаДействияВажная}"
+                                Width="190" Content="▶ ИГРАТЬ" Click="ИгратьБольшая_Click"/>
+                                                <Button Width="190" Margin="14,0,0,0" Content="ℹ Подробнее"
+                                Click="ПодробнееБольшая_Click"/>
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                    </Grid>
+
+                                    <TextBlock Text="Остальные игры" FontSize="17" FontWeight="SemiBold"
+                       Foreground="{StaticResource ТекстВторичный}" Margin="0,0,0,12"/>
+
+                                    <StackPanel x:Name="СписокОднойКатегории"/>
+
+                                </StackPanel>
                             </ScrollViewer>
-                            
                         </Grid>
-                        
+
 
                         <Border x:Name="ПлашкаОтменыСкрытия"
                     Background="#EE1E1420" BorderBrush="#5C1826" BorderThickness="1.3"
