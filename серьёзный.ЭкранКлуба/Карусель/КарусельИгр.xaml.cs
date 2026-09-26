@@ -188,7 +188,18 @@ public partial class КарусельИгр : UserControl
         // позже и откатить только что установленный индекс.
         поколениеАнимации++;
         BeginAnimation(ТекущийИндексProperty, null);
-        ТекущийИндекс = новыйЦентральныйИндекс;
+        if (Math.Abs(ТекущийИндекс - новыйЦентральныйИндекс) < 0.0001)
+                    {
+                       // Setting a DependencyProperty to its current value doesn't fire
+                        // PropertyChangedCallback — но карточки только что пересозданы
+                        // и ни разу не были расставлены по дуге. Без явного вызова они
+                        // остаются в углу Canvas (0,0) — это и выглядело как "всё пропало".
+           ПерепозиционироватьВсе();
+                    }
+                else
+                    {
+            ТекущийИндекс = новыйЦентральныйИндекс;
+                    }
 
 
     }
@@ -210,9 +221,23 @@ public partial class КарусельИгр : UserControl
     // НАВИГАЦИЯ
     // =====================================================
 
-    private void КнопкаНазад_Click(object sender, RoutedEventArgs e) => ПодкрутитьК(целевойИндекс - 1);
+    private void КнопкаНазад_Click(object sender, RoutedEventArgs e)
+    {
+        if (DateTime.Now - последнийШагКолеса<ЗадержкаКолеса)
+            return;
 
-    private void КнопкаВперёд_Click(object sender, RoutedEventArgs e) => ПодкрутитьК(целевойИндекс + 1);
+        последнийШагКолеса = DateTime.Now;
+        ПодкрутитьК(целевойИндекс - 1);
+    }
+
+    private void КнопкаВперёд_Click(object sender, RoutedEventArgs e)
+    {
+        if (DateTime.Now - последнийШагКолеса<ЗадержкаКолеса)
+            return;
+
+        последнийШагКолеса = DateTime.Now;
+        ПодкрутитьК(целевойИндекс + 1);
+    }
 
     private void Карусель_MouseWheel(object sender, MouseWheelEventArgs e)
     {

@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
 using серьёзный.Модели;
+
 
 namespace серьёзный.ЭкранКлуба.Сервисы;
 
@@ -26,7 +29,7 @@ public static class ТестовыйКаталогИгр
             {
                 список.Add(new Игра
                 {
-                    Id = Guid.NewGuid(),
+                    Id = СтабильныйId(категория, i),
                     Название = $"{категория} {i}",
                     Категория = категория,
                     Описание = $"Тестовая игра №{счётчик} в категории «{категория}».",
@@ -43,5 +46,12 @@ public static class ТестовыйКаталогИгр
         }
 
         return список;
+    }
+
+    private static Guid СтабильныйId(string категория, int индекс)
+    {
+        using var md5 = MD5.Create();
+        var хеш = md5.ComputeHash(Encoding.UTF8.GetBytes($"{категория}-{индекс}"));
+        return new Guid(хеш);
     }
 }
