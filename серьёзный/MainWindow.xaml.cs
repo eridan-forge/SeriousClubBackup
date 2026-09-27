@@ -29,9 +29,6 @@ using серьёзный.Модели;
 using серьёзный.Окна;
 using серьёзный.Сервисы;
 using серьёзный.Сеть;
-using static System.Net.Mime.MediaTypeNames;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace серьёзный
 {
