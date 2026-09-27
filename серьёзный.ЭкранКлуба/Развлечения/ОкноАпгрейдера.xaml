@@ -1,0 +1,76 @@
+﻿<Window x:Class="серьёзный.ЭкранКлуба.Развлечения.ОкноАпгрейдера"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Апгрейдер"
+        Width="900" Height="640"
+        WindowStartupLocation="CenterOwner"
+        Background="#0A0A0C">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/серьёзный.ЭкранКлуба;component/Стили/СтильИгрока.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="24">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="220"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Grid.ColumnSpan="3" Text="🔼 Апгрейдер" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,18"/>
+
+        <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource Карточка}" VerticalAlignment="Top">
+            <StackPanel>
+                <TextBlock Text="Ваш предмет" Foreground="{StaticResource ТекстВторичный}" FontSize="12" Margin="0,0,0,10"/>
+                <ComboBox x:Name="СписокМоихПредметов" Height="36" DisplayMemberPath="Название" SelectionChanged="ВыборПредмета_Changed"/>
+                <Border x:Name="КарточкаМоегоПредмета" Margin="0,18,0,0" Height="140" CornerRadius="12"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1" Grid.Column="1">
+            <Grid Width="320" Height="320" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Canvas x:Name="ХолстКруга" Width="320" Height="320"/>
+
+                <Border Width="180" Height="180" CornerRadius="90" Background="#161119" BorderBrush="#241419" BorderThickness="2"/>
+
+                <TextBlock x:Name="ТекстШанс" Text="45%" FontSize="34" FontWeight="Bold" Foreground="White"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                <Path x:Name="Стрелка" Data="M0,0 L14,0 L7,-140 Z" Fill="White"
+                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                      RenderTransformOrigin="0.5,0.5">
+                    <Path.RenderTransform>
+                        <RotateTransform x:Name="ВращениеСтрелки" Angle="0"/>
+                    </Path.RenderTransform>
+                    <Path.Effect>
+                        <DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="2"/>
+                    </Path.Effect>
+                </Path>
+            </Grid>
+        </Grid>
+
+        <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource Карточка}" VerticalAlignment="Top">
+            <StackPanel>
+                <TextBlock Text="Хотите получить" Foreground="{StaticResource ТекстВторичный}" FontSize="12" Margin="0,0,0,10"/>
+                <ComboBox x:Name="СписокЦелевыхПредметов" Height="36" DisplayMemberPath="Название" SelectionChanged="ВыборЦели_Changed"/>
+                <Border x:Name="КарточкаЦели" Margin="0,18,0,0" Height="140" CornerRadius="12"/>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
+            <TextBlock Text="Множитель:" Foreground="White" VerticalAlignment="Center" Margin="0,0,14,0"/>
+            <StackPanel x:Name="ПанельМножителей" Orientation="Horizontal"/>
+            <Button x:Name="КнопкаАпгрейд" Content="🔼 АПГРЕЙД" Width="200" Height="46" Margin="26,0,0,0"
+                    Style="{StaticResource БольшаяКнопкаДействияВажная}" Click="Апгрейд_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

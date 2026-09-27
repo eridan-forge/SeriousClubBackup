@@ -76,7 +76,25 @@ namespace серьёзный.ЭкранКлуба
         // отсчитывается убывающее время, без обращений к серверу.
         private DateTime? тестовыйСтарт;
 
-        
+        private void ОткрытьКейсы_Click(object sender, MouseButtonEventArgs e)
+        {
+            new серьёзный.ЭкранКлуба.Развлечения.ОкноВыбораКейса { Owner = this }.ShowDialog();
+        }
+
+        private void ОткрытьРулетку_Click(object sender, MouseButtonEventArgs e)
+        {
+            new серьёзный.ЭкранКлуба.Развлечения.ОкноРулетки { Owner = this }.ShowDialog();
+        }
+
+        private void ОткрытьСлоты_Click(object sender, MouseButtonEventArgs e)
+        {
+            new серьёзный.ЭкранКлуба.Развлечения.ОкноСлотов { Owner = this }.ShowDialog();
+        }
+
+        private void ОткрытьАпгрейдер_Click(object sender, MouseButtonEventArgs e)
+        {
+            new серьёзный.ЭкранКлуба.Развлечения.ОкноАпгрейдера { Owner = this }.ShowDialog();
+        }
 
         public ОкноИгрока(Guid idАккаунта, int idПК)
         {
@@ -785,7 +803,7 @@ private void Таймер(object? sender, EventArgs e)
             БлокПремиум.Visibility = сводкаЭкономики.Premium ? Visibility.Visible : Visibility.Collapsed;
 
             ПостроитьТарифыГлавная();
-            ПостроитьКейсы();
+           
 
             ПолеСтавки.IsEnabled = сводкаЭкономики.CasinoEnabled;
 
@@ -830,25 +848,7 @@ private void Таймер(object? sender, EventArgs e)
             }
         }
 
-        private void ПостроитьКейсы()
-        {
-            ПанельКейсов.Children.Clear();
-
-            foreach (var кейс in сводкаЭкономики!.Cases)
-            {
-                var кнопка = new Button
-                {
-                    Content = $"{кейс.Icon} {кейс.Name}\n{кейс.PriceInPoints} баллов",
-                    Width = 170,
-                    Height = 74,
-                    Margin = new Thickness(0, 0, 12, 12)
-                };
-
-                кнопка.Click += (_, _) => _ = ОбновитьЭкономикуAsync(new EconomyRequestDto { Action = EconomyAction.OpenCase, CaseId = кейс.Id });
-
-                ПанельКейсов.Children.Add(кнопка);
-            }
-        }
+      
 
         private void Крутить_Click(object sender, RoutedEventArgs e)
         {

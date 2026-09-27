@@ -1,0 +1,72 @@
+﻿<Window x:Class="серьёзный.ЭкранКлуба.Развлечения.ОкноОткрытияКейса"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Открытие кейса"
+        WindowStartupLocation="CenterOwner"
+        WindowState="Maximized"
+        WindowStyle="None"
+        Background="#0A0A0C">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/серьёзный.ЭкранКлуба;component/Стили/СтильИгрока.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" Margin="0,0,0,20">
+            <Button DockPanel.Dock="Right" Content="✕" Width="46" Height="46" Click="Закрыть_Click"/>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="ИконкаКейса" Text="📦" FontSize="36" Margin="0,0,14,0"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock x:Name="НазваниеКейса" Text="Кейс" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                    <TextBlock Text="Крутите и получайте случайные награды" Foreground="#8A8F9A" FontSize="12"/>
+                </StackPanel>
+            </StackPanel>
+        </DockPanel>
+
+        <StackPanel x:Name="ПанельЛент" Grid.Row="1" Orientation="Horizontal"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+        <StackPanel x:Name="ПанельРезультата" Grid.Row="1" Orientation="Horizontal"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+
+        <Border Grid.Row="2" Background="#161119" CornerRadius="16" Padding="18" Margin="0,20,0,0">
+            <StackPanel>
+                <TextBlock Text="Возможные предметы" Foreground="#8A8F9A" FontSize="12" Margin="0,0,0,10"/>
+                <WrapPanel x:Name="ПанельШансов"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="3" Margin="0,20,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Открыть:" Foreground="White" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <StackPanel x:Name="ПанельКоличества" Orientation="Horizontal"/>
+
+                <Border Width="1" Background="#241419" Margin="20,4"/>
+
+                <Button x:Name="КнопкаБыстро" Content="🐢 Обычная скорость" Width="220" Height="42"
+                        Style="{StaticResource ПодвкладкаКнопка}" Margin="20,0,0,0" Click="ПереключитьСкорость_Click"/>
+            </StackPanel>
+
+            <Button Grid.Column="1" x:Name="КнопкаОткрыть" Content="🎲 ОТКРЫТЬ"
+                    Width="220" Height="54" FontSize="17" FontWeight="Bold"
+                    Style="{StaticResource БольшаяКнопкаДействияВажная}"
+                    Click="Открыть_Click"/>
+        </Grid>
+    </Grid>
+</Window>
