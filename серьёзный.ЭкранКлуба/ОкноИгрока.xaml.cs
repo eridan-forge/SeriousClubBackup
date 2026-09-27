@@ -738,6 +738,36 @@ private void Таймер(object? sender, EventArgs e)
             _ = ОбновитьЭкономикуAsync(new EconomyRequestDto { Action = EconomyAction.ReportIssue, IssueText = окно.Текст });
         }
 
+        private void ОткрытьОкноПодарка(OnlinePlayerDto player)
+        {
+            var окно = new ОкноВвода($"Сколько баллов подарить «{player.FullName}»?", "50") { Owner = this };
+
+            if (окно.ShowDialog() != true)
+                return;
+
+            if (!long.TryParse(окно.Текст.Trim(), out var сумма) || сумма <= 0)
+            {
+                MessageBox.Show("Введите положительное число баллов.");
+                return;
+            }
+
+            if (аккаунтId == ТестовыйАккаунт.Id)
+            {
+                MessageBox.Show(
+                    $"Тестовый аккаунт: подарок {сумма} баллов игроку «{player.FullName}» (демо, баланс не меняется).",
+                    "Подарок");
+
+                return;
+            }
+
+            _ = ОбновитьЭкономикуAsync(new EconomyRequestDto
+            {
+                Action = EconomyAction.GiftPoints,
+                GiftTargetId = player.AccountId,
+                GiftAmount = сумма
+            });
+        }
+
         // =====================================================
         // ЭКОНОМИКА (баллы, казино, кейсы, инвентарь, тарифы, продление/завершение/сигнал)
         // =====================================================
@@ -1315,6 +1345,13 @@ private void Таймер(object? sender, EventArgs e)
 
         private async Task ОбновитьИгроковAsync(SocialActionDto действие)
         {
+            if (аккаунтId == ТестовыйАккаунт.Id)
+            {
+                социальноеСостояние = ПрименитьТестовоеДействие(действие);
+                ОтрисоватьИгроков();
+                return;
+            }
+
             var requestId = SocialBridgeService.CreateRequest(аккаунтId, действие);
 
             SocialStateDto? результат = null;
@@ -1330,6 +1367,38 @@ private void Таймер(object? sender, EventArgs e)
 
             социальноеСостояние = результат;
             ОтрисоватьИгроков();
+        }
+
+        private SocialStateDto ПрименитьТестовоеДействие(SocialActionDto действие)
+        {
+            var состояние = социальноеСостояние
+                ?? серьёзный.ЭкранКлуба.Сервисы.ТестовыйСписокИгроков.Сгенерировать();
+
+            switch (действие.Action)
+            {
+                case SocialAction.SendFriendRequest:
+                    var кому = состояние.Players.FirstOrDefault(x => x.AccountId == действие.TargetId);
+                    if (кому != null) кому.HasPendingOutgoing = true;
+                    break;
+
+                case SocialAction.AcceptFriendRequest:
+                    var заявка = состояние.Incoming.FirstOrDefault(x => x.RequestId == действие.RequestId);
+                    if (заявка != null)
+                    {
+                        состояние.Incoming.Remove(заявка);
+                        var друг = состояние.Players.FirstOrDefault(x => x.AccountId == заявка.FromAccountId);
+                        if (друг != null) друг.IsFriend = true;
+                    }
+                    break;
+
+                case SocialAction.RemoveFriend:
+                    состояние.Incoming.RemoveAll(x => x.FromAccountId == действие.TargetId);
+                    var убираемый = состояние.Players.FirstOrDefault(x => x.AccountId == действие.TargetId);
+                    if (убираемый != null) { убираемый.IsFriend = false; убираемый.HasPendingOutgoing = false; }
+                    break;
+            }
+
+            return состояние;
         }
 
         private void ОтрисоватьИгроков()
@@ -1426,6 +1495,15 @@ private void Таймер(object? sender, EventArgs e)
                 TargetId = player.AccountId
             });
 
+            var профиль = new Button { Content = "👤 Профиль", Width = 110, Margin = new Thickness(4) };
+            
+            профиль.Click += (_, _) =>
+            new ОкноПрофиляДругогоИгрока(player.AccountId) { Owner = this }.Show();
+            
+            var подарок = new Button { Content = "🎁 Подарок", Width = 110, Margin = new Thickness(4) };
+            
+            подарок.Click += (_, _) => ОткрытьОкноПодарка(player);
+
             var чат = new Button { Content = "💬", Width = 50, Margin = new Thickness(4) };
 
             чат.Click += (_, _) =>
@@ -1469,6 +1547,8 @@ private void Таймер(object? sender, EventArgs e)
 
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 10, 0, 0) };
             buttons.Children.Add(друг);
+            buttons.Children.Add(профиль);
+            buttons.Children.Add(подарок);
             buttons.Children.Add(чат);
 
             return new Border

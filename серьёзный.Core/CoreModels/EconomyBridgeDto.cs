@@ -8,7 +8,8 @@ public enum EconomyAction
     SetEquipped,
     ReportIssue,
     ExtendSession,
-    EndSession
+    EndSession,
+    GiftPoints
 }
 
 public class EconomyRequestDto
@@ -26,6 +27,10 @@ public class EconomyRequestDto
     public string? IssueText { get; set; } // ReportIssue
 
     public int ExtendMinutes { get; set; } // ExtendSession
+
+    public Guid GiftTargetId { get; set; }  // GiftPoints
+
+    public long GiftAmount { get; set; }    // GiftPoints
 }
 
 public class InventoryItemDto

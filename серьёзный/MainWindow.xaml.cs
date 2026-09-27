@@ -3786,8 +3786,55 @@ protected override void OnSourceInitialized(EventArgs e)
                         
                                                break;
                                             }
-                    
-                                    case серьёзный.Core.CoreModels.EconomyAction.EndSession:
+
+                case серьёзный.Core.CoreModels.EconomyAction.GiftPoints:
+                    {
+                        if (запрос.GiftAmount <= 0)
+                        {
+                            error = "Некорректная сумма подарка.";
+                            break;
+                        }
+
+                        if (запрос.GiftTargetId == accountId)
+                        {
+                            error = "Нельзя подарить баллы самому себе.";
+                            break;
+                        }
+
+                        var балансОтправителя = points.Get(accountId);
+
+                        if (балансОтправителя.Points < запрос.GiftAmount)
+                        {
+                            error = "Недостаточно баллов для подарка.";
+                            break;
+                        }
+
+                        var accounts = new СервисАккаунтов();
+
+                        var получатель = accounts.Получить(запрос.GiftTargetId);
+
+                        if (получатель == null)
+                        {
+                            error = "Получатель не найден.";
+                            break;
+                        }
+
+                        var отправитель = accounts.Получить(accountId);
+
+                        points.Award(accountId, -запрос.GiftAmount,
+                            $"Подарок игроку «{получатель.ПолноеИмя}»");
+
+                        points.Award(запрос.GiftTargetId, запрос.GiftAmount,
+                            $"Подарок от «{отправитель?.ПолноеИмя ?? "Игрок"}»");
+
+                        лог.Log("Подарок баллов",
+                            $"{запрос.GiftAmount} баллов игроку {получатель.ПолноеИмя}",
+                            "Игрок");
+
+                        break;
+                    }
+
+                case серьёзный.Core.CoreModels.EconomyAction.EndSession:
                                         {
                         var имя = new СервисАккаунтов().Получить(accountId)?.ПолноеИмя ?? "Игрок";
                         
