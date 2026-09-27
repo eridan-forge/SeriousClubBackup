@@ -26,6 +26,7 @@ namespace серьёзный.Окна
 
             Изменить.Click += ИзменитьВремя_Click;
             Баллы.Click += Баллы_Click;
+            VIP.Click += VIP_Click;
             Удалить.Click += Удалить_Click;
             ОчиститьЧат.Click += ОчиститьЧат_Click;
             СброситьПароль.Click += СброситьПароль_Click;
@@ -98,6 +99,48 @@ $"Баланс: {текущий.Points} баллов" +
             {
                 баллы.Award(аккаунт.Id, дельта, "Ручная корректировка админом");
             }
+        }
+
+        private void VIP_Click(object? sender, RoutedEventArgs e)
+        {
+            var isPremium = premium.IsPremium(аккаунт.Id);
+
+            var окно = new ОкноВвода(
+                $"VIP сейчас: {(isPremium ? "включён" : "выключен")}\n\n" +
+                "Введите число дней, на которое выдать VIP (например 30),\n" +
+                "0 — выдать бессрочно, пустое поле или «-» — снять VIP:",
+                "")
+            {
+                Owner = this
+            };
+
+            if (окно.ShowDialog() != true)
+                return;
+
+            var ввод = окно.Текст.Trim();
+
+            if (string.IsNullOrWhiteSpace(ввод) || ввод == "-")
+            {
+                premium.SetPremium(аккаунт.Id, false, null, "Администратор");
+                MessageBox.Show("VIP снят.", "Готово");
+                return;
+            }
+
+            if (!int.TryParse(ввод, out var дней) || дней < 0)
+            {
+                MessageBox.Show("Введите корректное число дней (0 — бессрочно).");
+                return;
+            }
+
+            DateTime? until = дней == 0 ? null : DateTime.Now.AddDays(дней);
+
+            premium.SetPremium(аккаунт.Id, true, until, "Администратор");
+
+            MessageBox.Show(
+                until.HasValue
+                    ? $"VIP выдан до {until.Value:dd.MM.yyyy}."
+                    : "VIP выдан бессрочно.",
+                "Готово");
         }
 
         private void СброситьПароль_Click(

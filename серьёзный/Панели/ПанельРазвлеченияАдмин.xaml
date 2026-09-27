@@ -82,6 +82,7 @@
                             <DataGridTextColumn Header="+% баллов" Binding="{Binding PointsBonusPercent}" Width="90"/>
                             <DataGridTextColumn Header="+% времени" Binding="{Binding TimeBonusPercent}" Width="90"/>
                             <DataGridTextColumn Header="Цена (баллы)" Binding="{Binding PriceInPoints}" Width="100"/>
+                            <DataGridTextColumn Header="Звук (.wav)" Binding="{Binding SoundFile}" Width="160"/>
                             <DataGridCheckBoxColumn Header="Включён" Binding="{Binding Enabled}" Width="80"/>
                         </DataGrid.Columns>
                     </DataGrid>

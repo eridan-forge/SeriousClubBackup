@@ -14,6 +14,7 @@ public class GameRatingSummary
 public class GameReviewRecord
 {
     public long Id { get; set; }
+    public string GameName { get; set; } = "";
     public string PlayerName { get; set; } = "";
     public int Stars { get; set; }
     public string Text { get; set; } = "";
@@ -192,6 +193,7 @@ public class GameCommunityService
                 list.Add(new GameReviewRecord
                 {
                     Id = r.GetInt64(0),
+                    GameName = gameName,
                     PlayerName = r.GetString(1),
                     Stars = r.GetInt32(2),
                     Text = r.GetString(3),
@@ -361,4 +363,93 @@ public class GameCommunityService
 
         return list;
     }
+
+
+    // =====================================================
+    // ПРОФИЛЬ ИГРОКА — по всем играм сразу
+    // =====================================================
+
+    public List<GameReviewRecord> GetMyReviews(Guid playerId, int take = 20)
+    {
+        using var con = Open();
+
+        var cmd = con.CreateCommand();
+
+        cmd.CommandText =
+            "SELECT Id, GameName, Stars, Text, Time FROM GameReviews " +
+            "WHERE PlayerId=$p ORDER BY Id DESC LIMIT $take;";
+
+        cmd.Parameters.AddWithValue("$p", playerId.ToString());
+        cmd.Parameters.AddWithValue("$take", take);
+
+        var list = new List<GameReviewRecord>();
+
+        using var r = cmd.ExecuteReader();
+
+        while (r.Read())
+        {
+            list.Add(new GameReviewRecord
+            {
+                Id = r.GetInt64(0),
+                GameName = r.GetString(1),
+                Stars = r.GetInt32(2),
+                Text = r.GetString(3),
+                Time = DateTime.Parse(r.GetString(4))
+            });
+        }
+
+        return list;
+    }
+
+    public List<GameHelpQuestionRecord> GetMyQuestions(Guid playerId, int take = 20)
+    {
+        using var con = Open();
+
+        var cmd = con.CreateCommand();
+
+        cmd.CommandText =
+            "SELECT Id, GameName, Question, Answer, AskedBy, Time FROM GameHelpQuestions " +
+            "WHERE PlayerId=$p ORDER BY Id DESC LIMIT $take;";
+
+        cmd.Parameters.AddWithValue("$p", playerId.ToString());
+        cmd.Parameters.AddWithValue("$take", take);
+
+        var list = new List<GameHelpQuestionRecord>();
+
+        using var r = cmd.ExecuteReader();
+
+        while (r.Read())
+        {
+            list.Add(new GameHelpQuestionRecord
+            {
+                Id = r.GetInt64(0),
+                GameName = r.GetString(1),
+                Question = r.GetString(2),
+                Answer = r.IsDBNull(3) ? null : r.GetString(3),
+                AskedBy = r.GetString(4),
+                Time = DateTime.Parse(r.GetString(5))
+            });
+        }
+
+        return list;
+    }
+
+    // Любимая игра — та, которую игрок оценил выше всего; при равенстве
+    // побеждает более свежая оценка. null, если оценок ещё нет.
+    public string? GetFavoriteGame(Guid playerId)
+    {
+        using var con = Open();
+
+        var cmd = con.CreateCommand();
+
+        cmd.CommandText =
+            "SELECT GameName FROM GameRatings WHERE PlayerId=$p " +
+            "ORDER BY Stars DESC, Time DESC LIMIT 1;";
+
+        cmd.Parameters.AddWithValue("$p", playerId.ToString());
+
+        return cmd.ExecuteScalar() as string;
+    }
+
+
 }

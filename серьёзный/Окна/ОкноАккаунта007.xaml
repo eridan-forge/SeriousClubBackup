@@ -161,6 +161,8 @@
 
             <Button x:Name="Баллы" Width="140" Height="38" Margin="0,0,10,10" Content="⭐ Баллы"/>
 
+            <Button x:Name="VIP" Width="140" Height="38" Margin="0,0,10,10" Content="⭐ VIP-статус"/>
+
             <Button x:Name="СброситьПароль" Width="160" Height="38" Margin="0,0,10,10" Content="🔑 Сбросить пароль"/>
 
             <Button x:Name="ИзменитьТелефон" Width="150" Height="38" Margin="0,0,10,10" Content="✏ Телефон"/>

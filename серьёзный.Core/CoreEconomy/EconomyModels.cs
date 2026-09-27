@@ -62,6 +62,11 @@ public class InventoryItem
     public int PriceInPoints { get; set; }
 
     public bool Enabled { get; set; } = true;
+
+     // Путь к звуковому файлу (.wav), который проигрывается при
+    // экипировке — часть "инвентаря звуков" в профиле игрока.
+   // Пусто = обычный косметический предмет без звука.
+    public string SoundFile { get; set; } = "";
 }
 
 public class PlayerInventoryEntry

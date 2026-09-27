@@ -18,6 +18,30 @@ public class PlayerAchievementDto
     public int? RewardFrame { get; set; }
 }
 
+public class PlayerReviewDto
+{
+    public string GameName { get; set; } = "";
+
+    public int Stars { get; set; }
+
+    public string Text { get; set; } = "";
+
+    public DateTime Time { get; set; }
+}
+
+public class PlayerQuestionDto
+{
+    public string GameName { get; set; } = "";
+
+    public string Question { get; set; } = "";
+
+    public string? Answer { get; set; }
+
+    public bool Answered => !string.IsNullOrWhiteSpace(Answer);
+
+    public DateTime Time { get; set; }
+}
+
 public class PlayerProfileDto
 {
     public Guid AccountId { get; set; }
@@ -45,4 +69,13 @@ public class PlayerProfileDto
     public List<PlayerProfileFrameDto> Frames { get; set; } = new();
 
     public List<PlayerAchievementDto> Achievements { get; set; } = new();
+
+    // Полноценный профиль: любимая игра, отзывы, вопросы, заказы.
+    public string? FavoriteGame { get; set; }
+
+    public List<PlayerReviewDto> MyReviews { get; set; } = new();
+
+    public List<PlayerQuestionDto> MyQuestions { get; set; } = new();
+
+    public List<ShopOrderDto> RecentOrders { get; set; } = new();
 }

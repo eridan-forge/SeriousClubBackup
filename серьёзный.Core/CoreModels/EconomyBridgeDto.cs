@@ -45,6 +45,10 @@ public class InventoryItemDto
     public bool Owned { get; set; }
 
     public bool Equipped { get; set; }
+
+     // Есть ли у предмета звуковой эффект — используется для отдельной
+    // секции "Звуки" в инвентаре профиля.
+    public bool HasSound { get; set; }
 }
 
 public class CaseDto

@@ -24,13 +24,14 @@ using серьёзный.Core.CoreComputers;
 using серьёзный.Core.CoreEconomy;
 using серьёзный.Core.CoreEvents;
 using серьёзный.Core.CoreShop;
+using серьёзный.Core.CoreThemes;
 using серьёзный.Модели;
 using серьёзный.Окна;
 using серьёзный.Сервисы;
 using серьёзный.Сеть;
-using серьёзный.Core.CoreThemes;
-
-
+using static System.Net.Mime.MediaTypeNames;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace серьёзный
 {
@@ -3849,7 +3850,8 @@ protected override void OnSourceInitialized(EventArgs e)
                     TimeBonusPercent = x.Item.TimeBonusPercent,
                     PriceInPoints = x.Item.PriceInPoints,
                     Owned = true,
-                    Equipped = x.Entry.Equipped
+                    Equipped = x.Entry.Equipped,
+                    HasSound = !string.IsNullOrWhiteSpace(x.Item.SoundFile)
                 }).ToList(),
 
                 Cases = cases.GetAll()
@@ -4154,6 +4156,8 @@ ShowPoints = видимостьФлаги.ShowPoints,
             var premium = new PremiumService();
             var styles = new серьёзный.Core.CoreProfiles.ProfileStyleService();
             var achievements = new серьёзный.Core.CoreProfiles.AchievementService();
+            var community = new серьёзный.Core.CoreCommunity.GameCommunityService();
+            var заказы = new серьёзный.Core.CoreShop.ShopRequestService();
 
             var balance = points.Get(targetId);
             var tier = levels.GetTierByPlayedSeconds((long)account.ВсегоСыграно.TotalSeconds);
@@ -4192,6 +4196,43 @@ ShowPoints = видимостьФлаги.ShowPoints,
                         RewardFrame = x.Info.RewardFrame.HasValue
                             ? (int)x.Info.RewardFrame.Value
                             : null
+                    })
+                   .ToList(),
+                
+FavoriteGame = community.GetFavoriteGame(targetId),
+                
+MyReviews = community.GetMyReviews(targetId)
+                    .Select(x => new серьёзный.Core.CoreModels.PlayerReviewDto
+                    {
+                    GameName = x.GameName,
+                    Stars = x.Stars,
+                    Text = x.Text,
+                    Time = x.Time
+                    })
+                    .ToList(),
+                
+MyQuestions = community.GetMyQuestions(targetId)
+                    .Select(x => new серьёзный.Core.CoreModels.PlayerQuestionDto
+                    {
+                    GameName = x.GameName,
+                    Question = x.Question,
+                    Answer = x.Answer,
+                    Time = x.Time
+                    })
+                    .ToList(),
+                
+RecentOrders = заказы.All
+                    .Where(x => x.AccountId == targetId)
+                    .OrderByDescending(x => x.Time)
+                    .Take(10)
+                    .Select(x => new серьёзный.Core.CoreModels.ShopOrderDto
+                    {
+                    Id = x.Id,
+                    ItemName = x.ItemName,
+                    Price = x.Price,
+                    Status = x.Status.ToString(),
+                    Delivery = x.Delivery.ToString(),
+                    Time = x.Time
                     })
                     .ToList()
             };

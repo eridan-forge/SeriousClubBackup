@@ -864,40 +864,59 @@ private void Таймер(object? sender, EventArgs e)
         private void ПостроитьИнвентарьПрофиль()
         {
             ПанельИнвентарьПрофиль.Children.Clear();
+            ПанельЗвукиПрофиль.Children.Clear();
 
             if (сводкаЭкономики == null) return;
 
-            foreach (var item in сводкаЭкономики.Inventory)
-            {
-                var кнопка = new Button
-                {
-                    Width = 200,
-                    Height = 90,
-                    Margin = new Thickness(0, 0, 12, 12),
-                    Content =
-                        $"{item.Icon} {item.Name}\n" +
-                        $"+{item.PointsBonusPercent}% баллов, +{item.TimeBonusPercent}% времени\n" +
-                        (item.Equipped ? "✅ Надето" : "Надеть")
-                };
+            var косметика = сводкаЭкономики.Inventory.Where(x => !x.HasSound).ToList();
+            var звуки = сводкаЭкономики.Inventory.Where(x => x.HasSound).ToList();
 
-                кнопка.Click += (_, _) => _ = ОбновитьЭкономикуAsync(new EconomyRequestDto
-                {
-                    Action = EconomyAction.SetEquipped,
-                    ItemId = item.Id,
-                    Equipped = !item.Equipped
-                });
+            foreach (var item in косметика)
+                ПанельИнвентарьПрофиль.Children.Add(СоздатьКнопкуИнвентаря(item));
 
-                ПанельИнвентарьПрофиль.Children.Add(кнопка);
-            }
+            foreach (var item in звуки)
+                ПанельЗвукиПрофиль.Children.Add(СоздатьКнопкуИнвентаря(item, "🔊"));
 
-            if (сводкаЭкономики.Inventory.Count == 0)
+            if (косметика.Count == 0)
             {
                 ПанельИнвентарьПрофиль.Children.Add(new TextBlock
                 {
-                    Text = "Инвентарь пуст.",
+                    Text = "Косметических предметов пока нет — их можно получить в кейсах.",
                     Foreground = (Brush)FindResource("ТекстВторичный")
                 });
             }
+
+            if (звуки.Count == 0)
+            {
+                ПанельЗвукиПрофиль.Children.Add(new TextBlock
+                {
+                    Text = "Звуковых эффектов пока нет.",
+                    Foreground = (Brush)FindResource("ТекстВторичный")
+                });
+            }
+        }
+
+        private Button СоздатьКнопкуИнвентаря(InventoryItemDto item, string? префикс = null)
+        {
+            var кнопка = new Button
+            {
+                Width = 200,
+                Height = 90,
+                Margin = new Thickness(0, 0, 12, 12),
+                Content =
+                    $"{item.Icon} {(префикс != null ? префикс + " " : "")}{item.Name}\n" +
+                    $"+{item.PointsBonusPercent}% баллов, +{item.TimeBonusPercent}% времени\n" +
+                    (item.Equipped ? "✅ Надето" : "Надеть")
+            };
+
+            кнопка.Click += (_, _) => _ = ОбновитьЭкономикуAsync(new EconomyRequestDto
+            {
+                Action = EconomyAction.SetEquipped,
+                ItemId = item.Id,
+                Equipped = !item.Equipped
+            });
+
+            return кнопка;
         }
 
         // =====================================================
@@ -941,11 +960,30 @@ private void Таймер(object? sender, EventArgs e)
                     ? $"⭐ Премиум до {профильДанные.PremiumUntil.Value:dd.MM.yyyy}"
                     : "⭐ Премиум бессрочно";
 
+            БейджVIPШапка.Visibility = профильДанные.Premium ? Visibility.Visible : Visibility.Collapsed;
+
             var текущаяРамка = (ProfileFrame)профильДанные.CurrentFrame;
             РамкаАватара.BorderBrush = КистьРамки(текущаяРамка);
 
+            ТекстСыграноПрофиль.Text = ФорматКороткий(TimeSpan.FromSeconds(профильДанные.PlayedSeconds));
+            ТекстСеансовПрофиль.Text = профильДанные.SessionCount.ToString();
+            ТекстМножительПрофиль.Text = $"x{профильДанные.LevelMultiplierPercent / 100.0:0.00}";
+            ТекстЛюбимаяИгра.Text = string.IsNullOrWhiteSpace(профильДанные.FavoriteGame)
+                ? "Пока не выбрана — поставь игре оценку!"
+                : профильДанные.FavoriteGame;
+
+            ТекстСтатусVIP.Text = !профильДанные.Premium
+                ? "Статус: нет подписки"
+                : профильДанные.PremiumUntil.HasValue
+                    ? $"Статус: активна до {профильДанные.PremiumUntil.Value:dd.MM.yyyy}"
+                    : "Статус: активна бессрочно";
+
+            ПостроитьТрофеиПрофиль();
             ПостроитьДостиженияПрофиль();
             ПостроитьРамкиПрофиль();
+            ПостроитьМоиОтзывы();
+            ПостроитьМоиВопросы();
+            ПостроитьЗаказыПрофиль();
         }
 
         private void ПостроитьДостиженияПрофиль()
@@ -1006,6 +1044,251 @@ private void Таймер(object? sender, EventArgs e)
                     Opacity = frameDto.Owned ? 1 : 0.4
                 });
             }
+        }
+
+        private void ПостроитьТрофеиПрофиль()
+        {
+            ПанельТрофеиПрофиль.Children.Clear();
+
+            var трофеи = профильДанные!.Achievements.Where(x => x.Unlocked).ToList();
+
+            if (трофеи.Count == 0)
+            {
+                ПанельТрофеиПрофиль.Children.Add(new TextBlock
+                {
+                    Text = "Пока нет ни одного трофея — заработай первое достижение!",
+                    Foreground = (Brush)FindResource("ТекстВторичный")
+                });
+                return;
+            }
+
+            foreach (var трофей in трофеи)
+            {
+                var стек = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
+
+                стек.Children.Add(new TextBlock
+                {
+                    Text = трофей.RewardFrame.HasValue ? "🏆" : "🥇",
+                    FontSize = 34,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                });
+
+                стек.Children.Add(new TextBlock
+                {
+                    Text = трофей.Name,
+                    Foreground = Brushes.White,
+                    FontWeight = FontWeights.Bold,
+                    FontSize = 12,
+                    TextAlignment = TextAlignment.Center,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 6, 0, 0)
+                });
+
+                ПанельТрофеиПрофиль.Children.Add(new Border
+                {
+                    Width = 120,
+                    Height = 110,
+                    Margin = new Thickness(0, 0, 10, 10),
+                    CornerRadius = new CornerRadius(14),
+                    Background = new SolidColorBrush(Color.FromArgb(40, 251, 191, 36)),
+                    BorderBrush = (Brush)FindResource("Золото"),
+                    BorderThickness = new Thickness(1),
+                    Child = стек,
+                    ToolTip = трофей.Description
+                });
+            }
+        }
+
+        private void ПостроитьМоиОтзывы()
+        {
+            ПанельМоиОтзывы.Children.Clear();
+
+            if (профильДанные!.MyReviews.Count == 0)
+            {
+                ПанельМоиОтзывы.Children.Add(new TextBlock
+                {
+                    Text = "Вы ещё не оставляли отзывов об играх.",
+                    Foreground = (Brush)FindResource("ТекстВторичный")
+                });
+                return;
+            }
+
+            foreach (var отзыв in профильДанные.MyReviews)
+            {
+                var стек = new StackPanel();
+                var верх = new DockPanel();
+
+                верх.Children.Add(new TextBlock
+                {
+                    Text = отзыв.GameName,
+                    Foreground = Brushes.White,
+                    FontWeight = FontWeights.Bold
+                });
+
+                var звёзды = new TextBlock
+                {
+                    Text = new string('★', Math.Clamp(отзыв.Stars, 0, 5)) + new string('☆', 5 - Math.Clamp(отзыв.Stars, 0, 5)),
+                    Foreground = (Brush)FindResource("Золото")
+                };
+
+                DockPanel.SetDock(звёзды, Dock.Right);
+                верх.Children.Add(звёзды);
+
+                стек.Children.Add(верх);
+
+                стек.Children.Add(new TextBlock
+                {
+                    Text = отзыв.Text,
+                    Foreground = (Brush)FindResource("ТекстВторичный"),
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 8, 0, 0)
+                });
+
+                стек.Children.Add(new TextBlock
+                {
+                    Text = отзыв.Time.ToString("dd.MM.yyyy HH:mm"),
+                    Foreground = (Brush)FindResource("ТекстПриглушённый"),
+                    FontSize = 11,
+                    Margin = new Thickness(0, 6, 0, 0)
+                });
+
+                ПанельМоиОтзывы.Children.Add(new Border
+                {
+                    Style = (Style)FindResource("КарточкаМалая"),
+                    Margin = new Thickness(0, 0, 0, 12),
+                    Child = стек
+                });
+            }
+        }
+
+        private void ПостроитьМоиВопросы()
+        {
+            ПанельМоиВопросы.Children.Clear();
+
+            if (профильДанные!.MyQuestions.Count == 0)
+            {
+                ПанельМоиВопросы.Children.Add(new TextBlock
+                {
+                    Text = "Вы ещё не задавали вопросов по играм.",
+                    Foreground = (Brush)FindResource("ТекстВторичный")
+                });
+                return;
+            }
+
+            foreach (var вопрос in профильДанные.MyQuestions)
+            {
+                var стек = new StackPanel();
+
+                стек.Children.Add(new TextBlock
+                {
+                    Text = вопрос.GameName,
+                    Foreground = (Brush)FindResource("ТекстВторичный"),
+                    FontSize = 12
+                });
+
+                стек.Children.Add(new TextBlock
+                {
+                    Text = "❓ " + вопрос.Question,
+                    Foreground = Brushes.White,
+                    FontWeight = FontWeights.Bold,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 4, 0, 0)
+                });
+
+                стек.Children.Add(new TextBlock
+                {
+                    Text = вопрос.Answered ? "💡 " + вопрос.Answer : "⏳ Ждёт ответа администратора.",
+                    Foreground = вопрос.Answered ? (Brush)FindResource("Успех") : (Brush)FindResource("ТекстПриглушённый"),
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 8, 0, 0)
+                });
+
+                ПанельМоиВопросы.Children.Add(new Border
+                {
+                    Style = (Style)FindResource("КарточкаМалая"),
+                    Margin = new Thickness(0, 0, 0, 12),
+                    Child = стек
+                });
+            }
+        }
+
+        private void ПостроитьЗаказыПрофиль()
+        {
+            ПанельЗаказыПрофиль.Children.Clear();
+
+            if (профильДанные!.RecentOrders.Count == 0)
+            {
+                ПанельЗаказыПрофиль.Children.Add(new TextBlock
+                {
+                    Text = "Заказов пока нет.",
+                    Foreground = (Brush)FindResource("ТекстВторичный")
+                });
+                return;
+            }
+
+            foreach (var заказ in профильДанные.RecentOrders)
+                ПанельЗаказыПрофиль.Children.Add(СоздатьКарточкуЗаказа(заказ));
+        }
+
+        // =====================================================
+        // ВКЛАДКИ ПРОФИЛЯ
+        // =====================================================
+
+        private void СкрытьВсеВкладкиПрофиля()
+        {
+            ПрофильСтраницаОбзор.Visibility = Visibility.Collapsed;
+            ПрофильСтраницаИнвентарь.Visibility = Visibility.Collapsed;
+            ПрофильСтраницаVIP.Visibility = Visibility.Collapsed;
+            ПрофильСтраницаИгры.Visibility = Visibility.Collapsed;
+            ПрофильСтраницаЗаказы.Visibility = Visibility.Collapsed;
+
+            foreach (var b in new[] { ВкладкаОбзорПрофиля, ВкладкаИнвентарьПрофиля, ВкладкаVIPПрофиля, ВкладкаИгрыПрофиля, ВкладкаЗаказыПрофиля })
+                b.Tag = null;
+        }
+
+        private void ВкладкаПрофиляОбзор_Click(object sender, RoutedEventArgs e)
+        {
+            СкрытьВсеВкладкиПрофиля();
+            ПрофильСтраницаОбзор.Visibility = Visibility.Visible;
+            ВкладкаОбзорПрофиля.Tag = "Активна";
+        }
+
+        private void ВкладкаПрофиляИнвентарь_Click(object sender, RoutedEventArgs e)
+        {
+            СкрытьВсеВкладкиПрофиля();
+            ПрофильСтраницаИнвентарь.Visibility = Visibility.Visible;
+            ВкладкаИнвентарьПрофиля.Tag = "Активна";
+        }
+
+        private void ВкладкаПрофиляVIP_Click(object sender, RoutedEventArgs e)
+        {
+            СкрытьВсеВкладкиПрофиля();
+            ПрофильСтраницаVIP.Visibility = Visibility.Visible;
+            ВкладкаVIPПрофиля.Tag = "Активна";
+        }
+
+        private void ВкладкаПрофиляИгры_Click(object sender, RoutedEventArgs e)
+        {
+            СкрытьВсеВкладкиПрофиля();
+            ПрофильСтраницаИгры.Visibility = Visibility.Visible;
+            ВкладкаИгрыПрофиля.Tag = "Активна";
+        }
+
+        private void ВкладкаПрофиляЗаказы_Click(object sender, RoutedEventArgs e)
+        {
+            СкрытьВсеВкладкиПрофиля();
+            ПрофильСтраницаЗаказы.Visibility = Visibility.Visible;
+            ВкладкаЗаказыПрофиля.Tag = "Активна";
+        }
+
+        private void НаписатьАдминистраторуОVIP_Click(object sender, RoutedEventArgs e)
+        {
+            if (!чатОткрыт)
+                ПереключитьЧат_Click(sender, e);
+
+            ПолеСообщенияЧат.Text = "Здравствуйте! Хочу оформить VIP-подписку.";
+            ПолеСообщенияЧат.Focus();
+            ПолеСообщенияЧат.CaretIndex = ПолеСообщенияЧат.Text.Length;
         }
 
         private static string НазваниеРамки(ProfileFrame frame) => frame switch

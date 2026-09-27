@@ -48,9 +48,39 @@ public class InventoryService
         """;
 
         cmd.ExecuteNonQuery();
+
+        ДобавитьКолонкуЗвукаЕслиНужно(con);
     }
 
     private SqliteConnection Open() => SqliteDb.Open();
+
+    // Старые базы не имели этой колонки — добавляем один раз,
+    // тем же паттерном PRAGMA table_info, что используется по всему
+    // проекту (СервисБазы001, СервисБазыЭкрана001).
+    private static void ДобавитьКолонкуЗвукаЕслиНужно(SqliteConnection con)
+    {
+        using var check = con.CreateCommand();
+
+        check.CommandText = "PRAGMA table_info(InventoryItems);";
+
+        using (var reader = check.ExecuteReader())
+        {
+            while (reader.Read())
+            {
+                var имя = reader.IsDBNull(1) ? "" : reader.GetString(1);
+
+                if (string.Equals(имя, "SoundFile", StringComparison.OrdinalIgnoreCase))
+                    return;
+            }
+        }
+
+        using var alter = con.CreateCommand();
+
+        alter.CommandText =
+            "ALTER TABLE InventoryItems ADD COLUMN SoundFile TEXT NOT NULL DEFAULT '';";
+
+        alter.ExecuteNonQuery();
+    }
 
     // =====================================================
     // ПРЕДМЕТЫ (каталог, редактирует админ)
@@ -64,7 +94,7 @@ public class InventoryService
 
         cmd.CommandText =
             "SELECT Id, Name, Description, Icon, PointsBonusPercent, " +
-            "TimeBonusPercent, PriceInPoints, Enabled FROM InventoryItems ORDER BY Name;";
+            "TimeBonusPercent, PriceInPoints, Enabled, SoundFile FROM InventoryItems ORDER BY Name;";
 
         using var r = cmd.ExecuteReader();
 
@@ -81,7 +111,8 @@ public class InventoryService
                 PointsBonusPercent = r.GetDouble(4),
                 TimeBonusPercent = r.GetDouble(5),
                 PriceInPoints = r.GetInt32(6),
-                Enabled = r.GetInt32(7) == 1
+                Enabled = r.GetInt32(7) == 1,
+                SoundFile = r.IsDBNull(8) ? "" : r.GetString(8)
             });
         }
 
@@ -97,12 +128,12 @@ public class InventoryService
         cmd.CommandText =
         """
         INSERT INTO InventoryItems
-        (Id, Name, Description, Icon, PointsBonusPercent, TimeBonusPercent, PriceInPoints, Enabled)
-        VALUES($id,$n,$d,$i,$pb,$tb,$price,$e)
+        (Id, Name, Description, Icon, PointsBonusPercent, TimeBonusPercent, PriceInPoints, Enabled, SoundFile)
+        VALUES($id,$n,$d,$i,$pb,$tb,$price,$e,$snd)
         ON CONFLICT(Id) DO UPDATE SET
             Name=$n, Description=$d, Icon=$i,
             PointsBonusPercent=$pb, TimeBonusPercent=$tb,
-            PriceInPoints=$price, Enabled=$e;
+            PriceInPoints=$price, Enabled=$e, SoundFile=$snd;
         """;
 
         cmd.Parameters.AddWithValue("$id", item.Id.ToString());
@@ -113,11 +144,13 @@ public class InventoryService
         cmd.Parameters.AddWithValue("$tb", item.TimeBonusPercent);
         cmd.Parameters.AddWithValue("$price", item.PriceInPoints);
         cmd.Parameters.AddWithValue("$e", item.Enabled ? 1 : 0);
+        cmd.Parameters.AddWithValue("$snd", item.SoundFile ?? "");
 
         cmd.ExecuteNonQuery();
 
         лог.Log("Изменён предмет",
-            $"«{item.Name}»: +{item.PointsBonusPercent}% баллов, +{item.TimeBonusPercent}% времени, цена {item.PriceInPoints}, вкл={item.Enabled}",
+            $"«{item.Name}»: +{item.PointsBonusPercent}% баллов, +{item.TimeBonusPercent}% времени, цена {item.PriceInPoints}, вкл={item.Enabled}" +
+            (string.IsNullOrWhiteSpace(item.SoundFile) ? "" : $", звук: {item.SoundFile}"),
             adminName);
     }
 
