@@ -131,12 +131,14 @@
         </Ellipse>
 
         <!-- СЛОЙ 2 — ЦЕНТРАЛЬНАЯ ПАНЕЛЬ ВХОДА.
-             ШИРИНА ПАНЕЛИ — здесь (было 700, стало 560). -->
+            ШИРИНА ПАНЕЛИ — здесь (было 700, стало 560).
+             Тёмный прямоугольник временно скрыт (Background=Transparent).
+             Чтобы вернуть — поставь Background="{StaticResource СтеклоПанелиВхода}". -->
         <Border x:Name="ПанельВхода"
                 Width="560"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Stretch"
-                Background="{StaticResource СтеклоПанелиВхода}">
+               Background="Transparent">
 
             <Border.Effect>
                 <DropShadowEffect Color="Black" BlurRadius="40" ShadowDepth="0" Opacity="0.6"/>
@@ -159,7 +161,7 @@
                 
 
                 <!-- ====================== ФОРМА ВХОДА ====================== -->
-                <StackPanel VerticalAlignment="Center" margin="50,0,50,60" Visibility="Collapse">
+                <StackPanel VerticalAlignment="Center" Margin="50,0,50,60" Visibility="Collapsed">
 
                     <!-- ЛОГОТИП: размер = Height, подъём = верхний Margin -->
                     <Grid Margin="0,0,0,30">
