@@ -37,4 +37,15 @@
 		<ProjectReference Include="..\серьёзный\серьёзный.csproj" />
 	</ItemGroup>
 
-</Project>
+
+	
+	<ItemGroup>
+	<None Update="Sounds\**\*">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</None>
+</ItemGroup>
+	<ItemGroup>
+		<None Update="Sounds\**\*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</Project>
