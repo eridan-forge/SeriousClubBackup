@@ -4,25 +4,27 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using серьёзный.Core.CoreComputers;
+using серьёзный.Core.CoreModels;
+using серьёзный.Core.CoreServices;
+using серьёзный.Core.CoreThemes;
+using серьёзный.Core.CoreWeather;
 using серьёзный.Модели;
 using серьёзный.Сервисы;
 using серьёзный.ЭкранКлуба.Модели;
 using серьёзный.ЭкранКлуба.Сервисы;
-using System.Text.Json;
-using серьёзный.Core.CoreServices;
-using System.Threading.Tasks;
-using серьёзный.Core.CoreComputers;
-using серьёзный.Core.CoreThemes;
-using серьёзный.Core.CoreModels;
-using серьёзный.Core.CoreWeather;
 
 namespace серьёзный.ЭкранКлуба
 {
@@ -48,6 +50,139 @@ namespace серьёзный.ЭкранКлуба
 
         private string? текущаяТемаId;
 
+        // =====================================================
+        // ЗАЩИТА ЭКРАНА ВХОДА ОТ ЗАКРЫТИЯ/ПЕРЕКЛЮЧЕНИЯ
+        //
+        // Разблокировать умеет только админ (по сети — Разблокировать()/
+        // ОткрытьОкноИгрока()) или сотрудник через "Обслуживание"
+        // (PasswordWindow, отдельный пароль). Пока защитаОтВыходаАктивна,
+        // хук глотает Win, Alt+Tab, Ctrl+Esc, Ctrl+Shift+Esc, Alt+Esc и
+        // Alt+F4 до того, как их увидит Explorer.
+        //
+        // ЧЕСТНО ПРО ГРАНИЦЫ: Ctrl+Alt+Delete не блокируется отсюда
+        // принципиально — это Secure Attention Sequence, её перехватывает
+        // сама ОС раньше любого хука любого процесса, без исключений.
+        // Win+L на части сборок Windows тоже иногда проходит мимо
+        // низкоуровневых хуков — если после этой правки окажется, что
+        // Win+L всё ещё срабатывает на твоих ПК, скажи, добавлю прицельную
+        // проверку именно под неё.
+        // =====================================================
+
+        private bool защитаОтВыходаАктивна = true;
+
+        private IntPtr хукКлавиатуры = IntPtr.Zero;
+
+        // Живая ссылка обязательна — иначе GC может собрать делегат,
+        // пока хук ещё установлен в системе, и коллбэк упадёт
+        // AccessViolationException на случайном нажатии клавиши.
+        private readonly LowLevelKeyboardProc обработчикКлавиатуры;
+
+        private const int WH_KEYBOARD_LL = 13;
+
+        private const int WM_KEYDOWN = 0x0100;
+        private const int WM_SYSKEYDOWN = 0x0104;
+
+        private const int VK_LWIN = 0x5B;
+        private const int VK_RWIN = 0x5C;
+        private const int VK_TAB = 0x09;
+        private const int VK_ESCAPE = 0x1B;
+        private const int VK_MENU = 0x12;    // Alt
+        private const int VK_CONTROL = 0x11;
+        private const int VK_SHIFT = 0x10;
+        private const int VK_F4 = 0x73;
+
+        private delegate IntPtr LowLevelKeyboardProc(
+            int nCode, IntPtr wParam, IntPtr lParam);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct KBDLLHOOKSTRUCT
+        {
+            public int vkCode;
+            public int scanCode;
+            public int flags;
+            public int time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr SetWindowsHookEx(
+            int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr CallNextHookEx(
+            IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr GetModuleHandle(string lpModuleName);
+
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        private void УстановитьХукКлавиатуры()
+        {
+            if (хукКлавиатуры != IntPtr.Zero)
+                return;
+
+            using var текущийПроцесс = Process.GetCurrentProcess();
+            using var текущийМодуль = текущийПроцесс.MainModule!;
+
+            хукКлавиатуры = SetWindowsHookEx(
+                WH_KEYBOARD_LL,
+                обработчикКлавиатуры,
+                GetModuleHandle(текущийМодуль.ModuleName),
+                0);
+        }
+
+        private IntPtr ОбработатьНажатиеКлавиши(
+            int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0 &&
+                защитаОтВыходаАктивна &&
+                (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN))
+            {
+                var данные = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+
+                bool altНажат = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
+                bool ctrlНажат = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+                bool shiftНажат = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+
+                bool блокировать =
+                    данные.vkCode == VK_LWIN ||
+                    данные.vkCode == VK_RWIN ||
+                    (данные.vkCode == VK_TAB && altНажат) ||
+                    (данные.vkCode == VK_ESCAPE && ctrlНажат && shiftНажат) ||
+                    (данные.vkCode == VK_ESCAPE && ctrlНажат) ||
+                    (данные.vkCode == VK_ESCAPE && altНажат) ||
+                    (данные.vkCode == VK_F4 && altНажат);
+
+                if (блокировать)
+                    return (IntPtr)1;
+            }
+
+            return CallNextHookEx(хукКлавиатуры, nCode, wParam, lParam);
+        }
+
+        // Если экран должен быть "замком", а активным вдруг оказалось
+        // другое окно — силой забираем фокус обратно. Пока
+        // защитаОтВыходаАктивна==false (игра, разблокированный стол)
+        // это окно и так скрыто Hide() — проверка не действует.
+        private void УдержатьЭкранВхода()
+        {
+            if (!защитаОтВыходаАктивна || !IsVisible)
+                return;
+
+            if (!Topmost)
+                Topmost = true;
+
+            var хендлОкна = new WindowInteropHelper(this).Handle;
+
+            if (хендлОкна != IntPtr.Zero && GetForegroundWindow() != хендлОкна)
+                Activate();
+        }
+
         // ---- ПЛЕЙЛИСТ ВИДЕО ТЕКУЩЕЙ ТЕМЫ (двойная буферизация) ----
         private readonly List<string> видеоТемы = new();
         private int индексВидео;
@@ -64,6 +199,9 @@ namespace серьёзный.ЭкранКлуба
 
         public MainWindow()
         {
+
+            обработчикКлавиатуры = ОбработатьНажатиеКлавиши;
+
             PatrolProcessLauncher.ЗапуститьЕслиНужно();
 
             InitializeComponent();
@@ -84,6 +222,8 @@ namespace серьёзный.ЭкранКлуба
 
         private void ПриЗагрузке(object sender, RoutedEventArgs e)
         {
+            УстановитьХукКлавиатуры();
+
             ОбновитьНастройки();
 
             ПрименитьТемуПоId(config.ThemeId);
@@ -110,6 +250,9 @@ namespace серьёзный.ЭкранКлуба
             наблюдение.Tick += (_, _) =>
             {
                 try { ПроверитьСостояние(); }
+                catch { }
+
+                try { УдержатьЭкранВхода(); }
                 catch { }
             };
             наблюдение.Start();
@@ -660,6 +803,8 @@ namespace серьёзный.ЭкранКлуба
 
         private void Разблокировать()
         {
+            защитаОтВыходаАктивна = false;
+
             if (!explorerЗапущен)
             {
                 Process.Start(new ProcessStartInfo
@@ -691,6 +836,7 @@ namespace серьёзный.ЭкранКлуба
                 return;
 
             окноИгрокаАктивно = true;
+            защитаОтВыходаАктивна = false;
 
             state.Locked = false;
             state.AccountId = accountId;
@@ -734,6 +880,8 @@ namespace серьёзный.ЭкранКлуба
 
         private void Заблокировать()
         {
+            защитаОтВыходаАктивна = true;
+
             Show();
             WindowState = WindowState.Maximized;
             Topmost = true;

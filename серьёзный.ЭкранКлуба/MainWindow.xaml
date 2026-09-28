@@ -146,10 +146,13 @@
 
             <Grid>
 
-                <!-- стеклянный блик у верхнего края -->
+                <!-- стеклянный блик у верхнего края — скрыт по просьбе,
+                     разметка оставлена как есть, чтобы можно было вернуть
+                     просто убрав Visibility ниже -->
                 <Border VerticalAlignment="Top"
                         Height="260"
-                        IsHitTestVisible="False">
+                       IsHitTestVisible="False"
+                        Visibility="Collapsed">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                             <GradientStop Color="#20FFFFFF" Offset="0"/>
