@@ -50,9 +50,9 @@
 </ItemGroup>
 
 <ItemGroup>
-  <None Update="client-config.json">
-    <Generator>MSBuild:Compile</Generator>
-  </None>
+     <None Update="client-config.json">
+     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+   </None>
 </ItemGroup>
 
 </Project>

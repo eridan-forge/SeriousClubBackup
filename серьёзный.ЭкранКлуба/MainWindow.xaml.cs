@@ -84,12 +84,12 @@ namespace серьёзный.ЭкранКлуба
 
         private const int VK_LWIN = 0x5B;
         private const int VK_RWIN = 0x5C;
-        private const int VK_TAB = 0x09;
         private const int VK_ESCAPE = 0x1B;
-        private const int VK_MENU = 0x12;    // Alt
         private const int VK_CONTROL = 0x11;
         private const int VK_SHIFT = 0x10;
-        private const int VK_F4 = 0x73;
+
+        private const int WM_SYSCOMMAND = 0x0112;
+        private const int SC_MINIMIZE = 0xF020;
 
         private delegate IntPtr LowLevelKeyboardProc(
             int nCode, IntPtr wParam, IntPtr lParam);
@@ -137,29 +137,29 @@ namespace серьёзный.ЭкранКлуба
         }
 
         private IntPtr ОбработатьНажатиеКлавиши(
-            int nCode, IntPtr wParam, IntPtr lParam)
+     int nCode, IntPtr wParam, IntPtr lParam)
         {
-            if (nCode >= 0 &&
-                защитаОтВыходаАктивна &&
-                (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN))
+            if (nCode >= 0 && защитаОтВыходаАктивна)
             {
                 var данные = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
 
-                bool altНажат = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
-                bool ctrlНажат = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
-                bool shiftНажат = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
-
-                bool блокировать =
-                    данные.vkCode == VK_LWIN ||
-                    данные.vkCode == VK_RWIN ||
-                    (данные.vkCode == VK_TAB && altНажат) ||
-                    (данные.vkCode == VK_ESCAPE && ctrlНажат && shiftНажат) ||
-                    (данные.vkCode == VK_ESCAPE && ctrlНажат) ||
-                    (данные.vkCode == VK_ESCAPE && altНажат) ||
-                    (данные.vkCode == VK_F4 && altНажат);
-
-                if (блокировать)
+                // Win: гасим и нажатие, и отпускание — «Пуск» и панель
+                // задач открываются именно по отпусканию клавиши.
+                if (данные.vkCode == VK_LWIN || данные.vkCode == VK_RWIN)
                     return (IntPtr)1;
+
+                // Ctrl+Esc открывает ту же панель «Пуск».
+                bool нажатие =
+                    wParam == (IntPtr)WM_KEYDOWN ||
+                    wParam == (IntPtr)WM_SYSKEYDOWN;
+
+                if (нажатие &&
+                    данные.vkCode == VK_ESCAPE &&
+                    (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0 &&
+                    (GetAsyncKeyState(VK_SHIFT) & 0x8000) == 0)
+                {
+                    return (IntPtr)1;
+                }
             }
 
             return CallNextHookEx(хукКлавиатуры, nCode, wParam, lParam);
@@ -174,8 +174,18 @@ namespace серьёзный.ЭкранКлуба
             if (!защитаОтВыходаАктивна || !IsVisible)
                 return;
 
+            // Свёрнуть экран нельзя — возвращаем, даже если открыт диалог.
+            if (WindowState != WindowState.Maximized)
+                WindowState = WindowState.Maximized;
+
             if (!Topmost)
                 Topmost = true;
+
+            // Пока поверх экрана открыт свой диалог (Обслуживание, ИнфоОкно,
+            // смена обоев) фокус не отбираем — иначе он «воюет» с окном
+            // пароля каждые 250 мс и ввод с клавиатуры ломается.
+            if (OwnedWindows.Count > 0)
+                return;
 
             var хендлОкна = new WindowInteropHelper(this).Handle;
 
@@ -208,6 +218,7 @@ namespace серьёзный.ЭкранКлуба
 
             Loaded += ПриЗагрузке;
             Closing += (_, e) => e.Cancel = true;
+            StateChanged += ПриСменеСостояния;
         }
 
         private static TimeZoneInfo ПолучитьМосковскийПояс()
@@ -218,6 +229,42 @@ namespace серьёзный.ЭкранКлуба
                 try { return TimeZoneInfo.FindSystemTimeZoneById("Europe/Moscow"); }
                 catch { return TimeZoneInfo.Local; }
             }
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+
+            if (PresentationSource.FromVisual(this) is HwndSource источник)
+                источник.AddHook(ОбработатьСообщениеОкна);
+        }
+
+        // Alt+Space → «Свернуть», кнопки шелла и т.п. приходят как WM_SYSCOMMAND.
+        private IntPtr ОбработатьСообщениеОкна(
+            IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (защитаОтВыходаАктивна &&
+                msg == WM_SYSCOMMAND &&
+                (int)(wParam.ToInt64() & 0xFFF0) == SC_MINIMIZE)
+            {
+                handled = true;
+            }
+
+            return IntPtr.Zero;
+        }
+
+        // Запасной вариант: если другой процесс всё же свернул окно через API,
+        // сразу возвращаем его обратно.
+        private void ПриСменеСостояния(object? sender, EventArgs e)
+        {
+            if (!защитаОтВыходаАктивна || WindowState != WindowState.Minimized)
+                return;
+
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (защитаОтВыходаАктивна)
+                    WindowState = WindowState.Maximized;
+            }));
         }
 
         private void ПриЗагрузке(object sender, RoutedEventArgs e)
