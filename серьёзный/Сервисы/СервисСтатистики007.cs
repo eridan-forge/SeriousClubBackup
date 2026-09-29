@@ -240,6 +240,54 @@ VALUES
             cmd.ExecuteNonQuery();
         }
 
+        public List<КорректировкаСтатистики007> ПолучитьКорректировки(
+    DateTime начало,
+    DateTime конец)
+        {
+            using var db = база.Открыть();
+            using var cmd = db.CreateCommand();
+
+            cmd.CommandText = @"
+SELECT Id, AdjustmentDate, RevenueDelta, SessionsDelta,
+       PlayedSecondsDelta, Note
+FROM StatisticsAdjustments
+WHERE AdjustmentDate >= @From
+  AND AdjustmentDate < @To
+ORDER BY AdjustmentDate DESC, Id DESC;";
+
+            cmd.Parameters.AddWithValue("@From", начало.Date.ToString("O"));
+            cmd.Parameters.AddWithValue("@To", конец.Date.ToString("O"));
+
+            using var reader = cmd.ExecuteReader();
+
+            var список = new List<КорректировкаСтатистики007>();
+
+            while (reader.Read())
+            {
+                список.Add(new КорректировкаСтатистики007
+                {
+                    Id = reader.GetInt64(0),
+                    Дата = DateTime.Parse(reader.GetString(1)),
+                    Выручка = reader.GetDecimal(2),
+                    Сеансов = reader.GetInt32(3),
+                    Минут = reader.GetInt64(4) / 60,
+                    Примечание = reader.IsDBNull(5) ? "" : reader.GetString(5)
+                });
+            }
+
+            return список;
+        }
+
+        public void УдалитьКорректировку(long id)
+        {
+            using var db = база.Открыть();
+            using var cmd = db.CreateCommand();
+
+            cmd.CommandText = "DELETE FROM StatisticsAdjustments WHERE Id = @Id;";
+            cmd.Parameters.AddWithValue("@Id", id);
+            cmd.ExecuteNonQuery();
+        }
+
         public void УдалитьВсеКорректировки(
             DateTime начало,
             DateTime конец)
@@ -292,5 +340,15 @@ WHERE AdjustmentDate >= @From
         public TimeSpan ИгровоеВремя =>
             TimeSpan.FromSeconds(
                 Math.Max(0, ИгровыхСекунд));
+    }
+
+    public class КорректировкаСтатистики007
+    {
+        public long Id { get; set; }
+        public DateTime Дата { get; set; }
+        public decimal Выручка { get; set; }
+        public int Сеансов { get; set; }
+        public long Минут { get; set; }
+        public string Примечание { get; set; } = "";
     }
 }
